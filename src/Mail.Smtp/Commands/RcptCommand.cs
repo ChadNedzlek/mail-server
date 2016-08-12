@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -48,6 +49,20 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 				if (!TryProcessParameterValue(smtpSession, parameterString, out errorReport, token))
 				{
 					return errorReport;
+				}
+
+				string[] mailboxParts = mailBox.Split('@');
+				if (mailboxParts.Length != 2)
+				{
+					return smtpSession.SendReplyAsync(ReplyCode.InvalidArguments, "Invalid mailbox name", token);
+				}
+
+				string domain = mailboxParts[1];
+
+				if (!smtpSession.IsAuthenticated &&
+					smtpSession.Settings.RelayDomains?.Contains(domain, StringComparer.OrdinalIgnoreCase) != true)
+				{
+					return smtpSession.SendReplyAsync(ReplyCode.MailboxUnavailable, "Invalid mailbox", token);
 				}
 
 				smtpSession.PendingMail.Recipents.Add(mailBox);

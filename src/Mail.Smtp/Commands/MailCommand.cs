@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -51,7 +52,13 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 				{
 					return errorReport;
 				}
-				
+
+				if (smtpSession.IsAuthenticated &&
+					!smtpSession.UserStore.CanUserSendAs(smtpSession.AuthenticatedUser, mailBox))
+				{
+					return smtpSession.SendReplyAsync(ReplyCode.MailboxUnavailable, "Invalid mailbox", token);
+				}
+
 				smtpSession.PendingMail = new SmtpMailMessage(
 					new SmtpPath(
 						sourceRouteList,
