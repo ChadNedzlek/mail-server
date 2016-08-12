@@ -10,27 +10,23 @@ namespace Vaettir.Mail.Server.Smtp
 	{
 		public SmtpImplementationFactory ImplementationFactory { get; private set; }
 
-		public SmtpListener() : this(Settings.Get<SmtpSettings>().DefaultPorts)
+		public SmtpSettings Settings { get; }
+
+		public SmtpListener() : this(Utility.Settings.Get<SmtpSettings>())
 		{
 		}
 
-		public SmtpListener(string ports) : base(ports)
+		public SmtpListener(SmtpSettings settings) : base(settings.DefaultPorts)
 		{
-			Init();
-		}
-
-		public SmtpListener(IEnumerable<int> ports) : base(ports)
-		{
+			Settings = settings;
 			Init();
 		}
 
 		private void Init()
 		{
 			ImplementationFactory = SmtpImplementationFactory.Default;
-			DomainName = Settings.Get<SmtpSettings>().DomainName;
 		}
 
-		public string DomainName { get; set; }
 		public IMailStore MailStore { get; set; }
 		public IUserStore UserStore { get; set; }
 
@@ -39,7 +35,7 @@ namespace Vaettir.Mail.Server.Smtp
 			return new SmtpSession(
 				connection,
 				ImplementationFactory,
-				DomainName,
+				Settings,
 				((IPEndPoint) local).Address.ToString(),
 				((IPEndPoint) remote).Address.ToString(),
 				MailStore,

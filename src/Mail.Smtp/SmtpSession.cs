@@ -13,19 +13,21 @@ namespace Vaettir.Mail.Server.Smtp
 	{
 		public SecurableConnection Connection { get; }
 		public SmtpImplementationFactory ImplementationFactory { get; }
-		public string DomainName { get; }
+		public SmtpSettings Settings { get; }
 		public IMailStore MailStore { get; }
 		public IUserStore UserStore { get; }
-		public SmtpMailMessage PendingMail { get; set; }
 		public string ConnectedHost { get; set; }
 		public string ConnectedIpAddress { get; }
 		public string IpAddress { get; }
+
 		public UserData AuthenticatedUser { get; set; }
+		public bool IsAuthenticated => AuthenticatedUser != null;
+		public SmtpMailMessage PendingMail { get; set; }
 
 		public SmtpSession(
 			SecurableConnection connection,
 			SmtpImplementationFactory implementationFactory,
-			string domainName,
+			SmtpSettings settings,
 			string ipAddress,
 			string connectedIpAddress,
 			IMailStore mailStore,
@@ -33,7 +35,7 @@ namespace Vaettir.Mail.Server.Smtp
 		{
 			Connection = connection;
 			ImplementationFactory = implementationFactory;
-			DomainName = domainName;
+			Settings = settings;
 			IpAddress = ipAddress;
 			ConnectedIpAddress = connectedIpAddress;
 			MailStore = mailStore;
@@ -42,7 +44,7 @@ namespace Vaettir.Mail.Server.Smtp
 
 		public async Task Start(CancellationToken token)
 		{
-			await SendReplyAsync(ReplyCode.Greeting, $"{DomainName} Service ready", token);
+			await SendReplyAsync(ReplyCode.Greeting, $"{Settings.DomainName} Service ready", token);
 			while (!token.IsCancellationRequested)
 			{
 				ICommand command = await GetCommandAsync(token);

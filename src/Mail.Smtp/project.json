@@ -7,6 +7,7 @@
         "Microsoft.NETCore.Portable.Compatibility": "1.0.1",
         "NETStandard.Library": "1.6.0",
         "System.Collections.Immutable": "1.2.0",
+        "System.Linq": "4.1.0",
         "Utility": "1.0.0-*"
     },
 

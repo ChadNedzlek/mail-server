@@ -57,7 +57,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 					extensions = extensions.Concat(new[] {"STARTTLS"});
 				}
 
-				await smtpSession.SendReplyAsync(ReplyCode.Okay, true, $"{smtpSession.DomainName} greets {Arguments}", token);
+				await smtpSession.SendReplyAsync(ReplyCode.Okay, true, $"{smtpSession.Settings.DomainName} greets {Arguments}", token);
 				await smtpSession.SendReplyAsync(ReplyCode.Okay, extensions, token);
 			}
 		}

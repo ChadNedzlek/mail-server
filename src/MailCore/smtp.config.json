@@ -2,6 +2,7 @@
 	"SmtpSettings": {
 		"DefaultPorts": [ 25 ],
 		"DomainName": "smtp.vaettir.net",
-		"MailStorePath": "D:\\temp\\mail"
+		"MailStorePath": "D:\\temp\\mail",
+		"RelayDomains": [ "vaettir.net", "xyons.net" ]
 	}
 }

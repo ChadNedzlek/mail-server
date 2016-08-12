@@ -14,7 +14,7 @@ namespace MailCore
         public static void Main(string[] args)
         {
 	        var smtpSettings = Settings.Get<SmtpSettings>();
-	        var smtp = new SmtpListener(smtpSettings.DefaultPorts) {
+	        var smtp = new SmtpListener(smtpSettings) {
 				MailStore = new FileSystemMailStore(smtpSettings.MailStorePath),
 			};
 	        CancellationTokenSource cts = new CancellationTokenSource();

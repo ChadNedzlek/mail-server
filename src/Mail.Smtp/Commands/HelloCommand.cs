@@ -21,7 +21,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 			public override Task ExecuteAsync(SmtpSession smtpSession, CancellationToken token)
 			{
 				smtpSession.ConnectedHost = Arguments;
-				return smtpSession.SendReplyAsync(ReplyCode.Okay, $"{smtpSession.DomainName} greets {Arguments}", token);
+				return smtpSession.SendReplyAsync(ReplyCode.Okay, $"{smtpSession.Settings.DomainName} greets {Arguments}", token);
 			}
 		}
 	}

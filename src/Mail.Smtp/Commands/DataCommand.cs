@@ -38,7 +38,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 					token))
 				using(var mailWriter = new StreamWriter(mailStream, Encoding.UTF8))
 				{
-					await mailWriter.WriteLineAsync($"Received: FROM {smtpSession.ConnectedHost} ({smtpSession.ConnectedIpAddress}) BY {smtpSession.DomainName} ({smtpSession.IpAddress}); {DateTime.UtcNow:ddd, dd MMM yyy HH:mm:ss zzzz}");
+					await mailWriter.WriteLineAsync($"Received: FROM {smtpSession.ConnectedHost} ({smtpSession.ConnectedIpAddress}) BY {smtpSession.Settings.DomainName} ({smtpSession.IpAddress}); {DateTime.UtcNow:ddd, dd MMM yyy HH:mm:ss zzzz}");
 
 					string line;
 					while ((line = await smtpSession.Connection.ReadLineAsync(Encoding.UTF8, token)) != ".")

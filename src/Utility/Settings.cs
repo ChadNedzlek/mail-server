@@ -5,35 +5,49 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Vaettir.Utility
 {
 	public static class Settings
 	{
-		private static readonly Lazy<IConfiguration> _config = new Lazy<IConfiguration>(BuildConfig);
+		private static readonly Lazy<List<JObject>> _objects = new Lazy<List<JObject>>(BuildConfig);
 
-		private static IConfiguration BuildConfig()
+		private static List<JObject> BuildConfig()
 		{
-			ConfigurationBuilder builder = new ConfigurationBuilder();
-			string rootRelativeConfig = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), "smtp.config.json");
-			builder.AddJsonFile("smtp.config.json");
-			string text = File.ReadAllText(rootRelativeConfig);
-			return builder.Build();
+			List<string> configPaths = new List<string> {"smtp.config.json"};
+			List<JObject> objects = new List<JObject>();
+			foreach (var path in configPaths)
+			{
+				using (var reader = File.OpenText(path))
+				using (var json = new JsonTextReader(reader))
+				{
+					objects.Add(JObject.Load(json));
+				}
+			}
+			return objects;
 		}
 
 		private static readonly ConcurrentDictionary<Type, object> _builtConfigs = new ConcurrentDictionary<Type, object>();
 
-		public static T Get<T>() where T: new()
+		public static T Get<T>()
 		{
 			Type configType = typeof(T);
-			return (T) _builtConfigs.GetOrAdd(configType, t => BindValue(t, _config.Value));
+			return (T) _builtConfigs.GetOrAdd(configType, t => BindValue(t, _objects.Value));
 		}
 
-		private static object BindValue(Type type, IConfiguration configuration)
+		private static object BindValue(Type type, List<JObject> configuration)
 		{
-			object value = Activator.CreateInstance(type);
-			configuration.GetSection(type.Name).Bind(value);
-			return value;
+			string typeName = type.Name;
+			var foundConfig = configuration.Select(c => c[typeName]).FirstOrDefault(c => c != null);
+			if (foundConfig == null)
+				return null;
+
+			using (JsonReader reader = new JTokenReader(foundConfig))
+			{
+				return JsonSerializer.CreateDefault().Deserialize(reader, type);
+			}
 		}
 	}
 }
