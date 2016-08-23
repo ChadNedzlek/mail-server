@@ -54,21 +54,23 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 					last = true;
 				}
 
-				using (var mailStream = await smtpSession.MailStore.GetNewMailStreamAsync(
-					smtpSession.PendingMail.FromPath.Mailbox,
-					smtpSession.PendingMail.Recipents,
-					token))
+				using (var mailReference = await smtpSession.MailStore.NewMailAsync(smtpSession.PendingMail.FromPath.Mailbox, smtpSession.PendingMail.Recipents, token))
 				{
-
-					byte[] chunk = new byte[1000];
-					int totalRead = 0;
-					do
+					using (var mailStream = mailReference.BodyStream)
 					{
-						int toRead = Math.Min((int) chunk.Length, length - totalRead);
-						int read = await smtpSession.Connection.ReadBytesAsync(chunk, 0, toRead, token);
-						totalRead += read;
-						await mailStream.WriteAsync(chunk, 0, read, token);
-					} while (totalRead < length);
+
+						byte[] chunk = new byte[1000];
+						int totalRead = 0;
+						do
+						{
+							int toRead = Math.Min((int) chunk.Length, length - totalRead);
+							int read = await smtpSession.Connection.ReadBytesAsync(chunk, 0, toRead, token);
+							totalRead += read;
+							await mailStream.WriteAsync(chunk, 0, read, token);
+						} while (totalRead < length);
+					}
+
+					await mailReference.SaveAsync(token);
 				}
 
 				await smtpSession.SendReplyAsync(ReplyCode.Okay, $"Recieved {length} octets", token);

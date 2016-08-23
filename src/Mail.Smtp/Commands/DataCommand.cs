@@ -32,13 +32,12 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 				}
 
 				await smtpSession.SendReplyAsync(ReplyCode.StartMail, "Send data, end with .<CR><LF>", token);
-				using (var mailStream = await smtpSession.MailStore.GetNewMailStreamAsync(
-					smtpSession.PendingMail.FromPath.Mailbox,
-					smtpSession.PendingMail.Recipents,
-					token))
-				using(var mailWriter = new StreamWriter(mailStream, Encoding.UTF8))
+				using (var mailStream = await smtpSession.MailStore.NewMailAsync(smtpSession.PendingMail.FromPath.Mailbox,smtpSession.PendingMail.Recipents,token))
+				using (var mailWriter = new StreamWriter(mailStream.BodyStream, Encoding.UTF8))
 				{
-					await mailWriter.WriteLineAsync($"Received: FROM {smtpSession.ConnectedHost} ({smtpSession.ConnectedIpAddress}) BY {smtpSession.Settings.DomainName} ({smtpSession.IpAddress}); {DateTime.UtcNow:ddd, dd MMM yyy HH:mm:ss zzzz}");
+					await
+						mailWriter.WriteLineAsync(
+							$"Received: FROM {smtpSession.ConnectedHost} ({smtpSession.ConnectedIpAddress}) BY {smtpSession.Settings.DomainName} ({smtpSession.IpAddress}); {DateTime.UtcNow:ddd, dd MMM yyy HH:mm:ss zzzz}");
 
 					string line;
 					while ((line = await smtpSession.Connection.ReadLineAsync(Encoding.UTF8, token)) != ".")
