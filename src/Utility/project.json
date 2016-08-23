@@ -5,7 +5,7 @@
         "Microsoft.Composition": "1.0.30",
         "Microsoft.Extensions.Configuration": "1.0.0",
         "Microsoft.Extensions.Configuration.Binder": "1.0.0",
-        "Microsoft.Extensions.Configuration.Json": "1.0.0-rc2-final",
+					"Microsoft.Extensions.Configuration.Json": "1.0.0",
         "Microsoft.Framework.ConfigurationModel.Json": "1.0.0-beta4",
         "NETStandard.Library": "1.6.0",
         "System.Collections.Immutable": "1.2.0",
