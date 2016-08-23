@@ -12,8 +12,7 @@ namespace Tests
 		[Fact]
 		public async Task NoPrematureReturn()
 		{
-			Task complete;
-			MutexThread waiter = MutexThread.Begin(CancellationToken.None, out complete);
+			MutexThread waiter = MutexThread.Begin(CancellationToken.None);
 			Mutex m = new Mutex();
 			try
 			{
@@ -31,8 +30,7 @@ namespace Tests
 		[Fact]
 		public async Task SignalReturns()
 		{
-			Task complete;
-			MutexThread waiter = MutexThread.Begin(CancellationToken.None, out complete);
+			MutexThread waiter = MutexThread.Begin(CancellationToken.None);
 			Mutex m = new Mutex();
 			try
 			{

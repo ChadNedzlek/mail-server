@@ -30,6 +30,8 @@ namespace Vaettir.Utility
 		private readonly ConcurrentBag<Mutex> _releaseable = new ConcurrentBag<Mutex>();
 		private readonly EventWaitHandle _pendingReady = new AutoResetEvent(false);
 
+		public Task Task { get; private set; }
+
 		private void Run(CancellationToken token)
 		{
 			List<WaitBlock> waiting = new List<WaitBlock>();
@@ -87,10 +89,10 @@ namespace Vaettir.Utility
 			_pendingReady.Set();
 		}
 
-		public static MutexThread Begin(CancellationToken token, out Task complete)
+		public static MutexThread Begin(CancellationToken token)
 		{
 			var thread = new MutexThread();
-			complete = Task.Run(() => thread.Run(token), token);
+			thread.Task = Task.Run(() => thread.Run(token), token);
 			return thread;
 		}
 	}
