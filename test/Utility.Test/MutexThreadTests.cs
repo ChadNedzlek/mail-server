@@ -50,8 +50,7 @@ namespace Tests
 		[Fact]
 		public async Task SignalReturnsOnTime()
 		{
-			Task complete;
-			MutexThread waiter = MutexThread.Begin(CancellationToken.None, out complete);
+			MutexThread waiter = MutexThread.Begin(CancellationToken.None);
 			Mutex m = new Mutex();
 			try
 			{
