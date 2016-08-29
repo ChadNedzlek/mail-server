@@ -95,7 +95,10 @@ namespace Vaettir.Mail.Server.FileSystem
 			}
 		}
 
-		public async Task<IMailWriteReference> NewMailAsync(string sender, IEnumerable<string> recipients, CancellationToken token)
+		public async Task<IMailWriteReference> NewMailAsync(
+			string sender,
+			IEnumerable<string> recipients,
+			CancellationToken token)
 		{
 			string mailName = Guid.NewGuid().ToString("D");
 
@@ -175,6 +178,7 @@ namespace Vaettir.Mail.Server.FileSystem
 			{
 				File.Delete(mailReference.Path);
 			}
+
 			return Task.FromResult((object) null);
 		}
 	}

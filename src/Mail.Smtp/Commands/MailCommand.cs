@@ -59,6 +59,12 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 					return smtpSession.SendReplyAsync(ReplyCode.MailboxUnavailable, "Invalid mailbox", token);
 				}
 
+				if (!smtpSession.IsAuthenticated &&
+					smtpSession.Settings.RelayDomains.Contains(MailUtilities.GetDomainFromMailbox(mailBox)))
+				{
+					return smtpSession.SendReplyAsync(ReplyCode.InvalidArguments, "Must be signed in to send from domain", token);
+				}
+
 				smtpSession.PendingMail = new SmtpMailMessage(
 					new SmtpPath(
 						sourceRouteList,

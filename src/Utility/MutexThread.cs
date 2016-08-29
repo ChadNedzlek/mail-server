@@ -34,53 +34,74 @@ namespace Vaettir.Utility
 
 		private void Run(CancellationToken token)
 		{
-			List<WaitBlock> waiting = new List<WaitBlock>();
-			while (!token.IsCancellationRequested)
+			using (token.Register(() => _pendingReady.Set()))
 			{
-				var waits = new WaitHandle[1 + waiting.Count];
-				waits[0] = _pendingReady;
-				waiting.Select(w => (WaitHandle)w.Mutex).ToList().CopyTo(waits, 1);
-
-				int index = WaitHandle.WaitAny(waits, TimeSpan.FromSeconds(1));
+				List<WaitBlock> waiting = new List<WaitBlock>();
+				while (!token.IsCancellationRequested)
 				{
-					Mutex toRelease;
-					while (_releaseable.TryTake(out toRelease))
+					var waits = new WaitHandle[1 + waiting.Count];
+					waits[0] = _pendingReady;
+					waiting.Select(w => (WaitHandle) w.Mutex).ToList().CopyTo(waits, 1);
+
+					int index = WaitHandle.WaitAny(waits, TimeSpan.FromSeconds(1));
 					{
-						toRelease.ReleaseMutex();
+						Mutex toRelease;
+						while (_releaseable.TryTake(out toRelease))
+						{
+							toRelease.ReleaseMutex();
+						}
 					}
-				}
 
-				if (index == WaitHandle.WaitTimeout)
-				{
-					continue;
-				}
-
-				if (index == 0)
-				{
-					WaitBlock item;
-					while (_pending.TryTake(out item))
+					if (index == WaitHandle.WaitTimeout)
 					{
-						waiting.Add(item);
+						continue;
 					}
-					continue;
-				}
 
-				index--;
+					if (index == 0)
+					{
+						WaitBlock item;
+						while (_pending.TryTake(out item))
+						{
+							waiting.Add(item);
+						}
+						continue;
+					}
 
-				{
-					var item = waiting[index];
-					waiting.RemoveAt(index);
-					item.Source.TrySetResult(null);
+					index--;
+
+					{
+						var item = waiting[index];
+						waiting.RemoveAt(index);
+						item.Source.TrySetResult(null);
+					}
 				}
 			}
 		}
 
-		public Task WaitAsync(Mutex mutex)
+		private sealed class MutexLock : IDisposable
+		{
+			private MutexThread _mutexThread;
+			private Mutex _mutex;
+
+			public MutexLock(MutexThread mutexThread, Mutex mutex)
+			{
+				_mutexThread = mutexThread;
+				_mutex = mutex;
+			}
+
+			public void Dispose()
+			{
+				Interlocked.Exchange(ref _mutexThread, null)?.Release(_mutex);
+				_mutex = null;
+			}
+		}
+
+		public Task<IDisposable> WaitAsync(Mutex mutex)
 		{
 			WaitBlock block = new WaitBlock(mutex);
 			_pending.Add(block);
 			_pendingReady.Set();
-			return block.Source.Task;
+			return block.Source.Task.ContinueWith(_ => (IDisposable) new MutexLock(this, mutex));
 		}
 
 		public void Release(Mutex mutex)
