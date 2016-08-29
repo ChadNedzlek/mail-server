@@ -5,10 +5,22 @@ using System.Threading.Tasks;
 using Vaettir.Utility;
 using Xunit;
 
-namespace Tests
+namespace Utility.Test
 {
 	public class MutexThreadTests
 	{
+		private readonly TimeSpan _step = TimeSpan.FromMilliseconds(10);
+
+		[Fact]
+		public async Task IsAbortable()
+		{
+			CancellationTokenSource source = new CancellationTokenSource();
+			MutexThread waiter = MutexThread.Begin(source.Token);
+			Assert.False(waiter.Task.IsCompleted);
+			source.Cancel();
+			await waiter.Task;
+		}
+
 		[Fact]
 		public async Task NoPrematureReturn()
 		{
@@ -19,7 +31,7 @@ namespace Tests
 				await waiter.WaitAsync(m);
 				var result = await Task.Run(() => Wait(m, 2));
 				Assert.False(result.Waited, "Other thread did not wait");
-				Assert.InRange(result.TimeTaken.TotalSeconds, 1, 10000);
+				Assert.InRange(result.TimeTaken, _step, MultTime(_step, 10));
 			}
 			finally
 			{
@@ -39,7 +51,7 @@ namespace Tests
 				waiter.Release(m);
 				var result = await childTask;
 				Assert.True(result.Waited, "Other thread should have waited");
-				Assert.InRange(result.TimeTaken.TotalSeconds, 0, 1);
+				Assert.InRange(result.TimeTaken, TimeSpan.Zero, _step);
 			}
 			finally
 			{
@@ -56,11 +68,11 @@ namespace Tests
 			{
 				await waiter.WaitAsync(m);
 				Task<WaitResult> childTask = Task.Run(() => Wait(m, 5));
-				await Task.Delay(TimeSpan.FromSeconds(2));
+				await Task.Delay(MultTime(_step, 2));
 				waiter.Release(m);
 				var result = await childTask;
 				Assert.True(result.Waited, "Other thread should have waited");
-				Assert.InRange(result.TimeTaken.TotalSeconds, 1 , 5);
+				Assert.InRange(result.TimeTaken, _step, MultTime(_step, 5));
 			}
 			finally
 			{
@@ -72,7 +84,7 @@ namespace Tests
 		{
 			Stopwatch watch = new Stopwatch();
 			watch.Start();
-			bool waited = mutex.WaitOne(TimeSpan.FromSeconds(secondsToWait));
+			bool waited = mutex.WaitOne(MultTime(_step, secondsToWait));
 			if (waited)
 			{
 				mutex.ReleaseMutex();
@@ -80,6 +92,11 @@ namespace Tests
 
 			watch.Stop();
 			return new WaitResult(watch.Elapsed, waited);
+		}
+
+		private TimeSpan MultTime(TimeSpan ts, double mult)
+		{
+			return new TimeSpan((long) (ts.Ticks * mult));
 		}
 
 		private struct WaitResult
