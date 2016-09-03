@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -49,7 +51,9 @@ namespace Mail.Dispatcher
 					using (readReference)
 					using (var bodyStream = readReference.BodyStream)
 					{
-						var dispatchReferenecs = await CreateDispatchesAsync(readReference);
+						var headers = await MailUtilities.ParseHeadersAsync(bodyStream);
+						bodyStream.Seek(0, SeekOrigin.Begin);
+						var dispatchReferenecs = await CreateDispatchesAsync(readReference, headers);
 						using (var targetStream = new MultiStream(dispatchReferenecs.Select(r => r.BodyStream)))
 						{
 							await bodyStream.CopyToAsync(targetStream);
@@ -61,11 +65,30 @@ namespace Mail.Dispatcher
 			}
 		}
 
-		private Task<IMailWriteReference[]> CreateDispatchesAsync(IMailReadReference readReference)
+		private Task<IMailWriteReference[]> CreateDispatchesAsync(IMailReadReference readReference, IDictionary<string, IEnumerable<string>> headers)
 		{
-			return Task.WhenAll(readReference.Recipients
+			var recipients = AugmentRecipients(readReference.Recipients, headers);
+			return Task.WhenAll(recipients
 				.GroupBy(GetDomain)
 				.Select(g => DeliveryMailStore.NewMailAsync(g.Key, readReference.Sender, g, CancellationToken.None)));
+		}
+
+		private IEnumerable<string> AugmentRecipients(
+			IImmutableList<string> originalRecipients,
+			IDictionary<string, IEnumerable<string>> headers)
+		{
+			List<string> existingToHeaders = new List<string>();
+			IEnumerable<string> targets;
+			if (headers.TryGetValue("To", out targets))
+			{
+				existingToHeaders.AddRange(targets);
+			}
+			if (headers.TryGetValue("Cc", out targets))
+			{
+				existingToHeaders.AddRange(targets);
+			}
+
+			throw new NotImplementedException();
 		}
 
 		private string GetDomain(string address)
