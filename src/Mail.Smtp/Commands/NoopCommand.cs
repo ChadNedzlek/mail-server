@@ -3,25 +3,19 @@ using System.Threading.Tasks;
 
 namespace Vaettir.Mail.Server.Smtp.Commands
 {
-	[CommandFactory]
-	public class NoopCommand : ICommandFactory
-	{
-		public string Name => "NOOP";
-		public ICommand CreateCommand(string arguments)
-		{
-			return new Implementation(Name, arguments);
-		}
+    [Command("NOOP")]
+    public class NoopCommand : BaseCommand
+    {
+        private readonly IMessageChannel _channel;
 
-		private class Implementation : BaseCommand
-		{
-			public Implementation(string name, string arguments) : base(name, arguments)
-			{
-			}
-
-			public override Task ExecuteAsync(SmtpSession smtpSession, CancellationToken token)
-			{
-				return smtpSession.SendReplyAsync(ReplyCode.Okay, "Noop", token);
-			}
-		}
-	}
+        public NoopCommand(IMessageChannel channel)
+        {
+            _channel = channel;
+        }
+		
+        public override Task ExecuteAsync(CancellationToken token)
+        {
+            return _channel.SendReplyAsync(ReplyCode.Okay, "Noop", token);
+        }
+    }
 }

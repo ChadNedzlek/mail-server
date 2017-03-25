@@ -6,18 +6,21 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
+using Vaettir.Mail.Server.Smtp;
 using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server.FileSystem
 {
+	[UsedImplicitly(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature)]
 	public class FileSystemMailStore : IMailStore
 	{
-		private readonly string _mailDirectory;
+	    private readonly SmtpSettings _settings;
 
-		public FileSystemMailStore(string mailDirectory)
-		{
-			_mailDirectory = mailDirectory;
-		}
+	    public FileSystemMailStore(SmtpSettings settings)
+	    {
+	        _settings = settings;
+	    }
 
 		private interface IReference
 		{
@@ -66,7 +69,7 @@ namespace Vaettir.Mail.Server.FileSystem
 			public string Path { get; }
 
 			private readonly string _tempPath;
-			private bool _saved = false;
+			private bool _saved;
 
 			public WriteReference(string tempPath, string path, string sender, IEnumerable<string> recipients, Stream bodyStream)
 				: base(sender, recipients)
@@ -103,7 +106,7 @@ namespace Vaettir.Mail.Server.FileSystem
 			string mailName = Guid.NewGuid().ToString("D");
 
 			string tempPath = Path.Combine(Path.GetTempPath(), mailName);
-			string targetPath = Path.Combine(_mailDirectory, mailName);
+			string targetPath = Path.Combine(_settings.MailStorePath, mailName);
 
 			using (var shared = Sharable.Create(File.Create(tempPath)))
 			{
@@ -113,9 +116,10 @@ namespace Vaettir.Mail.Server.FileSystem
 					await writer.WriteLineAsync($"FROM:{sender}");
 					foreach (var recipient in enumerable)
 					{
+					    token.ThrowIfCancellationRequested();
 						await writer.WriteLineAsync($"TO:{recipient}");
 					}
-					await writer.WriteLineAsync("--- BEGIN MESSAGE ---");
+				   await writer.WriteLineAsync("--- BEGIN MESSAGE ---");
 				}
 
 				return new WriteReference(tempPath, targetPath, sender, enumerable, new OffsetStream(shared.TakeValue()));
@@ -124,7 +128,7 @@ namespace Vaettir.Mail.Server.FileSystem
 
 		public IEnumerable<IMailReference> GetAllMailReferences()
 		{
-			return Directory.GetFiles(_mailDirectory, "*", SearchOption.TopDirectoryOnly).Select(path => new Reference(path));
+			return Directory.GetFiles(_settings.MailStorePath, "*", SearchOption.TopDirectoryOnly).Select(path => new Reference(path));
 		}
 
 		public async Task<IMailReadReference> OpenReadAsync(IMailReference reference)

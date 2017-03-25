@@ -7,7 +7,6 @@ namespace Vaettir.Utility
 	{
 		private T _value;
 		public bool HasValue => _value != null;
-		private object _lock = new object();
 
 		public Sharable(T value)
 		{

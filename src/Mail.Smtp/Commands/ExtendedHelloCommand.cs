@@ -1,65 +1,76 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using MailServer;
+using Vaettir.Mail.Server.Authentication;
+using Vaettir.Mail.Server.Authentication.Mechanism;
 
 namespace Vaettir.Mail.Server.Smtp.Commands
 {
-	[CommandFactory]
-	public class ExtendedHelloCommand : ICommandFactory
-	{
-		public string Name => "EHLO";
+    [Command("EHLO")]
+    public class ExtendedHelloCommand : BaseCommand
+    {
+        private readonly IEnumerable<Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata>> _authentication;
+        private readonly SecurableConnection _connection;
+        private readonly IMessageChannel _channel;
+        private readonly SmtpSettings _settings;
 
-		public ICommand CreateCommand(string arguments)
-		{
-			return new Implementation(Name, arguments);
-		}
+        private static readonly ImmutableList<string> s_generalExtensions = ImmutableList.CreateRange(
+            new[]
+            {
+                "8BITMIME",
+                "UTF8SMTP",
+                "SMTPUTF8",
+                "CHUNKING",
+                "BINARYMIME",
+            });
 
-		private class Implementation : BaseCommand
-		{
-			public Implementation(string name, string arguments) : base(name, arguments)
-			{
-			}
+        private static readonly ImmutableList<string> s_plainTextExtensions = ImmutableList.CreateRange(
+            new[]
+            {
+                "STARTTLS"
+            });
 
-			private static readonly ImmutableList<string> GeneralExtensions = ImmutableList.CreateRange(
-				new[]
-				{
-					"8BITMIME",
-					"UTF8SMTP",
-                    "SMTPUTF8",
-					"CHUNKING",
-					"BINARYMIME",
-				});
-
-			private static readonly ImmutableList<string> PlainTextExtensions = ImmutableList.CreateRange(
-				new[]
-				{
-					"STARTTLS"
-				});
+        public ExtendedHelloCommand(
+            IEnumerable<Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata>> authentication,
+			SecurableConnection connection,
+			IMessageChannel channel,
+			SmtpSettings settings)
+        {
+            _authentication = authentication;
+            _connection = connection;
+            _channel = channel;
+            _settings = settings;
+        }
 
 
-			public override async Task ExecuteAsync(SmtpSession smtpSession, CancellationToken token)
-			{
-				ImmutableList<string> encryptedExtensions = ImmutableList.CreateRange(
-					new[]
-					{
-						"AUTH " + String.Join(" ", smtpSession.ImplementationFactory.Authentication.GetSupported()),
-					});
+        public override async Task ExecuteAsync(CancellationToken token)
+        {
+            ImmutableList<string> encryptedExtensions = ImmutableList.CreateRange(
+                new[]
+                {
+                    "AUTH " + String.Join(" ", _authentication.Select(a => a.Metadata.Name)),
+                });
 
-				smtpSession.ConnectedHost = Arguments;
-				ImmutableList<string> plainTextExtensions = PlainTextExtensions;
-				var extensions =
-					GeneralExtensions.Concat(smtpSession.Connection.IsEncrypted ? encryptedExtensions : plainTextExtensions);
+			_channel.ConnectedHost = Arguments;
+            ImmutableList<string> plainTextExtensions = s_plainTextExtensions;
+            var extensions =
+                s_generalExtensions.Concat(_connection.IsEncrypted ? encryptedExtensions : plainTextExtensions);
 
-				if (smtpSession.Connection.Certificate != null && !smtpSession.Connection.IsEncrypted)
-				{
-					extensions = extensions.Concat(new[] {"STARTTLS"});
-				}
+            if (_connection.Certificate != null && !_connection.IsEncrypted)
+            {
+                extensions = extensions.Concat(new[] {"STARTTLS"});
+            }
 
-				await smtpSession.SendReplyAsync(ReplyCode.Okay, true, $"{smtpSession.Settings.DomainName} greets {Arguments}", token);
-				await smtpSession.SendReplyAsync(ReplyCode.Okay, extensions, token);
-			}
-		}
-	}
+            await _channel.SendReplyAsync(
+                ReplyCode.Okay,
+                true,
+                $"{_settings.DomainName} greets {Arguments}",
+                token);
+            await _channel.SendReplyAsync(ReplyCode.Okay, extensions, token);
+        }
+    }
 }

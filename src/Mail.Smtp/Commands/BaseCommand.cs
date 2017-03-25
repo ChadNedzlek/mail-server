@@ -4,26 +4,19 @@ using System.Threading.Tasks;
 
 namespace Vaettir.Mail.Server.Smtp.Commands
 {
-	internal abstract class BaseCommand : ICommand
+    public abstract class BaseCommand : ICommand
 	{
-		public BaseCommand(string name, string arguments)
-		{
-			Name = name;
-			Arguments = arguments;
-		}
+		protected string Arguments { get; private set; }
 
-		public string Name { get; }
-		public string Arguments { get; }
+		public abstract Task ExecuteAsync(CancellationToken token);
 
-		public abstract Task ExecuteAsync(SmtpSession smtpSession, CancellationToken token);
-
-		protected virtual bool TryProcessParameter(SmtpSession session, string key, string value)
+		protected virtual bool TryProcessParameter(string key, string value)
 		{
 			return false;
 		}
 
 		protected bool TryProcessParameterValue(
-			SmtpSession session,
+			IMessageChannel channel,
 			string parameterString,
 			out Task errorReport,
 			CancellationToken cancellationToken)
@@ -33,15 +26,15 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 				int sepIndex = parameter.IndexOf("=", StringComparison.Ordinal);
 				if (sepIndex == -1)
 				{
-					errorReport = session.SendReplyAsync(ReplyCode.InvalidArguments, "Bad parameters", cancellationToken);
+					errorReport = channel.SendReplyAsync(ReplyCode.InvalidArguments, "Bad parameters", cancellationToken);
 					return false;
 				}
 
 				string paramKey = parameter.Substring(0, sepIndex);
 				string paramValue = parameter.Substring(sepIndex + 1);
-				if (!TryProcessParameter(session, paramKey, paramValue))
+				if (!TryProcessParameter(paramKey, paramValue))
 				{
-					errorReport = session.SendReplyAsync(
+					errorReport = channel.SendReplyAsync(
 						ReplyCode.ParameterNotImplemented,
 						"Parameter not implemented",
 						cancellationToken);
@@ -52,5 +45,10 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 			errorReport = null;
 			return true;
 		}
+
+	    public void Initialize(string command)
+	    {
+	        Arguments = command;
+	    }
 	}
 }

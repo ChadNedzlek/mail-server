@@ -3,26 +3,27 @@ using System.Threading.Tasks;
 
 namespace Vaettir.Mail.Server.Smtp.Commands
 {
-	[CommandFactory]
-	public class HelloCommand : ICommandFactory
-	{
-		public string Name => "HELO";
-		public ICommand CreateCommand(string arguments)
-		{
-			return new Implementation(Name, arguments);
-		}
+    [Command("HELO")]
+    public class HelloCommand : BaseCommand
+    {
+        private readonly IMessageChannel _channel;
+        private readonly SmtpSettings _settings;
 
-		private class Implementation : BaseCommand
-		{
-			public Implementation(string name, string arguments) : base(name, arguments)
-			{
-			}
+        public HelloCommand(
+            IMessageChannel channel,
+            SmtpSettings settings)
+        {
+            _channel = channel;
+            _settings = settings;
+        }
 
-			public override Task ExecuteAsync(SmtpSession smtpSession, CancellationToken token)
-			{
-				smtpSession.ConnectedHost = Arguments;
-				return smtpSession.SendReplyAsync(ReplyCode.Okay, $"{smtpSession.Settings.DomainName} greets {Arguments}", token);
-			}
-		}
-	}
+        public override Task ExecuteAsync(CancellationToken token)
+        {
+			_channel.ConnectedHost = Arguments;
+            return _channel.SendReplyAsync(
+                ReplyCode.Okay,
+                $"{_settings.DomainName} greets {Arguments}",
+                token);
+        }
+    }
 }

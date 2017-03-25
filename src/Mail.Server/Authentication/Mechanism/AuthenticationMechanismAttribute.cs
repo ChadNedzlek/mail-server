@@ -1,13 +1,25 @@
 using System;
-using System.Composition;
+using JetBrains.Annotations;
 
 namespace Vaettir.Mail.Server.Authentication.Mechanism
 {
+	[MeansImplicitUse(ImplicitUseKindFlags.InstantiatedWithFixedConstructorSignature)]
 	[AttributeUsage(AttributeTargets.Class)]
-	public class AuthenticationMechanismAttribute : ExportAttribute
+	public class AuthenticationMechanismAttribute : Attribute, IAuthencticationMechanismMetadata
 	{
-		public AuthenticationMechanismAttribute() : base(typeof (IAuthenticationMechanism))
+		public string Name { get; }
+	    public bool RequiresEncryption { get; }
+
+	    public AuthenticationMechanismAttribute(string name, bool requiresEncryption)
 		{
+			Name = name;
+			RequiresEncryption = requiresEncryption;
 		}
+	}
+
+    public interface IAuthencticationMechanismMetadata
+	{
+		string Name { get; }
+		bool RequiresEncryption { get; }
 	}
 }

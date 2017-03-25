@@ -4,51 +4,49 @@ using System.Collections.Immutable;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Autofac;
 using MailServer;
 using Vaettir.Mail.Server.Authentication;
 
 namespace Vaettir.Mail.Server.Smtp
 {
-	public class SmtpSession : IProtocolSession, IAuthenticationTransport
+	public class SmtpSession : IProtocolSession, IAuthenticationTransport, IDisposable, IMessageChannel, IMailBuilder
 	{
-		public SecurableConnection Connection { get; }
-		public SmtpImplementationFactory ImplementationFactory { get; }
-		public SmtpSettings Settings { get; }
-		public IMailStore MailStore { get; }
-		public IUserStore UserStore { get; }
-		public string ConnectedHost { get; set; }
-		public string ConnectedIpAddress { get; }
-		public string IpAddress { get; }
+	    private readonly ILifetimeScope _scope;
+
+	    private SecurableConnection Connection { get; }
+		private ConnectionInformation Addresses { get; set; }
+		private SmtpSettings Settings { get; }
+	    public string ConnectedHost { get; set; }
 
 		public UserData AuthenticatedUser { get; set; }
+		SmtpMailMessage IMailBuilder.PendingMail { get; set; }
+
 		public bool IsAuthenticated => AuthenticatedUser != null;
-		public SmtpMailMessage PendingMail { get; set; }
 
 		public SmtpSession(
 			SecurableConnection connection,
-			SmtpImplementationFactory implementationFactory,
+			ConnectionInformation addresses,
 			SmtpSettings settings,
-			string ipAddress,
-			string connectedIpAddress,
-			IMailStore mailStore,
-			IUserStore userStore)
+			IContainer componentContext)
 		{
 			Connection = connection;
-			ImplementationFactory = implementationFactory;
+			Addresses = addresses;
 			Settings = settings;
-			IpAddress = ipAddress;
-			ConnectedIpAddress = connectedIpAddress;
-			MailStore = mailStore;
-			UserStore = userStore;
+		    _scope = componentContext.BeginLifetimeScope();
+
 		}
 
-		public async Task Start(CancellationToken token)
+		public async Task RunAsync(CancellationToken token)
 		{
-			await SendReplyAsync(ReplyCode.Greeting, $"{Settings.DomainName} Service ready", token);
+			await this.SendReplyAsync(ReplyCode.Greeting, $"{Settings.DomainName} Service ready", token);
 			while (!token.IsCancellationRequested)
 			{
 				ICommand command = await GetCommandAsync(token);
-				if (command != null) await command.ExecuteAsync(this, token);
+				if (command != null)
+				{
+					await command.ExecuteAsync(token);
+				}
 			}
 		}
 
@@ -57,7 +55,7 @@ namespace Vaettir.Mail.Server.Smtp
 			string line = await Connection.ReadLineAsync(Encoding.UTF8, token);
 			if (line.Length < 4)
 			{
-				await SendReplyAsync(ReplyCode.SyntaxError, "No command found", token);
+				await this.SendReplyAsync(ReplyCode.SyntaxError, "No command found", token);
 				return null;
 			}
 
@@ -75,27 +73,19 @@ namespace Vaettir.Mail.Server.Smtp
 				arguments = line.Substring(spaceIndex + 1);
 			}
 
-			ICommandFactory commandFactory = ImplementationFactory.Get(command);
-			if (commandFactory == null)
+		    ICommand commandExecutor = _scope.ResolveKeyed<ICommand>(command);
+		    if (commandExecutor == null)
 			{
-				await SendReplyAsync(ReplyCode.SyntaxError, "Command not implemented", token);
+				await this.SendReplyAsync(ReplyCode.SyntaxError, "Command not implemented", token);
 				return null;
 			}
 
-			return commandFactory.CreateCommand(arguments);
+			commandExecutor.Initialize(arguments);
+
+		    return commandExecutor;
 		}
 
-		public Task SendReplyAsync(ReplyCode replyCode, CancellationToken cancellationToken)
-		{
-			return SendReplyAsync(replyCode, (string)null, cancellationToken);
-		}
-
-		public Task SendReplyAsync(ReplyCode replyCode, string message, CancellationToken cancellationToken)
-		{
-			return SendReplyAsync(replyCode, false, message, cancellationToken);
-		}
-
-		public Task SendReplyAsync(ReplyCode replyCode, bool more, string message, CancellationToken cancellationToken)
+		Task IMessageChannel.SendReplyAsync(ReplyCode replyCode, bool more, string message, CancellationToken cancellationToken)
 		{
 			StringBuilder builder = new StringBuilder();
 			builder.Append(((int)replyCode).ToString("D3"));
@@ -107,7 +97,7 @@ namespace Vaettir.Mail.Server.Smtp
 			return Connection.WriteLineAsync(builder.ToString(), Encoding.ASCII, cancellationToken);
 		}
 
-		public async Task SendReplyAsync(ReplyCode replyCode, IEnumerable<string> messages, CancellationToken cancellationToken)
+	    async Task IMessageChannel.SendReplyAsync(ReplyCode replyCode, IEnumerable<string> messages, CancellationToken cancellationToken)
 		{
 			IEnumerator<string> enumerator = messages.GetEnumerator();
 			if (!enumerator.MoveNext())
@@ -149,13 +139,19 @@ namespace Vaettir.Mail.Server.Smtp
 
 		public Task SendAuthenticationFragmentAsync(byte[] data, CancellationToken cancellationToken)
 		{
-			return SendReplyAsync(ReplyCode.AuthenticationFragment, Convert.ToBase64String(data), cancellationToken);
+			return this.SendReplyAsync(ReplyCode.AuthenticationFragment, Convert.ToBase64String(data), cancellationToken);
 		}
 
 		public async Task<byte[]> ReadAuthenticationFragmentAsync(CancellationToken cancellationToken)
 		{
 			return Convert.FromBase64String(await Connection.ReadLineAsync(Encoding.ASCII, cancellationToken));
 		}
+
+	    public void Dispose()
+	    {
+	        Connection?.Dispose();
+	        _scope?.Dispose();
+	    }
 	}
 
 	public class SmtpPath
@@ -179,6 +175,13 @@ namespace Vaettir.Mail.Server.Smtp
 		public SmtpMailMessage(SmtpPath fromPath)
 		{
 			FromPath = fromPath;
+		}
+
+		public bool IsInvalid { get; private set; }
+
+		public void Invalidate()
+		{
+			IsInvalid = true;
 		}
 	}
 }

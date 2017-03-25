@@ -5,7 +5,7 @@ namespace Vaettir.Mail.Server
 {
 	public interface IProtocolSession
 	{
-		Task Start(CancellationToken cancellationToken);
+		Task RunAsync(CancellationToken cancellationToken);
 		Task CloseAsync(CancellationToken cancellationToken);
 	}
 }

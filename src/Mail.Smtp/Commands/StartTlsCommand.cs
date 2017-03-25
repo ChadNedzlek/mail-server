@@ -1,28 +1,25 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
+using MailServer;
 
 namespace Vaettir.Mail.Server.Smtp.Commands
 {
-	[CommandFactory]
-	public class StartTlsCommand : ICommandFactory
-	{
-		public string Name => "STARTTLS";
-		public ICommand CreateCommand(string arguments)
-		{
-			return new Implementation(Name, arguments);
-		}
+    [Command("STARTTLS")]
+    public class StartTlsCommand : BaseCommand
+    {
+        private readonly IMessageChannel _channel;
+        private readonly SecurableConnection _connection;
 
-		private class Implementation : BaseCommand
-		{
-			public Implementation(string name, string arguments) : base(name, arguments)
-			{
-			}
+        public StartTlsCommand(IMessageChannel channel, SecurableConnection connection)
+        {
+            _channel = channel;
+            _connection = connection;
+        }
 
-			public override async Task ExecuteAsync(SmtpSession smtpSession, CancellationToken token)
-			{
-				await smtpSession.SendReplyAsync(ReplyCode.Greeting, "Ready to start TLS", token);
-				await smtpSession.Connection.NegotiateTlsAsync();
-			}
-		}
-	}
+        public override async Task ExecuteAsync(CancellationToken token)
+        {
+            await _channel.SendReplyAsync(ReplyCode.Greeting, "Ready to start TLS", token);
+            await _connection.NegotiateTlsAsync();
+        }
+    }
 }

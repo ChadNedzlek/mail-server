@@ -6,69 +6,68 @@ using System.Threading.Tasks;
 
 namespace Vaettir.Mail.Server.Smtp.Commands
 {
-	[CommandFactory]
-	public class RecipientCommand : ICommandFactory
-	{
-		public string Name => "RCPT";
-		public ICommand CreateCommand(string arguments)
-		{
-			return new Implementation(Name, arguments);
-		}
+    [Command("RCPT")]
+    public class RecipientCommand : BaseCommand
+    {
+        private static readonly Regex s_fromExpression = new Regex(@"^TO:<([^:+]:)?(\S*)(?: (.*))?>$");
 
-		private class Implementation : BaseCommand
-		{
-			public Implementation(string name, string arguments) : base(name, arguments)
-			{
-			}
+        private readonly IMailBuilder _builder;
+        private readonly IMessageChannel _channel;
+        private readonly SmtpSettings _settings;
 
-			private static readonly Regex FromExpression = new Regex(@"^TO:<([^:+]:)?(\S*)(?: (.*))?>$");
-			public override Task ExecuteAsync(SmtpSession smtpSession, CancellationToken token)
-			{
-				if (smtpSession.PendingMail == null)
-				{
-					return smtpSession.SendReplyAsync(ReplyCode.BadSequence, "RCPT not valid now", token);
-				}
+        public RecipientCommand(IMailBuilder builder, IMessageChannel channel, SmtpSettings settings)
+        {
+            _builder = builder;
+            _channel = channel;
+            _settings = settings;
+        }
 
-				Match toMatch = FromExpression.Match(Arguments);
-				if (!toMatch.Success)
-				{
-					return smtpSession.SendReplyAsync(ReplyCode.InvalidArguments, "Bad FROM address", token);
-				}
+        public override Task ExecuteAsync(CancellationToken token)
+        {
+            if (_builder.PendingMail == null)
+            {
+                return _channel.SendReplyAsync(ReplyCode.BadSequence, "RCPT not valid now", token);
+            }
 
-				string sourceRoute = toMatch.Groups[1].Value;
-				string mailBox = toMatch.Groups[2].Value;
+            Match toMatch = s_fromExpression.Match(Arguments);
+            if (!toMatch.Success)
+            {
+                return _channel.SendReplyAsync(ReplyCode.InvalidArguments, "Bad FROM address", token);
+            }
 
-				if (!String.IsNullOrEmpty(sourceRoute))
-				{
-					return smtpSession.SendReplyAsync(ReplyCode.NameNotAllowed, "Forwarding not supported", token);
-				}
+            string sourceRoute = toMatch.Groups[1].Value;
+            string mailBox = toMatch.Groups[2].Value;
 
-				string parameterString = toMatch.Groups[3].Value;
+            if (!String.IsNullOrEmpty(sourceRoute))
+            {
+                return _channel.SendReplyAsync(ReplyCode.NameNotAllowed, "Forwarding not supported", token);
+            }
 
-				Task errorReport;
-				if (!TryProcessParameterValue(smtpSession, parameterString, out errorReport, token))
-				{
-					return errorReport;
-				}
+            string parameterString = toMatch.Groups[3].Value;
 
-				string[] mailboxParts = mailBox.Split('@');
-				if (mailboxParts.Length != 2)
-				{
-					return smtpSession.SendReplyAsync(ReplyCode.InvalidArguments, "Invalid mailbox name", token);
-				}
+            Task errorReport;
+            if (!TryProcessParameterValue(_channel, parameterString, out errorReport, token))
+            {
+                return errorReport;
+            }
 
-				string domain = mailboxParts[1];
+            string[] mailboxParts = mailBox.Split('@');
+            if (mailboxParts.Length != 2)
+            {
+                return _channel.SendReplyAsync(ReplyCode.InvalidArguments, "Invalid mailbox name", token);
+            }
 
-				if (!smtpSession.IsAuthenticated &&
-					smtpSession.Settings.RelayDomains?.Contains(domain, StringComparer.OrdinalIgnoreCase) != true)
-				{
-					return smtpSession.SendReplyAsync(ReplyCode.MailboxUnavailable, "Invalid mailbox", token);
-				}
+            string domain = mailboxParts[1];
 
-				smtpSession.PendingMail.Recipents.Add(mailBox);
+            if (!_channel.IsAuthenticated &&
+				_settings.RelayDomains?.Contains(domain, StringComparer.OrdinalIgnoreCase) != true)
+            {
+                return _channel.SendReplyAsync(ReplyCode.MailboxUnavailable, "Invalid mailbox", token);
+            }
 
-				return smtpSession.SendReplyAsync(ReplyCode.Okay, token);
-			}
-		}
-	}
+            _builder.PendingMail.Recipents.Add(mailBox);
+
+            return _channel.SendReplyAsync(ReplyCode.Okay, token);
+        }
+    }
 }

@@ -5,6 +5,6 @@ namespace Vaettir.Mail.Server.Authentication
 {
 	public interface IAuthenticationSession
 	{
-		Task<UserData> AuthenticateAsync(IUserStore userStore, CancellationToken token, bool hasInitialResponse);
+		Task<UserData> AuthenticateAsync(bool hasInitialResponse, CancellationToken token);
 	}
 }

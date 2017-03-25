@@ -81,13 +81,25 @@ namespace Mail.Dispatcher
 			IEnumerable<string> targets;
 			if (headers.TryGetValue("To", out targets))
 			{
-				existingToHeaders.AddRange(targets);
+				existingToHeaders.AddRange(ParseMailboxListHeader(targets));
 			}
 			if (headers.TryGetValue("Cc", out targets))
 			{
-				existingToHeaders.AddRange(targets);
+				existingToHeaders.AddRange(ParseMailboxListHeader(targets));
 			}
 
+			IEnumerable<string> expandedRecipients = ExpandDistributionLists(originalRecipients, existingToHeaders);
+
+			throw new NotImplementedException();
+		}
+
+		private IEnumerable<string> ExpandDistributionLists(IImmutableList<string> originalRecipients, List<string> exclude)
+		{
+			throw new NotImplementedException();
+		}
+
+		private IEnumerable<string> ParseMailboxListHeader(IEnumerable<string> header)
+		{
 			throw new NotImplementedException();
 		}
 
