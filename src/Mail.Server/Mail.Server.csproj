@@ -18,17 +18,12 @@
 
   <ItemGroup>
     <PackageReference Include="Autofac" Version="4.1.0" />
+    <PackageReference Include="JetBrains.Annotations" Version="10.4.0" />
     <PackageReference Include="Microsoft.Composition" Version="1.0.30" />
     <PackageReference Include="Microsoft.NETCore.Portable.Compatibility" Version="1.0.1" />
     <PackageReference Include="System.Collections.Immutable" Version="1.2.0" />
     <PackageReference Include="System.Net.Security" Version="4.0.0" />
     <PackageReference Include="System.Security.Cryptography.Primitives" Version="4.0.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="JetBrains.Annotations">
-      <HintPath>..\..\..\..\..\.nuget\packages\jetbrains.annotations\10.3.0\lib\netstandard1.0\JetBrains.Annotations.dll</HintPath>
-    </Reference>
   </ItemGroup>
 
 </Project>
