@@ -7,5 +7,7 @@ namespace Vaettir.Mail.Server
 	{
 		Task RunAsync(CancellationToken cancellationToken);
 		Task CloseAsync(CancellationToken cancellationToken);
+
+	    string Id { get; }
 	}
 }

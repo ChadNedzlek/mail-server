@@ -4,7 +4,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace MailServer
+namespace Vaettir.Mail.Server
 {
 	public sealed class VariableStreamReader : IDisposable
 	{
@@ -21,6 +21,7 @@ namespace MailServer
 
 		public void Dispose()
 		{
+		    _stream?.Dispose();
 			_readBuffer = null;
 			_charBuffer = null;
 		}

@@ -40,7 +40,7 @@ namespace Mail.Dispatcher
 
 					try
 					{
-						readReference = await PendingMailStore.OpenReadAsync(reference);
+						readReference = await PendingMailStore.OpenReadAsync(reference, token);
 					}
 					catch(IOException)
 					{
@@ -51,7 +51,7 @@ namespace Mail.Dispatcher
 					using (readReference)
 					using (var bodyStream = readReference.BodyStream)
 					{
-						var headers = await MailUtilities.ParseHeadersAsync(bodyStream);
+						var headers = await MailUtilities.ParseHeadersAsync(bodyStream, token);
 						bodyStream.Seek(0, SeekOrigin.Begin);
 						var dispatchReferenecs = await CreateDispatchesAsync(readReference, headers);
 						using (var targetStream = new MultiStream(dispatchReferenecs.Select(r => r.BodyStream)))

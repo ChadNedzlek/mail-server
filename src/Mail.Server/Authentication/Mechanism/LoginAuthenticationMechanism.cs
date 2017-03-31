@@ -29,7 +29,7 @@ namespace Vaettir.Mail.Server.Authentication.Mechanism
             await _session.SendAuthenticationFragmentAsync(Encoding.UTF8.GetBytes("Password:"), token);
             string password = Encoding.UTF8.GetString(await _session.ReadAuthenticationFragmentAsync(token));
 
-            UserData userData = await _userStore.GetUserWithPasswordAsync(username, password);
+            UserData userData = await _userStore.GetUserWithPasswordAsync(username, password, token);
 
             return userData;
         }

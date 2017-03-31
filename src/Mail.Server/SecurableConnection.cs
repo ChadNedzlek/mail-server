@@ -3,15 +3,16 @@ using System.IO;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace MailServer
+namespace Vaettir.Mail.Server
 {
-	public sealed class SecurableConnection : IDisposable
-	{
+    public sealed class SecurableConnection : IDisposable, IConnectionSecurity
+    {
 		private RedirectableStream _current;
 		private SslStream _encrypted;
 		private Stream _source;
@@ -38,6 +39,8 @@ namespace MailServer
 
 		public void Dispose()
 		{
+		    _variableReader?.Dispose();
+		    _variableReader = null;
 			_encrypted?.Dispose();
 			_encrypted = null;
 			_source?.Dispose();
@@ -120,10 +123,10 @@ namespace MailServer
 			return _current.WriteAsync(buffer, 0, buffer.Length, cancellationToken);
 		}
 
-		public Task<string> ReadLineAsync(Encoding encoding, CancellationToken cancellationToken)
+		public async Task<string> ReadLineAsync(Encoding encoding, CancellationToken cancellationToken)
 		{
 			if (State == SecurableConnectionState.Closed) throw new ObjectDisposedException(nameof(SecurableConnection));
-			return _variableReader.ReadLineAsync(encoding, cancellationToken);
+			return await _variableReader.ReadLineAsync(encoding, cancellationToken);
 		}
 
 		public Task<int> ReadBytesAsync(byte[] read, int offset, int count, CancellationToken cancellationToken)

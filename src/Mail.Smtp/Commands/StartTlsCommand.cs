@@ -1,6 +1,5 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
-using MailServer;
 
 namespace Vaettir.Mail.Server.Smtp.Commands
 {

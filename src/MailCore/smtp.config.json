@@ -1,8 +1,9 @@
 ﻿{
-	"SmtpSettings": {
-		"Ports": [ 25 ],
-		"DomainName": "smtp.vaettir.net",
-		"MailStorePath": "D:\\temp\\mail",
-		"RelayDomains": [ "vaettir.net", "xyons.net" ]
-	}
+		"SmtpSettings": {
+				"Ports": [ 25 ],
+				"DomainName": "smtp.vaettir.net",
+				"MailStorePath": "D:\\temp\\mail",
+				"userPasswordFile": "D:\\temp\\mail-user",
+				"RelayDomains": [ "vaettir.net", "xyons.net" ]
+		}
 }

@@ -66,6 +66,8 @@ namespace Vaettir.Utility
 					semaphoreLock.Dispose();
 					semaphoreLock = null;
 					await _newData.WaitAsync(cancellationToken);
+				    if (_chunks == null)
+				        throw new ObjectDisposedException("DuplexStream");
 					semaphoreLock = await SemaphoreLock.GetLockAsync(_semaphore, cancellationToken);
 				}
 
@@ -119,7 +121,8 @@ namespace Vaettir.Utility
 			if (disposing)
 			{
 				_writeClosed = true;
-				_chunks = null;
+			    _chunks = null;
+			    _newData.Set();
 			}
 		}
 	}

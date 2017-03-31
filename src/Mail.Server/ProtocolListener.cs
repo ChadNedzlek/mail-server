@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -8,29 +9,31 @@ using System.Threading;
 using System.Threading.Tasks;
 using Autofac;
 using JetBrains.Annotations;
-using MailServer;
+using Newtonsoft.Json;
 using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server
 {
-	public delegate IProtocolSession SessionFactory(SecurableConnection connection, ConnectionInformation addresses);
-
 	[UsedImplicitly]
 	public class ProtocolListener
 	{
 		private readonly ProtocolSettings _settings;
 		private readonly ILifetimeScope _scope;
-		private List<SessionHolder> _sessions = new List<SessionHolder>();
+	    private readonly ILogger _log;
+	    private List<SessionHolder> _sessions = new List<SessionHolder>();
 		private readonly SemaphoreSlim _sessionSemaphore = new SemaphoreSlim(1);
 
-		public ProtocolListener(ProtocolSettings settings, ILifetimeScope scope)
+		public ProtocolListener(ProtocolSettings settings, ILifetimeScope scope, ILogger log)
 		{
 			_settings = settings;
 			_scope = scope;
+		    _log = log;
 		}
 
 		public async Task RunAsync(CancellationToken cancellationToken)
 		{
+		    _log.Information($"Opening ports: {String.Join(",", _settings.Ports.Select(p => p.ToString()))}");
+
 			TcpListener[] listeners = _settings.Ports
 				.Select(p => new TcpListener(IPAddress.Any, p))
 				.ToArray();
@@ -70,6 +73,7 @@ namespace Vaettir.Mail.Server
 					{
 						int sessionIndex = completedIndex - listenerTasks.Length;
 						SessionHolder closingSession = _sessions[sessionIndex];
+						_log.Information($"Closing session {closingSession.Session.Id}...");
 						_sessions.RemoveAt(sessionIndex);
 						closingSession.Scope.Dispose();
 					}
@@ -98,18 +102,20 @@ namespace Vaettir.Mail.Server
 
 		private async Task AcceptNewClientAsync(TcpClient client, CancellationToken cancellationToken)
 		{
-			var newScope = _scope.BeginLifetimeScope();
-			var newSessionFactory = newScope.Resolve<SessionFactory>();
-			var securableConnection = new SecurableConnection(client.GetStream())
-			{
-				Certificate = ServerCertificate
-			};
-			var newSession = newSessionFactory(
-				securableConnection,
-				new ConnectionInformation(
-					client.Client.LocalEndPoint.ToString(),
-					client.Client.RemoteEndPoint.ToString())
-			);
+		    var newScope = _scope.BeginLifetimeScope(
+		        b =>
+		        {
+		            b.RegisterInstance(new ConnectionInformation(
+						client.Client.LocalEndPoint.ToString(),
+		                client.Client.RemoteEndPoint.ToString()));
+		            b.RegisterInstance(new SecurableConnection(client.GetStream())
+					{
+						Certificate = ServerCertificate
+					});
+		        }
+		    );
+
+			var newSession = newScope.Resolve<IProtocolSession>();
 
 			using (await SemaphoreLock.GetLockAsync(_sessionSemaphore, cancellationToken))
 			{
@@ -124,7 +130,11 @@ namespace Vaettir.Mail.Server
 			using (await SemaphoreLock.GetLockAsync(_sessionSemaphore, cancellationToken))
 			{
 				Task[] closing = _sessions.Select(session => session.Session.CloseAsync(cancellationToken)).ToArray();
-				Task.WaitAll(closing, cancellationToken);
+			    foreach (var session in _sessions)
+			    {
+			        session.Scope.Dispose();
+			    }
+			    Task.WaitAll(closing, cancellationToken);
 				Task.WaitAll(_sessions.Select(s => s.Task).ToArray(), cancellationToken);
 				_sessions = null;
 			}
@@ -133,11 +143,15 @@ namespace Vaettir.Mail.Server
 
 	public class ProtocolSettings
 	{
-		public ProtocolSettings(int[] ports)
+		public ProtocolSettings(int[] ports, string domainName, string userPasswordFile)
 		{
-			Ports = ports;
+		    Ports = ports;
+			DomainName = domainName;
+			UserPasswordFile = userPasswordFile;
 		}
 
-		public int[] Ports { get;  }
+		public int[] Ports { get; }
+		public string DomainName { get; }
+		public string UserPasswordFile { get; }
 	}
 }
