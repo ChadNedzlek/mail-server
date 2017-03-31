@@ -22,7 +22,7 @@ namespace Mail.Smtp.Test
 				TestHelpers.GetAuths(),
 				conn,
 				channel,
-				new SmtpSettings(null, "TestDomain.com", null, null, null),
+				new SmtpSettings(null, "TestDomain.com", null, null, null, null),
 				new MockLogger());
 			command.Initialize("Sender.net");
 
@@ -52,7 +52,7 @@ namespace Mail.Smtp.Test
 				TestHelpers.GetAuths(),
 				conn,
 				channel,
-				new SmtpSettings(null, "TestDomain.com", null, null, null),
+				new SmtpSettings(null, "TestDomain.com", null, null, null, null),
 				new MockLogger());
 			command.Initialize("Sender.net");
 
@@ -87,7 +87,7 @@ namespace Mail.Smtp.Test
 				TestHelpers.GetAuths(),
 				conn,
 				channel,
-				new SmtpSettings(null, "TestDomain.com", null, null, null),
+				new SmtpSettings(null, "TestDomain.com", null, null, null, null),
 				new MockLogger());
 			command.Initialize("Sender.net");
 

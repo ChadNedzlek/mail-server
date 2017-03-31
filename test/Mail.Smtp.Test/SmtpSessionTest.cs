@@ -5,7 +5,6 @@ using System.Linq;
 using System.Net.Security;
 using System.Reflection;
 using System.Security.Authentication;
-using System.Security.Authentication.ExtendedProtection;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -24,76 +23,81 @@ namespace Mail.Smtp.Test
 {
 	public class SmtpSessionTest
 	{
-		private readonly ITestOutputHelper _output;
-
 		public SmtpSessionTest(ITestOutputHelper output)
 		{
 			_output = output;
 		}
 
-		private const string TargetHostName = "example.org";
-
-	    private static readonly X509Certificate2 s_serverCert = TestHelpers.GetSelfSigned();
+		private readonly ITestOutputHelper _output;
+		private static readonly X509Certificate2 s_serverCert = TestHelpers.GetSelfSigned();
 
 		private class TestConnection : IDisposable
 		{
+			public readonly CancellationTokenSource CancellationTokenSource;
+			public readonly SecurableConnection Connection;
 			public readonly RedirectableStream LocalStream;
 			public readonly StreamReader Reader;
-			public readonly StreamWriter Writer;
-			public readonly SecurableConnection Connection;
 			public readonly SmtpSession Session;
-			public readonly CancellationTokenSource CancellationTokenSource;
 			public readonly Task SessionTask;
+			public readonly StreamWriter Writer;
 
 			public TestConnection(ITestOutputHelper output)
 			{
-
 				Tuple<PairedStream, PairedStream> streamTuple = PairedStream.Create();
 				LocalStream = new RedirectableStream(streamTuple.Item1);
-			    Reader = new StreamReader(LocalStream);
-				Writer = new StreamWriter(LocalStream) { AutoFlush = true };
+				Reader = new StreamReader(LocalStream);
+				Writer = new StreamWriter(LocalStream) {AutoFlush = true};
 
 
-				ContainerBuilder builder = new ContainerBuilder();
+				var builder = new ContainerBuilder();
 				builder.RegisterAssemblyTypes(typeof(SmtpSession).GetTypeInfo().Assembly)
 					.Where(t => t.GetTypeInfo().GetCustomAttribute<CommandAttribute>() != null)
 					.Keyed<ICommand>(t => t.GetTypeInfo().GetCustomAttribute<CommandAttribute>().Name);
-			    builder.RegisterInstance(new SmtpSettings(null, "test.vaettir.net", null, null, null))
-			        .As<SmtpSettings>()
-			        .As<ProtocolSettings>();
+				builder.RegisterInstance(new SmtpSettings(null, "test.vaettir.net", null, null, null, null))
+					.As<SmtpSettings>()
+					.As<ProtocolSettings>();
 
-			    builder.RegisterType<SmtpSession>()
+				builder.RegisterType<SmtpSession>()
 					.As<SmtpSession>()
-			        .As<IMessageChannel>()
-			        .As<IMailBuilder>()
-			        .As<IAuthenticationTransport>()
-			        .As<IProtocolSession>();
+					.As<IMessageChannel>()
+					.As<IMailBuilder>()
+					.As<IAuthenticationTransport>()
+					.As<IProtocolSession>();
 
-			    builder.RegisterInstance(new SecurableConnection(streamTuple.Item2) {Certificate = s_serverCert})
-			        .As<IConnectionSecurity>()
-			        .As<SecurableConnection>();
+				builder.RegisterInstance(new SecurableConnection(streamTuple.Item2) {Certificate = s_serverCert})
+					.As<IConnectionSecurity>()
+					.As<SecurableConnection>();
 
-			    builder.RegisterInstance(new TestOutputLogger(output))
-			        .As<ILogger>();
+				builder.RegisterInstance(new TestOutputLogger(output))
+					.As<ILogger>();
 
-			    builder.RegisterInstance(new ConnectionInformation("127.0.0.1", "128.0.0.1"));
+				builder.RegisterInstance(new ConnectionInformation("127.0.0.1", "128.0.0.1"));
 
-			    Container = builder.Build();
+				Container = builder.Build();
 
-			    Connection = Container.Resolve<SecurableConnection>();
-			    Session = Container.Resolve<SmtpSession>();
+				Connection = Container.Resolve<SecurableConnection>();
+				Session = Container.Resolve<SmtpSession>();
 
 				CancellationTokenSource = new CancellationTokenSource();
-				var token = CancellationTokenSource.Token;
+				CancellationToken token = CancellationTokenSource.Token;
 				SessionTask = Task.Run(() => Session.RunAsync(token), token);
 			}
 
-		    public IContainer Container { get; set; }
+			public IContainer Container { get; }
 
-		    internal async Task EndConversation()
-		    {
-		        Session.Dispose();
-			    await TaskHelpers.AssertTriggered(SessionTask);
+			public void Dispose()
+			{
+				LocalStream?.Dispose();
+				Reader?.Dispose();
+				Writer?.Dispose();
+				Connection?.Dispose();
+				Session?.Dispose();
+			}
+
+			internal async Task EndConversation()
+			{
+				Session.Dispose();
+				await TaskHelpers.AssertTriggered(SessionTask);
 			}
 
 			internal async Task<Match> ConverseAsync(Txn txn)
@@ -112,13 +116,13 @@ namespace Mail.Smtp.Test
 
 			internal async Task<Match> FromAsync(string pattern)
 			{
-				string totalLines = "";
+				var totalLines = "";
 				string line;
 				do
 				{
-				    totalLines += (line = await Do(Reader.ReadLineAsync().WithCancellation(CancellationTokenSource.Token))) + "\n";
+					totalLines += (line = await Do(Reader.ReadLineAsync().WithCancellation(CancellationTokenSource.Token))) + "\n";
 				} while (line[3] == '-');
-				Regex rx = new Regex(pattern, RegexOptions.Multiline);
+				var rx = new Regex(pattern, RegexOptions.Multiline);
 				Match match = rx.Match(totalLines);
 				Assert.True(match.Success, $"Conversation '{totalLines}' line matches pattern '{pattern}'");
 				return match;
@@ -126,13 +130,13 @@ namespace Mail.Smtp.Test
 
 			public async Task<T> Do<T>(Task<T> func)
 			{
-				var task = await Task.WhenAny(func, SessionTask);
+				Task task = await Task.WhenAny(func, SessionTask);
 
 				if (task == SessionTask)
 				{
 					throw task.Exception?.InnerExceptions.FirstOrDefault() ??
 						task.Exception ??
-						(Exception)new InvalidOperationException("Session should not have completed.");
+						(Exception) new InvalidOperationException("Session should not have completed.");
 				}
 
 				return await func;
@@ -140,13 +144,13 @@ namespace Mail.Smtp.Test
 
 			public async Task Do(Task func)
 			{
-				var task = await Task.WhenAny(func, SessionTask);
+				Task task = await Task.WhenAny(func, SessionTask);
 
 				if (task == SessionTask)
 				{
 					throw task.Exception?.InnerExceptions.FirstOrDefault() ??
 						task.Exception ??
-						(Exception)new InvalidOperationException("Session should not have completed.");
+						(Exception) new InvalidOperationException("Session should not have completed.");
 				}
 			}
 
@@ -155,106 +159,35 @@ namespace Mail.Smtp.Test
 				await Writer.WriteLineAsync(message);
 				await Writer.FlushAsync();
 			}
-
-		    public void Dispose()
-		    {
-		        LocalStream?.Dispose();
-		        Reader?.Dispose();
-		        Writer?.Dispose();
-		        Connection?.Dispose();
-		        Session?.Dispose();
-		    }
-		}
-
-		[Fact]
-		public async Task WelcomeMessageTest()
-		{
-			await ConversationTest(
-				Txn.From("^220 ")
-			);
-		}
-
-		[Fact]
-		public async Task HeloTest()
-		{
-			await ConversationTest(
-				Txn.From("^220 "),
-				Txn.To("HELO test.com"),
-				Txn.From("^250 ")
-			);
-		}
-		
-		[Fact]
-		public async Task EhloTest()
-		{
-			await ConversationTest(
-				Txn.From("^220 "),
-				Txn.To("EHLO test.com"),
-				Txn.From(@"\A(250-.*\n)*250 .*\Z")
-				);
-		}
-
-		[Fact]
-		public async Task StartTlsTest()
-		{
-		    using (TestConnection conn = new TestConnection(_output))
-		    {
-		        Assert.False(conn.Connection.IsEncrypted, "Is not encrypted to start");
-		        await conn.FromAsync("");
-		        await conn.ToAsync("EHLO test.com");
-		        await conn.FromAsync("250[- ]STARTTLS");
-		        Assert.False(conn.Connection.IsEncrypted, "Is not encrypted before STARTTLS");
-				await conn.ToAsync("STARTTLS");
-				Assert.False(conn.Connection.IsEncrypted, "Is not encrypted after STARTTLS, but before negotiation");
-				await conn.FromAsync("^220");
-				var ssl = new SslStream(
-					conn.LocalStream.InnerStream,
-					false,
-					(sender, certificate, chain, errors) => certificate.Subject == "CN=test.vaettir.net");
-
-				await conn.Do(
-					ssl.AuthenticateAsClientAsync(
-						"test.vaettir.net",
-						null,
-						SslProtocols.Tls12,
-						false));
-
-				conn.LocalStream.ChangeSteam(ssl);
-				Assert.True(conn.Connection.IsEncrypted, "Is encrypted after STARTTLS");
-				await conn.ToAsync("EHLO test.com");
-				await conn.FromAsync("^((?!STARTTLS).)*$");
-
-				await conn.EndConversation();
-		    }
 		}
 
 		private async Task ConversationTest(params Txn[] conversation)
 		{
-		    using (TestConnection conn = new TestConnection(_output))
-		    {
-		        await HaveConversation(conn, conversation);
+			using (var conn = new TestConnection(_output))
+			{
+				await HaveConversation(conn, conversation);
 
-		        await conn.EndConversation();
-		    }
+				await conn.EndConversation();
+			}
 		}
 
 		private async Task HaveConversation(TestConnection connection, params Txn[] conversation)
 		{
-			await HaveConversation(connection, (IEnumerable<Txn>)conversation);
+			await HaveConversation(connection, (IEnumerable<Txn>) conversation);
 		}
 
 		private async Task HaveConversation(TestConnection connection, IEnumerable<Txn> conversation)
 		{
-			foreach (var txn in conversation)
+			foreach (Txn txn in conversation)
 			{
 				await connection.ConverseAsync(txn);
 			}
 		}
 
-	    private enum TxnDirection
+		private enum TxnDirection
 		{
 			ToServer,
-			FromServer,
+			FromServer
 		}
 
 		private class Txn
@@ -277,6 +210,68 @@ namespace Mail.Smtp.Test
 			{
 				return new Txn(TxnDirection.FromServer, message);
 			}
+		}
+
+		[Fact]
+		public async Task EhloTest()
+		{
+			await ConversationTest(
+				Txn.From("^220 "),
+				Txn.To("EHLO test.com"),
+				Txn.From(@"\A(250-.*\n)*250 .*\Z")
+			);
+		}
+
+		[Fact]
+		public async Task HeloTest()
+		{
+			await ConversationTest(
+				Txn.From("^220 "),
+				Txn.To("HELO test.com"),
+				Txn.From("^250 ")
+			);
+		}
+
+		[Fact]
+		public async Task StartTlsTest()
+		{
+			using (var conn = new TestConnection(_output))
+			{
+				Assert.False(conn.Connection.IsEncrypted, "Is not encrypted to start");
+				await conn.FromAsync("");
+				await conn.ToAsync("EHLO test.com");
+				await conn.FromAsync("250[- ]STARTTLS");
+				Assert.False(conn.Connection.IsEncrypted, "Is not encrypted before STARTTLS");
+				await conn.ToAsync("STARTTLS");
+				Assert.False(conn.Connection.IsEncrypted, "Is not encrypted after STARTTLS, but before negotiation");
+				await conn.FromAsync("^220");
+				var ssl = new SslStream(
+					conn.LocalStream.InnerStream,
+					false,
+					(sender, certificate, chain, errors) => certificate.Subject == "CN=test.vaettir.net");
+
+				await conn.Do(
+					ssl.AuthenticateAsClientAsync(
+						"test.vaettir.net",
+						null,
+						SslProtocols.Tls12,
+						false));
+
+				conn.LocalStream.ChangeSteam(ssl);
+				Assert.True(conn.Connection.IsEncrypted, "Is encrypted after STARTTLS");
+				await conn.ToAsync("EHLO test.com");
+				await conn.FromAsync("^((?!STARTTLS).)*$");
+
+				await conn.EndConversation();
+			}
+		}
+
+		[Fact]
+		public async Task WelcomeMessageTest()
+		{
+			await ConversationTest(
+				Txn.From("^220 ")
+			);
 		}
 	}
 }

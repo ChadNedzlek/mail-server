@@ -14,7 +14,7 @@ namespace Mail.Smtp.Test
         public async Task HeloResponds()
         {
             MockChannel channel = new MockChannel();
-            HelloCommand command = new HelloCommand(channel, new SmtpSettings(null, "TestDomain.com", null, null, null), new MockLogger());
+            HelloCommand command = new HelloCommand(channel, new SmtpSettings(null, "TestDomain.com", null, null, null, null), new MockLogger());
             command.Initialize("Sender.net");
             await command.ExecuteAsync(CancellationToken.None);
 
