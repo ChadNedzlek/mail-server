@@ -4,7 +4,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
+using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server
 {
@@ -21,10 +23,21 @@ namespace Vaettir.Mail.Server
 			return mailbox.Substring(atIndex + 1);
 		}
 
+		public static string GetNameFromMailbox(string mailbox)
+		{
+			int atIndex = mailbox.LastIndexOf('@');
+			if (atIndex == -1)
+			{
+				return null;
+			}
+
+			return mailbox.Substring(0, atIndex);
+		}
+
 		private static readonly Regex _headerRegex = new Regex(@"^(\w+):(.*)$");
 		private static readonly Regex _continutationRegex = new Regex(@"^(\s+.*)$");
 
-		public static async Task<IDictionary<string, IEnumerable<string>>> ParseHeadersAsync(Stream mailStream)
+		public static async Task<IDictionary<string, IEnumerable<string>>> ParseHeadersAsync(Stream mailStream, CancellationToken token)
 		{
 			string existingHeaderName = null;
 			string existingHeaderValue = null;
@@ -32,7 +45,7 @@ namespace Vaettir.Mail.Server
 			{
 				Dictionary<string, IEnumerable<string>> headers = new Dictionary<string, IEnumerable<string>>();
 				string line;
-				while ((line = await reader.ReadLineAsync()) != null)
+				while ((line = await reader.ReadLineAsync().WithCancellation(token)) != null)
 				{
 					if (existingHeaderName != null)
 					{

@@ -5,52 +5,52 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Autofac;
-using MailServer;
 using Vaettir.Mail.Server.Authentication;
+using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server.Smtp
 {
 	public class SmtpSession : IProtocolSession, IAuthenticationTransport, IDisposable, IMessageChannel, IMailBuilder
 	{
-	    private readonly ILifetimeScope _scope;
-
+	    private readonly IComponentContext _context;
 	    private SecurableConnection Connection { get; }
-		private ConnectionInformation Addresses { get; set; }
-		private SmtpSettings Settings { get; }
+	    private SmtpSettings Settings { get; }
 	    public string ConnectedHost { get; set; }
+		public string Id { get; }
 
 		public UserData AuthenticatedUser { get; set; }
 		SmtpMailMessage IMailBuilder.PendingMail { get; set; }
+
+	    private bool _closeRequested;
 
 		public bool IsAuthenticated => AuthenticatedUser != null;
 
 		public SmtpSession(
 			SecurableConnection connection,
-			ConnectionInformation addresses,
 			SmtpSettings settings,
-			IContainer componentContext)
+			ConnectionInformation connectionInfo,
+			IComponentContext context)
 		{
-			Connection = connection;
-			Addresses = addresses;
-			Settings = settings;
-		    _scope = componentContext.BeginLifetimeScope();
-
+		    _context = context;
+		    Connection = connection;
+		    Settings = settings;
+		    Id = $"SMTP {connectionInfo.RemoteAddress}";
 		}
 
 		public async Task RunAsync(CancellationToken token)
-		{
-			await this.SendReplyAsync(ReplyCode.Greeting, $"{Settings.DomainName} Service ready", token);
-			while (!token.IsCancellationRequested)
-			{
-				ICommand command = await GetCommandAsync(token);
-				if (command != null)
-				{
-					await command.ExecuteAsync(token);
-				}
-			}
-		}
+	    {
+	        await this.SendReplyAsync(ReplyCode.Greeting, $"{Settings.DomainName} Service ready", token);
+	        while (!token.IsCancellationRequested && !_closeRequested)
+	        {
+	            ICommand command = await GetCommandAsync(token);
+	            if (command != null)
+	            {
+	                await command.ExecuteAsync(token);
+	            }
+	        }
+	    }
 
-		private async Task<ICommand> GetCommandAsync(CancellationToken token)
+	    private async Task<ICommand> GetCommandAsync(CancellationToken token)
 		{
 			string line = await Connection.ReadLineAsync(Encoding.UTF8, token);
 			if (line.Length < 4)
@@ -73,7 +73,7 @@ namespace Vaettir.Mail.Server.Smtp
 				arguments = line.Substring(spaceIndex + 1);
 			}
 
-		    ICommand commandExecutor = _scope.ResolveKeyed<ICommand>(command);
+		    ICommand commandExecutor = _context.ResolveOptionalKeyed<ICommand>(command);
 		    if (commandExecutor == null)
 			{
 				await this.SendReplyAsync(ReplyCode.SyntaxError, "Command not implemented", token);
@@ -132,7 +132,13 @@ namespace Vaettir.Mail.Server.Smtp
 			await Connection.WriteLineAsync(builder.ToString(), Encoding.ASCII, cancellationToken);
 		}
 
-		public Task CloseAsync(CancellationToken cancellationToken)
+	    void IMessageChannel.Close()
+	    {
+	        _closeRequested = true;
+	        Connection.Close();
+	    }
+
+	    public Task CloseAsync(CancellationToken cancellationToken)
 		{
 			throw new NotImplementedException();
 		}
@@ -150,7 +156,6 @@ namespace Vaettir.Mail.Server.Smtp
 	    public void Dispose()
 	    {
 	        Connection?.Dispose();
-	        _scope?.Dispose();
 	    }
 	}
 

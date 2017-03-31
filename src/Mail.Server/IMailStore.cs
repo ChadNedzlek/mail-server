@@ -49,7 +49,7 @@ namespace Vaettir.Mail.Server
 		Task<IMailWriteReference> NewMailAsync(string sender, IEnumerable<string> recipients, CancellationToken token);
 
 		IEnumerable<IMailReference> GetAllMailReferences();
-		Task<IMailReadReference> OpenReadAsync(IMailReference reference);
+		Task<IMailReadReference> OpenReadAsync(IMailReference reference, CancellationToken token);
 		Task DeleteAsync(IMailReference reference);
 	}
 }

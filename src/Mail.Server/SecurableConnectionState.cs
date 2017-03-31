@@ -1,4 +1,4 @@
-namespace MailServer
+namespace Vaettir.Mail.Server
 {
 	public enum SecurableConnectionState
 	{

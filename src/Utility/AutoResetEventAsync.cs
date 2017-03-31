@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -35,9 +36,19 @@ namespace Vaettir.Utility
 				if (cancellationToken.CanBeCanceled)
 				{
 					Action<object> clear = Cancel;
-					data = new Data(tcs, cancellationToken, clear);
+				    StackTrace trace;
+				    try
+				    {
+				        throw new Exception();
+				    }
+				    catch (Exception e)
+				    {
+				        trace = new StackTrace(e, true);
+				    }
 
-					cancellationToken.Register(clear, _waits.AddLast(data));
+				    data = new Data(tcs, cancellationToken, clear);
+				    data.Registration = cancellationToken.Register(clear, _waits.AddLast(data));
+					
 				}
 				else
 				{
@@ -69,7 +80,11 @@ namespace Vaettir.Utility
 				if (_waits.Count > 0)
 				{
 					toRelease = _waits.First.Value;
-					_waits.RemoveFirst();
+				    if (toRelease.Value.Cancel != null)
+				    {
+				        toRelease.Value.Registration.Dispose();
+				    }
+				    _waits.RemoveFirst();
 				}
 				else if (!_signaled)
 				{
@@ -83,7 +98,7 @@ namespace Vaettir.Utility
 		private struct Data
 		{
 			public readonly Action<object> Cancel;
-			public readonly TaskCompletionSource<bool> Source;
+		    public readonly TaskCompletionSource<bool> Source;
 			public readonly CancellationToken Token;
 
 			public Data(TaskCompletionSource<bool> source, CancellationToken token, Action<object> cancel)
@@ -92,6 +107,8 @@ namespace Vaettir.Utility
 				Token = token;
 				Cancel = cancel;
 			}
+
+		    public CancellationTokenRegistration Registration { get; set; }
 		}
 	}
 }

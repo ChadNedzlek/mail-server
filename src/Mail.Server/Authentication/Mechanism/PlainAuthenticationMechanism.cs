@@ -43,7 +43,7 @@ namespace Vaettir.Mail.Server.Authentication.Mechanism
             string userName = parts[1];
             string password = parts[2];
 
-            UserData userData = await _userStore.GetUserWithPasswordAsync(userName, password);
+            UserData userData = await _userStore.GetUserWithPasswordAsync(userName, password, token);
 
             return userData;
         }

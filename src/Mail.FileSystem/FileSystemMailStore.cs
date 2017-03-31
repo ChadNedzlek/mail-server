@@ -12,7 +12,7 @@ using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server.FileSystem
 {
-	[UsedImplicitly(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature)]
+    [UsedImplicitly(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature)]
 	public class FileSystemMailStore : IMailStore
 	{
 	    private readonly SmtpSettings _settings;
@@ -131,7 +131,7 @@ namespace Vaettir.Mail.Server.FileSystem
 			return Directory.GetFiles(_settings.MailStorePath, "*", SearchOption.TopDirectoryOnly).Select(path => new Reference(path));
 		}
 
-		public async Task<IMailReadReference> OpenReadAsync(IMailReference reference)
+		public async Task<IMailReadReference> OpenReadAsync(IMailReference reference, CancellationToken token)
 		{
 			var mailReference = reference as IReference;
 			if (mailReference == null)
@@ -145,7 +145,7 @@ namespace Vaettir.Mail.Server.FileSystem
 				List<string> recipients = new List<string>();
 				using (var reader = new StreamReader(stream.Peek(), Encoding.UTF8, false, 1024, true))
 				{
-					var fromLine = await reader.ReadLineAsync();
+					var fromLine = await reader.ReadLineAsync().WithCancellation(token);
 					if (!fromLine.StartsWith("FROM:"))
 					{
 						throw new FormatException("Invalid mail file format, expected FROM line");
@@ -155,7 +155,7 @@ namespace Vaettir.Mail.Server.FileSystem
 
 					while (true)
 					{
-						var line = await reader.ReadLineAsync();
+						var line = await reader.ReadLineAsync().WithCancellation(token);
 						if (line.StartsWith("---"))
 						{
 							break;

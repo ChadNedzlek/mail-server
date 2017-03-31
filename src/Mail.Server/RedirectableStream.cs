@@ -3,7 +3,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace MailServer
+namespace Vaettir.Mail.Server
 {
 	public sealed class RedirectableStream : Stream
 	{
@@ -30,7 +30,9 @@ namespace MailServer
 			set { _innerStream.Position = value; }
 		}
 
-		public Stream ChangeSteam(Stream newStream)
+	    public Stream InnerStream => _innerStream;
+
+	    public Stream ChangeSteam(Stream newStream)
 		{
 			if (newStream == null) throw new ArgumentNullException(nameof(newStream));
 

@@ -4,15 +4,13 @@ namespace Vaettir.Mail.Server.Smtp
 {
 	public class SmtpSettings : ProtocolSettings
 	{
-		public SmtpSettings(int[] ports, string domainName, string mailStorePath, string[] relayDomains) : base(ports)
+		public SmtpSettings(int[] ports, string domainName, string mailStorePath, string[] relayDomains, string userPasswordFile) : base(ports, domainName, userPasswordFile)
 		{
-			DomainName = domainName;
 			MailStorePath = mailStorePath;
 			RelayDomains = relayDomains;
 		}
 
-		public string DomainName { get; }
-		public string MailStorePath { get; }
+	    public string MailStorePath { get; }
 		public string[] RelayDomains { get; }
 	}
 }

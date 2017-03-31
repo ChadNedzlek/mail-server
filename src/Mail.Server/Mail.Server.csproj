@@ -19,7 +19,6 @@
   <ItemGroup>
     <PackageReference Include="Autofac" Version="4.1.0" />
     <PackageReference Include="JetBrains.Annotations" Version="10.4.0" />
-    <PackageReference Include="Microsoft.Composition" Version="1.0.30" />
     <PackageReference Include="Microsoft.NETCore.Portable.Compatibility" Version="1.0.1" />
     <PackageReference Include="System.Collections.Immutable" Version="1.2.0" />
     <PackageReference Include="System.Net.Security" Version="4.0.0" />

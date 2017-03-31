@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Utility.Test
 {
-	public class MultiThreadTests
+    public class MultiThreadTests
 	{
 		[Fact]
 		public void NullEnumerableConstructorThrows()
