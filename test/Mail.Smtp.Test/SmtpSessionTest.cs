@@ -120,7 +120,7 @@ namespace Mail.Smtp.Test
 				string line;
 				do
 				{
-					totalLines += (line = await Do(Reader.ReadLineAsync().WithCancellation(CancellationTokenSource.Token))) + "\n";
+					totalLines += (line = await Do(Reader.ReadLineAsync())) + "\n";
 				} while (line[3] == '-');
 				var rx = new Regex(pattern, RegexOptions.Multiline);
 				Match match = rx.Match(totalLines);

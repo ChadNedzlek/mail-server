@@ -13,14 +13,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Mail.Server\Mail.Server.csproj" />
-    <ProjectReference Include="..\Mail.Smtp\Mail.Smtp.csproj" />
+    <PackageReference Include="JetBrains.Annotations" Version="10.4.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="JetBrains.Annotations">
-      <HintPath>..\..\..\..\..\.nuget\packages\jetbrains.annotations\10.3.0\lib\netstandard1.0\JetBrains.Annotations.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="..\Mail.Server\Mail.Server.csproj" />
+    <ProjectReference Include="..\Mail.Smtp\Mail.Smtp.csproj" />
   </ItemGroup>
 
 </Project>

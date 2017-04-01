@@ -13,11 +13,11 @@ using Vaettir.Utility;
 namespace Vaettir.Mail.Server.FileSystem
 {
     [UsedImplicitly(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature)]
-	public class FileSystemMailStore : IMailStore
+	public class FileSystemMailQueue : IMailQueue
 	{
 	    private readonly SmtpSettings _settings;
 
-	    public FileSystemMailStore(SmtpSettings settings)
+	    public FileSystemMailQueue(SmtpSettings settings)
 	    {
 	        _settings = settings;
 	    }
@@ -29,11 +29,13 @@ namespace Vaettir.Mail.Server.FileSystem
 
 		private class Reference : IMailReference, IReference
 		{
+			public string Id { get; }
 			public string Path { get; }
 
-			public Reference(string path)
+			public Reference(string id, string path)
 			{
 				Path = path;
+				Id = id;
 			}
 		}
 
@@ -45,12 +47,16 @@ namespace Vaettir.Mail.Server.FileSystem
 			public IImmutableList<string> Recipients { get; }
 			public string Path { get; }
 
+			public string Id { get; }
+
 			public ReadReference(
+				string id,
 				string sender,
 				IEnumerable<string> recipients,
 				string path,
 				Stream bodyStream)
 			{
+				Id = id;
 				BodyStream = bodyStream;
 				Path = path;
 				Sender = sender;
@@ -71,8 +77,8 @@ namespace Vaettir.Mail.Server.FileSystem
 			private readonly string _tempPath;
 			private bool _saved;
 
-			public WriteReference(string tempPath, string path, string sender, IEnumerable<string> recipients, Stream bodyStream)
-				: base(sender, recipients)
+			public WriteReference(string id, string tempPath, string path, string sender, IEnumerable<string> recipients, Stream bodyStream)
+				: base(id, sender, recipients)
 			{
 				BodyStream = bodyStream;
 				_tempPath = tempPath;
@@ -122,18 +128,18 @@ namespace Vaettir.Mail.Server.FileSystem
 				   await writer.WriteLineAsync("--- BEGIN MESSAGE ---");
 				}
 
-				return new WriteReference(tempPath, targetPath, sender, enumerable, new OffsetStream(shared.TakeValue()));
+				return new WriteReference(mailName, tempPath, targetPath, sender, enumerable, new OffsetStream(shared.TakeValue()));
 			}
 		}
 
 		public IEnumerable<IMailReference> GetAllMailReferences()
 		{
-			return Directory.GetFiles(_settings.MailStorePath, "*", SearchOption.TopDirectoryOnly).Select(path => new Reference(path));
+			return Directory.GetFiles(_settings.MailStorePath, "*", SearchOption.TopDirectoryOnly).Select(path => new Reference(Path.GetFileNameWithoutExtension(path), path));
 		}
 
 		public async Task<IMailReadReference> OpenReadAsync(IMailReference reference, CancellationToken token)
 		{
-			var mailReference = reference as IReference;
+			var mailReference = reference as Reference;
 			if (mailReference == null)
 			{
 				throw new ArgumentNullException(nameof(reference));
@@ -145,7 +151,7 @@ namespace Vaettir.Mail.Server.FileSystem
 				List<string> recipients = new List<string>();
 				using (var reader = new StreamReader(stream.Peek(), Encoding.UTF8, false, 1024, true))
 				{
-					var fromLine = await reader.ReadLineAsync().WithCancellation(token);
+					var fromLine = await reader.ReadLineAsync();
 					if (!fromLine.StartsWith("FROM:"))
 					{
 						throw new FormatException("Invalid mail file format, expected FROM line");
@@ -155,7 +161,7 @@ namespace Vaettir.Mail.Server.FileSystem
 
 					while (true)
 					{
-						var line = await reader.ReadLineAsync().WithCancellation(token);
+						var line = await reader.ReadLineAsync();
 						if (line.StartsWith("---"))
 						{
 							break;
@@ -171,7 +177,7 @@ namespace Vaettir.Mail.Server.FileSystem
 					}
 				}
 
-				return new ReadReference(sender, recipients, mailReference.Path, stream.TakeValue());
+				return new ReadReference(mailReference.Id, sender, recipients, mailReference.Path, stream.TakeValue());
 			}
 		}
 

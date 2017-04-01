@@ -3,6 +3,7 @@ using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
+using Utility.Test;
 using Vaettir.Mail.Server;
 using Vaettir.Mail.Server.Smtp;
 using Vaettir.Mail.Server.Smtp.Commands;
@@ -22,7 +23,7 @@ namespace Mail.Smtp.Test
 				TestHelpers.GetAuths(),
 				conn,
 				channel,
-				new SmtpSettings(null, "TestDomain.com", null, null, null, null),
+				new SmtpSettings(domainName: "test.vaettir.net"),
 				new MockLogger());
 			command.Initialize("Sender.net");
 
@@ -37,7 +38,7 @@ namespace Mail.Smtp.Test
 			Assert.Contains(channel.Entries, e => e.Message == "AUTH PLN");
 
 			var signoff = channel.Entries.First();
-			Assert.Contains("TestDomain.com", signoff.Message);
+			Assert.Contains("test.vaettir.net", signoff.Message);
 			Assert.Contains("Sender.net", signoff.Message);
 		}
 
@@ -52,7 +53,7 @@ namespace Mail.Smtp.Test
 				TestHelpers.GetAuths(),
 				conn,
 				channel,
-				new SmtpSettings(null, "TestDomain.com", null, null, null, null),
+				new SmtpSettings(domainName: "test.vaettir.net"),
 				new MockLogger());
 			command.Initialize("Sender.net");
 
@@ -66,10 +67,10 @@ namespace Mail.Smtp.Test
 		    var authReplies = channel.Entries.Where(e => e.Message.StartsWith("AUTH")).ToList();
 		    Assert.Equal(1, authReplies.Count);
 		    var authParts = authReplies[0].Message.Split(' ').Skip(1).ToList();
-			TestHelpers.AssertSequence(new[] { "PLN" }, authParts);
+			SequenceAssert.SameSet(new[] { "PLN" }, authParts);
 
 			var signoff = channel.Entries.First();
-			Assert.Contains("TestDomain.com", signoff.Message);
+			Assert.Contains("test.vaettir.net", signoff.Message);
 			Assert.Contains("Sender.net", signoff.Message);
 		}
 
@@ -87,7 +88,7 @@ namespace Mail.Smtp.Test
 				TestHelpers.GetAuths(),
 				conn,
 				channel,
-				new SmtpSettings(null, "TestDomain.com", null, null, null, null),
+				new SmtpSettings(domainName: "test.vaettir.net"),
 				new MockLogger());
 			command.Initialize("Sender.net");
 
@@ -101,10 +102,10 @@ namespace Mail.Smtp.Test
 			var authReplies = channel.Entries.Where(e => e.Message.StartsWith("AUTH")).ToList();
 			Assert.Equal(1, authReplies.Count);
 			var authParts = authReplies[0].Message.Split(' ').Skip(1).ToList();
-			TestHelpers.AssertSequence(new[] { "PLN", "ENC" }, authParts);
+			SequenceAssert.SameSet(new[] { "PLN", "ENC" }, authParts);
 
 			var signoff = channel.Entries.First();
-			Assert.Contains("TestDomain.com", signoff.Message);
+			Assert.Contains("test.vaettir.net", signoff.Message);
 			Assert.Contains("Sender.net", signoff.Message);
 		}
 	}

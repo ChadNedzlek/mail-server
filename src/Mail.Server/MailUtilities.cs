@@ -45,7 +45,7 @@ namespace Vaettir.Mail.Server
 			{
 				Dictionary<string, IEnumerable<string>> headers = new Dictionary<string, IEnumerable<string>>();
 				string line;
-				while ((line = await reader.ReadLineAsync().WithCancellation(token)) != null)
+				while ((line = await reader.ReadLineAsync()) != null)
 				{
 					if (existingHeaderName != null)
 					{
@@ -98,6 +98,20 @@ namespace Vaettir.Mail.Server
 			}
 
 			list.Add(value);
+		}
+
+		private const string DottedAtom = "[-a-zA-Z0-9!#$%&'*+-/=?^_`{|}~.]";
+		private static readonly Regex s_addressPart = new Regex($@"<?\s*({DottedAtom}*@{DottedAtom}*)\s*>?$");
+
+		public static string GetMailboxFromAddress(string address, ILogger logger = null)
+		{
+			var mailboxPart = s_addressPart.Match(address);
+			if (!mailboxPart.Success)
+			{
+				logger?.Warning($"Unable to parse mailbox: {address}");
+				return null;
+			}
+			return mailboxPart.Groups[1].Value;
 		}
 	}
 }

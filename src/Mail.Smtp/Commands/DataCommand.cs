@@ -9,7 +9,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
     [Command("DATA")]
 	public class DataCommand : BaseCommand
 	{
-		private readonly IMailStore _mailStore;
+		private readonly IMailQueue _mailQueue;
 		private readonly SmtpSettings _settings;
 		private readonly SecurableConnection _connection;
 		private readonly ConnectionInformation _connectionInformation;
@@ -17,7 +17,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 	    private readonly IMessageChannel _channel;
 
 	    public DataCommand(
-			IMailStore mailStore,
+			IMailQueue mailQueue,
 			SmtpSettings settings,
 			SecurableConnection connection,
 			ConnectionInformation connectionInformation,
@@ -25,7 +25,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 			IMessageChannel channel
 			) 
 		{
-			_mailStore = mailStore;
+			_mailQueue = mailQueue;
 			_settings = settings;
 			_connection = connection;
 			_connectionInformation = connectionInformation;
@@ -45,7 +45,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 
 			await _channel.SendReplyAsync(ReplyCode.StartMail, "Send data, end with .<CR><LF>", token);
 
-		    using (IMailWriteReference reference = await _mailStore.NewMailAsync(
+		    using (IMailWriteReference reference = await _mailQueue.NewMailAsync(
 		        _builder.PendingMail.FromPath.Mailbox,
 		        _builder.PendingMail.Recipents,
 		        token))

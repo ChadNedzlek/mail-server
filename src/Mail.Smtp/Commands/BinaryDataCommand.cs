@@ -9,18 +9,18 @@ namespace Vaettir.Mail.Server.Smtp.Commands
     {
         private readonly SecurableConnection _connection;
         private readonly SmtpSession _session;
-        private readonly IMailStore _mailStore;
+        private readonly IMailQueue _mailQueue;
         private readonly IMailBuilder _builder;
 
         public BinaryDataCommand(
 			SecurableConnection connection,
 			SmtpSession session,
-			IMailStore mailStore,
+			IMailQueue mailQueue,
 			IMailBuilder builder)
         {
             _connection = connection;
             _session = session;
-            _mailStore = mailStore;
+            _mailQueue = mailQueue;
             _builder = builder;
         }
 
@@ -60,7 +60,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
             }
 
             using (
-                var mailReference = await _mailStore.NewMailAsync(
+                var mailReference = await _mailQueue.NewMailAsync(
 					_builder.PendingMail.FromPath.Mailbox,
 					_builder.PendingMail.Recipents,
                     token))

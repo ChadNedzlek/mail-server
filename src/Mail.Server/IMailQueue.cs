@@ -7,12 +7,14 @@ using System.Threading.Tasks;
 
 namespace Vaettir.Mail.Server
 {
-	public class IMailReference
+	public interface IMailReference
 	{
+		string Id { get; }
 	}
 
 	public interface ILiveMailReference : IDisposable
 	{
+		string Id { get; }
 		string Sender { get; }
 		IImmutableList<string> Recipients { get; }
 	}
@@ -30,12 +32,14 @@ namespace Vaettir.Mail.Server
 
 	public abstract class MailWriteReference : IMailWriteReference
 	{
-		protected MailWriteReference(string sender, IEnumerable<string> recipients)
+		protected MailWriteReference(string id, string sender, IEnumerable<string> recipients)
 		{
+			Id = id;
 			Sender = sender;
 			Recipients = ImmutableList.CreateRange(recipients);
 		}
 
+		public string Id { get; }
 		public string Sender { get;  }
 		public IImmutableList<string> Recipients { get; }
 
@@ -44,7 +48,7 @@ namespace Vaettir.Mail.Server
 		public abstract void Dispose();
 	}
 
-	public interface IMailStore
+	public interface IMailQueue
 	{
 		Task<IMailWriteReference> NewMailAsync(string sender, IEnumerable<string> recipients, CancellationToken token);
 

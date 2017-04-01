@@ -3,19 +3,22 @@
 	public class SmtpSettings : ProtocolSettings
 	{
 		public SmtpSettings(
-			int[] ports,
-			string domainName,
-			string mailStorePath,
-			string[] relayDomains,
-			string userPasswordFile,
-			string passwordAlgorithm)
-		: base(ports, domainName, userPasswordFile, passwordAlgorithm)
+			int[] ports = null,
+			string domainName = null,
+			string mailStorePath = null,
+			string userPasswordFile = null,
+			string domainSettingsPath = null,
+			string[] relayDomains = null,
+			string passwordAlgorithm = null)
+			: base(ports, domainName, userPasswordFile, passwordAlgorithm)
 		{
 			MailStorePath = mailStorePath;
 			RelayDomains = relayDomains;
+			DomainSettingsPath = domainSettingsPath;
 		}
 
 		public string MailStorePath { get; }
 		public string[] RelayDomains { get; }
+		public string DomainSettingsPath { get; }
 	}
 }
