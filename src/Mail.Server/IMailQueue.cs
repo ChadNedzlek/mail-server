@@ -50,7 +50,7 @@ namespace Vaettir.Mail.Server
 
 	public interface IMailQueue
 	{
-		Task<IMailWriteReference> NewMailAsync(string sender, IEnumerable<string> recipients, CancellationToken token);
+		Task<IMailWriteReference> NewMailAsync(string sender, IImmutableList<string> recipients, CancellationToken token);
 
 		IEnumerable<IMailReference> GetAllMailReferences();
 		Task<IMailReadReference> OpenReadAsync(IMailReference reference, CancellationToken token);

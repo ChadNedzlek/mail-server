@@ -1,5 +1,9 @@
+using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Mail.Smtp.Test;
 using Utility.Test;
 using Vaettir.Mail.Dispatcher;
@@ -15,6 +19,7 @@ namespace Mail.Dispatcher.Test
 	{
 		public MailDispatcherTests(ITestOutputHelper output)
 		{
+		    _queue = new MockMailQueue();
 			_domainSettings = new DomainSettings(
 				distributionLists: new [] {
 					new DistributionList(
@@ -45,19 +50,22 @@ namespace Mail.Dispatcher.Test
 				aliases: new Dictionary<string, string>{
 					{"alias-1@example.com", "box@example.com"},
 				});
-			_dispatcher = new MailDispatcher(
-				null,
+		    _settings = new SmtpSettings(domainName: "test.vaettir.net", relayDomains: new []{"relay.vaettir.net"}, idleDelay: 1);
+		    _dispatcher = new MailDispatcher(
+				_queue,
 				null,
 				null,
 				new TestOutputLogger(output),
 				new MockDomainResolver(_domainSettings),
-				new MockVolatile<SmtpSettings>(new SmtpSettings()));
+				new MockVolatile<SmtpSettings>(_settings));
 		}
 
 		private readonly MailDispatcher _dispatcher;
-		private DomainSettings _domainSettings;
+		private readonly DomainSettings _domainSettings;
+	    private readonly MockMailQueue _queue;
+	    private readonly SmtpSettings _settings;
 
-		[Fact]
+	    [Fact]
 		public void ParseMailboxListHeader_HeaderParsing_Single()
 		{
 			SequenceAssert.SameSet(
@@ -155,5 +163,22 @@ namespace Mail.Dispatcher.Test
 				"box@example.net",
 				_domainSettings.DistributionLists.First(dl => dl.Mailbox == "ext-dl@example.com")));
 		}
+
+	    [Fact]
+	    public async Task SendsToExternalQueue()
+	    {
+	        _queue.References.Add(
+	            new MockMailQueue.MockReference(
+	                "ext-mail",
+	                "box@example.com",
+	                new[] {"box@external.example.com"}.ToImmutableList(),
+					true,
+	                "My body\nNext Line"));
+
+	        await _dispatcher.ProcessAllMailReferencesAsync(CancellationToken.None);
+
+	        Assert.Empty(_queue.References);
+	        Assert.NotEmpty(_queue.DeletedReferences);
+	    }
 	}
 }

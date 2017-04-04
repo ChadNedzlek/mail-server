@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -62,7 +63,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
             using (
                 var mailReference = await _mailQueue.NewMailAsync(
 					_builder.PendingMail.FromPath.Mailbox,
-					_builder.PendingMail.Recipents,
+					_builder.PendingMail.Recipents.ToImmutableList(),
                     token))
             {
                 using (var mailStream = mailReference.BodyStream)

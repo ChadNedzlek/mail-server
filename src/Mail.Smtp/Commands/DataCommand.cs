@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Immutable;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -47,7 +48,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 
 		    using (IMailWriteReference reference = await _mailQueue.NewMailAsync(
 		        _builder.PendingMail.FromPath.Mailbox,
-		        _builder.PendingMail.Recipents,
+		        _builder.PendingMail.Recipents.ToImmutableList(),
 		        token))
 		    {
 		        using (var mailWriter = new StreamWriter(reference.BodyStream, Encoding.UTF8))

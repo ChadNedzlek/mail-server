@@ -57,70 +57,90 @@ namespace Vaettir.Mail.Dispatcher
 		{
 			while (!token.IsCancellationRequested)
 			{
-				foreach (var reference in _incoming.GetAllMailReferences().ToList())
-				{
-					IMailReadReference readReference;
-
-					try
-					{
-						readReference = await _incoming.OpenReadAsync(reference, token);
-					}
-					catch (IOException e)
-					{
-						// It's probably a sharing violation, just try again later.
-						_log.Warning($"Failed to get read reference, exception: {e}");
-						continue;
-					}
-
-					try
-					{
-
-						_log.Verbose($"Processing mail {readReference.Id} from {readReference.Sender}");
-
-						using (readReference)
-						using (var bodyStream = readReference.BodyStream)
-						{
-							var headers = await MailUtilities.ParseHeadersAsync(bodyStream, token);
-							var recipients = AugmentRecipients(readReference.Sender, readReference.Recipients, headers);
-							bodyStream.Seek(0, SeekOrigin.Begin);
-							var dispatchReferenecs = await CreateDispatchesAsync(recipients, readReference.Sender, token);
-
-							using (var targetStream = new MultiStream(dispatchReferenecs.Select(r => r.BodyStream)))
-							{
-								await bodyStream.CopyToAsync(targetStream);
-							}
-						}
-
-						_log.Verbose($"Processing mamil {readReference.Id} complete. Deleting incoming item...");
-
-						await _incoming.DeleteAsync(reference);
-					}
-					catch (Exception e)
-					{
-						_log.Error("Failed to process mail", e);
-					}
-				}
+			    await ProcessAllMailReferencesAsync(token);
 			}
 		}
 
-		public Task<IMailWriteReference[]> CreateDispatchesAsync(IEnumerable<string> recipients, string sender, CancellationToken token)
+	    public async Task ProcessAllMailReferencesAsync(CancellationToken token)
+	    {
+	        List<IMailReference> mailReferences = _incoming.GetAllMailReferences().ToList();
+
+	        if (mailReferences.Count == 0)
+	        {
+	            int msSleep = _settings.Value.IdleDelay ?? 30000;
+	            _log.Verbose($"No mail found, sleeping for {msSleep}ms");
+	            await Task.Delay(msSleep, token);
+	        }
+	        token.ThrowIfCancellationRequested();
+
+	        foreach (var reference in mailReferences)
+	        {
+	            token.ThrowIfCancellationRequested();
+	            IMailReadReference readReference;
+
+	            try
+	            {
+	                readReference = await _incoming.OpenReadAsync(reference, token);
+	            }
+	            catch (IOException e)
+	            {
+	                // It's probably a sharing violation, just try again later.
+	                _log.Warning($"Failed to get read reference, exception: {e}");
+	                continue;
+	            }
+
+	            try
+	            {
+	                _log.Verbose($"Processing mail {readReference.Id} from {readReference.Sender}");
+
+	                using (readReference)
+	                using (var bodyStream = readReference.BodyStream)
+	                {
+	                    var headers = await MailUtilities.ParseHeadersAsync(bodyStream, token);
+	                    var recipients = AugmentRecipients(readReference.Sender, readReference.Recipients, headers);
+	                    bodyStream.Seek(0, SeekOrigin.Begin);
+	                    var dispatchReferenecs = await CreateDispatchesAsync(recipients, readReference.Sender, token);
+
+	                    using (var targetStream = new MultiStream(dispatchReferenecs.Select(r => r.BodyStream)))
+	                    {
+	                        await bodyStream.CopyToAsync(targetStream);
+	                    }
+	                }
+
+	                _log.Verbose($"Processing mamil {readReference.Id} complete. Deleting incoming item...");
+
+	                await _incoming.DeleteAsync(reference);
+	            }
+	            catch (TaskCanceledException)
+	            {
+	                throw;
+	            }
+	            catch (Exception e)
+	            {
+	                _log.Error("Failed to process mail", e);
+	            }
+	        }
+	    }
+
+	    public Task<IMailWriteReference[]> CreateDispatchesAsync(IEnumerable<string> recipients, string sender, CancellationToken token)
 		{
-			return Task.WhenAll(recipients
-				.GroupBy(MailUtilities.GetDomainFromMailbox)
-				.SelectMany(
-					delegate(IGrouping<string, string> g)
-					{
-						if (_settings.Value.DomainName == g.Key)
-							return g.Select(r => _mailBox.NewMailAsync(r, token));
+		    return Task.WhenAll(
+		        recipients
+		            .GroupBy(MailUtilities.GetDomainFromMailbox)
+		            .SelectMany(
+		                g =>
+		                {
+		                    if (_settings.Value.DomainName == g.Key)
+		                        return g.Select(r => _mailBox.NewMailAsync(r, token));
 
-						if (_settings.Value.RelayDomains.Contains(g.Key))
-							return _transfer.NewMailAsync(g, sender, token).ToEnumerable();
+		                    if (_settings.Value.RelayDomains.Contains(g.Key))
+		                        return _transfer.NewMailAsync(g, sender, token).ToEnumerable();
 
-						_log.Error($"Invalid domain {g.Key}");
-						return Enumerable.Empty<Task<IMailWriteReference>>();
-					}
-				)
-			);
+		                    _log.Error($"Invalid domain {g.Key}");
+		                    return Enumerable.Empty<Task<IMailWriteReference>>();
+		                }
+		            )
+		    );
 		}
 
 		public ISet<string> AugmentRecipients(
@@ -128,7 +148,7 @@ namespace Vaettir.Mail.Dispatcher
 			IEnumerable<string> originalRecipients,
 			IDictionary<string, IEnumerable<string>> headers)
 		{
-			HashSet<string> excludedFromExpansion = new HashSet<string>();
+			var excludedFromExpansion = new HashSet<string>();
 			string[] alreadOnThreadHeaders =
 			{
 				"To",
@@ -152,16 +172,16 @@ namespace Vaettir.Mail.Dispatcher
 			}
 
 			excludedFromExpansion.Add(from);
-			var expandedRecipients = ExpandDistributionLists(from, originalRecipients, excludedFromExpansion);
+			ISet<string> expandedRecipients = ExpandDistributionLists(from, originalRecipients, excludedFromExpansion);
 			expandedRecipients.Remove(from);
 			return expandedRecipients;
 		}
 
 		public ISet<string> ExpandDistributionLists(string sender, IEnumerable<string> originalRecipients, HashSet<string> excludedFromExpansion)
 		{
-			HashSet<string> to = new HashSet<string>();
-			var domain = _domain.Value;
-			foreach (var recipient in originalRecipients)
+			var to = new HashSet<string>();
+			DomainSettings domain = _domain.Value;
+			foreach (string recipient in originalRecipients)
 			{
 				DistributionList distributionList = domain.DistributionLists.FirstOrDefault(dl => dl.Mailbox == recipient);
 				if (distributionList != null)
@@ -172,8 +192,8 @@ namespace Vaettir.Mail.Dispatcher
 						continue;
 					}
 
-					var nonExcludedMembers = distributionList.Members.Where(m => !excludedFromExpansion.Contains(m));
-					foreach (var member in nonExcludedMembers)
+					IEnumerable<string> nonExcludedMembers = distributionList.Members.Where(m => !excludedFromExpansion.Contains(m));
+					foreach (string member in nonExcludedMembers)
 					{
 						to.Add(member);
 					}

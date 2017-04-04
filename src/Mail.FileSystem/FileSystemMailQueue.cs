@@ -104,10 +104,7 @@ namespace Vaettir.Mail.Server.FileSystem
 			}
 		}
 
-		public async Task<IMailWriteReference> NewMailAsync(
-			string sender,
-			IEnumerable<string> recipients,
-			CancellationToken token)
+		public async Task<IMailWriteReference> NewMailAsync(string sender, IImmutableList<string> recipients, CancellationToken token)
 		{
 			string mailName = Guid.NewGuid().ToString("D");
 
