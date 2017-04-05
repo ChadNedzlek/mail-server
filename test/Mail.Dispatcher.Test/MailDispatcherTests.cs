@@ -1,10 +1,8 @@
-using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Mail.Smtp.Test;
 using Utility.Test;
 using Vaettir.Mail.Dispatcher;
 using Vaettir.Mail.Server;
@@ -20,6 +18,8 @@ namespace Mail.Dispatcher.Test
 		public MailDispatcherTests(ITestOutputHelper output)
 		{
 		    _queue = new MockMailQueue();
+		    _transfer = new MockTransferQueue();
+		    _mailbox = new MockMailBoxStore();
 			_domainSettings = new DomainSettings(
 				distributionLists: new [] {
 					new DistributionList(
@@ -50,11 +50,11 @@ namespace Mail.Dispatcher.Test
 				aliases: new Dictionary<string, string>{
 					{"alias-1@example.com", "box@example.com"},
 				});
-		    _settings = new SmtpSettings(domainName: "test.vaettir.net", relayDomains: new []{"relay.vaettir.net"}, idleDelay: 1);
+		    _settings = new SmtpSettings(domainName: "example.com", relayDomains: new []{"relay.example.com"}, idleDelay: 1);
 		    _dispatcher = new MailDispatcher(
 				_queue,
-				null,
-				null,
+				_mailbox,
+				_transfer,
 				new TestOutputLogger(output),
 				new MockDomainResolver(_domainSettings),
 				new MockVolatile<SmtpSettings>(_settings));
@@ -64,6 +64,8 @@ namespace Mail.Dispatcher.Test
 		private readonly DomainSettings _domainSettings;
 	    private readonly MockMailQueue _queue;
 	    private readonly SmtpSettings _settings;
+	    private readonly MockTransferQueue _transfer;
+	    private readonly MockMailBoxStore _mailbox;
 
 	    [Fact]
 		public void ParseMailboxListHeader_HeaderParsing_Single()
@@ -164,21 +166,107 @@ namespace Mail.Dispatcher.Test
 				_domainSettings.DistributionLists.First(dl => dl.Mailbox == "ext-dl@example.com")));
 		}
 
-	    [Fact]
-	    public async Task SendsToExternalQueue()
-	    {
-	        _queue.References.Add(
-	            new MockMailQueue.MockReference(
-	                "ext-mail",
-	                "box@example.com",
-	                new[] {"box@external.example.com"}.ToImmutableList(),
+		[Fact]
+		public async Task IgnoresNonRelayDomain()
+		{
+		    _queue.References.Add(
+				new MockMailReference(
+					"ignored",
+					"box@external.example.com",
+					new[] { "box@external.example.com" }.ToImmutableList(),
 					true,
-	                "My body\nNext Line"));
+					"My body\nNext Line"));
 
-	        await _dispatcher.ProcessAllMailReferencesAsync(CancellationToken.None);
+			await _dispatcher.ProcessAllMailReferencesAsync(CancellationToken.None);
 
-	        Assert.Empty(_queue.References);
-	        Assert.NotEmpty(_queue.DeletedReferences);
-	    }
+			Assert.Empty(_queue.References);
+			Assert.Equal(1, _queue.DeletedReferences.Count);
+			Assert.Empty(_transfer.References);
+			Assert.Empty(_mailbox.References);
+		}
+
+		[Fact]
+		public async Task SendsSingleMailToRelay()
+		{
+			var body = "My body\nNext Line";
+			_queue.References.Add(
+				new MockMailReference(
+					"ext-mail",
+					"box@external.example.com",
+					new[] { "box@relay.example.com", "other@relay.example.com" }.ToImmutableList(),
+					true,
+					body));
+
+			await _dispatcher.ProcessAllMailReferencesAsync(CancellationToken.None);
+
+			Assert.Empty(_queue.References);
+			Assert.Equal(1, _queue.DeletedReferences.Count);
+			Assert.Equal(1, _transfer.SavedReferences.Count);
+			string newBody;
+			using (MockMailReference reference = _transfer.SavedReferences[0])
+			{
+				Assert.Equal("box@external.example.com", reference.Sender);
+				SequenceAssert.SameSet(new[] { "box@relay.example.com", "other@relay.example.com" }, reference.Recipients);
+				newBody = await StreamUtility.ReadAllFromStreamAsync(reference.BackupBodyStream);
+			}
+			Assert.Equal(body, newBody);
+			Assert.Empty(_mailbox.References);
+		}
+
+		[Fact]
+		public async Task InternalSenderCanSendAnywhere()
+		{
+			var body = "My body\nNext Line";
+			_queue.References.Add(
+				new MockMailReference(
+					"ext-mail",
+					"box@example.com",
+					new[] { "box@external.example.com" }.ToImmutableList(),
+					true,
+					body));
+
+			await _dispatcher.ProcessAllMailReferencesAsync(CancellationToken.None);
+
+			Assert.Empty(_queue.References);
+			Assert.Equal(1, _queue.DeletedReferences.Count);
+			Assert.Equal(1, _transfer.SavedReferences.Count);
+			string newBody;
+			using (MockMailReference reference = _transfer.SavedReferences[0])
+			{
+				Assert.Equal("box@example.com", reference.Sender);
+				SequenceAssert.SameSet(new[] { "box@external.example.com" }, reference.Recipients);
+				newBody = await StreamUtility.ReadAllFromStreamAsync(reference.BackupBodyStream);
+			}
+			Assert.Equal(body, newBody);
+			Assert.Empty(_mailbox.References);
+		}
+
+		[Fact]
+		public async Task SplitIntoMailboxes()
+		{
+			var body = "My body\nNext Line";
+			_queue.References.Add(
+				new MockMailReference(
+					"int-mail",
+					"senderbox@external.example.com",
+					new[] { "box@example.com", "other@example.com" }.ToImmutableList(),
+					true,
+					body));
+
+			await _dispatcher.ProcessAllMailReferencesAsync(CancellationToken.None);
+
+			Assert.Empty(_queue.References);
+			Assert.Empty(_transfer.References);
+			Assert.Equal(2, _mailbox.SavedReferences.Count);
+		    HashSet<string> expected = new HashSet<string> {"box@example.com", "other@example.com"};
+		    foreach (var r in _mailbox.SavedReferences)
+		    {
+		        Assert.Equal(1, r.Recipients.Count);
+		        Assert.True(expected.Contains(r.Recipients[0]));
+		        expected.Remove(r.Recipients[0]);
+				Assert.Equal(body, await StreamUtility.ReadAllFromStreamAsync(r.BackupBodyStream));
+		        r.Dispose();
+		    }
+		}
 	}
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -67,7 +68,7 @@ namespace Vaettir.Mail.Dispatcher
 
 	        if (mailReferences.Count == 0)
 	        {
-	            int msSleep = _settings.Value.IdleDelay ?? 30000;
+	            int msSleep = _settings.Value.IdleDelay ?? 5000;
 	            _log.Verbose($"No mail found, sleeping for {msSleep}ms");
 	            await Task.Delay(msSleep, token);
 	        }
@@ -105,6 +106,8 @@ namespace Vaettir.Mail.Dispatcher
 	                    {
 	                        await bodyStream.CopyToAsync(targetStream);
 	                    }
+
+	                    await Task.WhenAll(dispatchReferenecs.Select(r => r.SaveAsync(token)));
 	                }
 
 	                _log.Verbose($"Processing mamil {readReference.Id} complete. Deleting incoming item...");
@@ -123,8 +126,9 @@ namespace Vaettir.Mail.Dispatcher
 	    }
 
 	    public Task<IMailWriteReference[]> CreateDispatchesAsync(IEnumerable<string> recipients, string sender, CancellationToken token)
-		{
-		    return Task.WhenAll(
+	    {
+	        var senderDomain = MailUtilities.GetDomainFromMailbox(sender);
+			return Task.WhenAll(
 		        recipients
 		            .GroupBy(MailUtilities.GetDomainFromMailbox)
 		            .SelectMany(
@@ -133,8 +137,8 @@ namespace Vaettir.Mail.Dispatcher
 		                    if (_settings.Value.DomainName == g.Key)
 		                        return g.Select(r => _mailBox.NewMailAsync(r, token));
 
-		                    if (_settings.Value.RelayDomains.Contains(g.Key))
-		                        return _transfer.NewMailAsync(g, sender, token).ToEnumerable();
+		                    if (_settings.Value.RelayDomains.Contains(g.Key) || _settings.Value.DomainName == senderDomain)
+		                        return _transfer.NewMailAsync(sender, g.ToImmutableList(), token).ToEnumerable();
 
 		                    _log.Error($"Invalid domain {g.Key}");
 		                    return Enumerable.Empty<Task<IMailWriteReference>>();
@@ -161,8 +165,7 @@ namespace Vaettir.Mail.Dispatcher
 
 			foreach (string header in alreadOnThreadHeaders)
 			{
-				IEnumerable<string> targets;
-				if (headers.TryGetValue(header, out targets))
+				if (headers.TryGetValue(header, out var targets))
 				{
 					foreach (var mbox in ParseMailboxListHeader(targets))
 					{
@@ -201,8 +204,7 @@ namespace Vaettir.Mail.Dispatcher
 				}
 
 				{
-					string newRecipient;
-					if (domain.Aliases.TryGetValue(recipient, out newRecipient))
+					if (domain.Aliases.TryGetValue(recipient, out var newRecipient))
 					{
 						if (excludedFromExpansion.Contains(newRecipient))
 						{
@@ -244,8 +246,6 @@ namespace Vaettir.Mail.Dispatcher
 
 		public void Dispose()
 		{
-			_settings?.Dispose();
-			_log?.Dispose();
 			_domain?.Dispose();
 		}
 	}

@@ -32,9 +32,8 @@ namespace Vaettir.Mail.Server.Smtp.Commands
                 return;
             }
             string mechanismName = parts[0];
-            IAuthenticationSession mechanism;
 
-			if (!_authentication.TryGetValue(mechanismName, out mechanism))
+			if (!_authentication.TryGetValue(mechanismName, out var mechanism))
             {
                 await _channel.SendReplyAsync(ReplyCode.InvalidArguments, "Unknown mechanism", token);
                 return;

@@ -7,13 +7,14 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
+using Newtonsoft.Json;
 using Vaettir.Mail.Server.Smtp;
 using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server.FileSystem
 {
     [UsedImplicitly(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature)]
-	public class FileSystemMailQueue : IMailQueue
+	public class FileSystemMailQueue : IMailQueue, IMailTransferQueue
 	{
 	    private readonly SmtpSettings _settings;
 
