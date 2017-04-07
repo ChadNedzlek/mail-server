@@ -5,19 +5,22 @@
 		public SmtpSettings(
 			int[] ports = null,
 			string domainName = null,
-			string mailStorePath = null,
+			string mailIncomingQueuePath = null,
+			string mailOutgoingQueuePath = null,
 			string userPasswordFile = null,
 			string domainSettingsPath = null,
 			string[] relayDomains = null,
 			string passwordAlgorithm = null)
 			: base(ports, domainName, userPasswordFile, passwordAlgorithm)
 		{
-			MailStorePath = mailStorePath;
+			MailIncomingQueuePath = mailIncomingQueuePath;
+			MailOutgoingQueuePath = mailOutgoingQueuePath;
 			RelayDomains = relayDomains;
 			DomainSettingsPath = domainSettingsPath;
 		}
 
-		public string MailStorePath { get; }
+		public string MailIncomingQueuePath { get; }
+		public string MailOutgoingQueuePath { get; }
 		public string[] RelayDomains { get; }
 		public string DomainSettingsPath { get; }
 	}

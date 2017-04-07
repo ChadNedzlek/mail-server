@@ -2,7 +2,8 @@
 	"smtpSettings": {
 		"ports": [ 25 ],
 		"domainName": "smtp.vaettir.net",
-		"mailStorePath": "D:\\temp\\mail",
+		"mailIncomingQueuePath": "D:\\temp\\mail\\in",
+		"mailOutgoingQueuePath": "D:\\temp\\mail\\out",
 		"userPasswordFile": "D:\\temp\\mail-user",
 		"passwordAlgorithm": "db:sha1:94857",
 		"relayDomains": [ "vaettir.net", "xyons.net" ]

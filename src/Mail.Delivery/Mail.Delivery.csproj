@@ -4,11 +4,21 @@
     <TargetFramework>netstandard1.6</TargetFramework>
     <AssemblyName>Mail.Delivery</AssemblyName>
     <PackageId>Mail.Delivery</PackageId>
-    <NetStandardImplicitPackageVersion>1.6.0</NetStandardImplicitPackageVersion>
+    <NetStandardImplicitPackageVersion>1.6.1</NetStandardImplicitPackageVersion>
     <PackageTargetFallback>$(PackageTargetFallback);dnxcore50</PackageTargetFallback>
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+    <RootNamespace>Vaettir.Mail.Delivery</RootNamespace>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DnsClient" Version="1.0.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Mail.Server\Mail.Server.csproj" />
+    <ProjectReference Include="..\Mail.Smtp\Mail.Smtp.csproj" />
+  </ItemGroup>
 
 </Project>

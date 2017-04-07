@@ -4,7 +4,7 @@
     <TargetFramework>netstandard1.5</TargetFramework>
     <AssemblyName>Mail.Dispatcher</AssemblyName>
     <PackageId>Mail.Dispatcher</PackageId>
-    <NetStandardImplicitPackageVersion>1.6.0</NetStandardImplicitPackageVersion>
+    <NetStandardImplicitPackageVersion>1.6.1</NetStandardImplicitPackageVersion>
     <PackageTargetFallback>$(PackageTargetFallback);dnxcore50;portable-net45+win8+wp8+wpa81</PackageTargetFallback>
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
