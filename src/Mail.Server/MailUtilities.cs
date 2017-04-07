@@ -88,10 +88,9 @@ namespace Vaettir.Mail.Server
 
 		private static void AddItem(Dictionary<string, IEnumerable<string>> dict, string key, string value)
 		{
-			IEnumerable<string> enumerable;
 			IList<string> list;
 
-			if (!dict.TryGetValue(key, out enumerable) ||
+			if (!dict.TryGetValue(key, out var enumerable) ||
 				(list = enumerable as IList<string>) == null)
 			{
 				dict.Add(key, list = new List<string>());

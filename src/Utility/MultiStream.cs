@@ -74,12 +74,14 @@ namespace Vaettir.Utility
 
 		public override int Read(byte[] buffer, int offset, int count)
 		{
-			throw new NotSupportedException();
+			if (!CanRead) throw new InvalidOperationException();
+			return _streams[0].Read(buffer, offset, count);
 		}
 
 		public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
 		{
-			throw new NotSupportedException();
+			if (!CanRead) throw new InvalidOperationException();
+			return _streams[0].ReadAsync(buffer, offset, count, cancellationToken);
 		}
 
 		public override long Seek(long offset, SeekOrigin origin)
@@ -107,7 +109,7 @@ namespace Vaettir.Utility
 			return Task.WhenAll(Do(s => s.CopyToAsync(destination, bufferSize, cancellationToken)));
 		}
 
-		public override bool CanRead => false;
+		public override bool CanRead => _streams.Count == 1 && _streams[0].CanRead;
 
 		public override bool CanSeek => _streams.All(s => s.CanSeek);
 
@@ -115,13 +117,27 @@ namespace Vaettir.Utility
 
 		public override long Length
 		{
-			get { throw new NotSupportedException(); }
+			get
+			{
+				if (!CanRead) throw new InvalidOperationException();
+			    return _streams[0].Length;
+			}
 		}
 
 		public override long Position
 		{
-			get { throw new NotSupportedException(); }
-			set { throw new NotSupportedException(); }
+			get
+			{
+				if (!CanRead) throw new InvalidOperationException();
+				return _streams[0].Position;
+			}
+		    set
+		    {
+		        foreach (var s  in _streams)
+		        {
+		            s.Position = value;
+		        }
+		    }
 		}
 
 		protected override void Dispose(bool disposing)

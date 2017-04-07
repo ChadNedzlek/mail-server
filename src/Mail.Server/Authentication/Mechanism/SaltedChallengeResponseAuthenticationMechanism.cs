@@ -121,9 +121,8 @@ namespace Vaettir.Mail.Server.Authentication.Mechanism
                     }
                     value = str.Substring(2);
                 }
-
-                Action<string> handler;
-                if (!handlers.TryGetValue(code, out handler))
+				
+                if (!handlers.TryGetValue(code, out var handler))
                 {
                     continue;
                 }
