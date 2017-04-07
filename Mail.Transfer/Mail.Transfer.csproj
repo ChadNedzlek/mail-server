@@ -6,6 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="DnsClient" Version="1.0.6" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\src\Mail.Server\Mail.Server.csproj" />
     <ProjectReference Include="..\src\Mail.Smtp\Mail.Smtp.csproj" />
     <ProjectReference Include="..\src\Utility\Utility.csproj" />

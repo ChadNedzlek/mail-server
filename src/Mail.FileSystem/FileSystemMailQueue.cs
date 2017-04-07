@@ -19,17 +19,12 @@ namespace Vaettir.Mail.Server.FileSystem
 		{
 		}
 
-		public Task<IMailWriteReference> NewMailAsync(
-			string sender,
-			IEnumerable<string> recipients,
-			CancellationToken token)
-		{
-			string GetPathFromName(string name)
-			{
-				return Path.Combine(_settings.MailOutgoingQueuePath, name);
-			}
 
-			return CreateWriteReference(
+		public Task<IMailWriteReference> NewMailAsync(string sender, IImmutableList<string> recipients, CancellationToken token)
+		{
+			string GetPathFromName(string name) => Path.Combine(_settings.MailOutgoingQueuePath, name);
+
+		    return CreateWriteReference(
 				sender,
 				token,
 				recipients,

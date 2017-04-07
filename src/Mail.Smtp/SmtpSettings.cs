@@ -23,8 +23,20 @@
 
 		public string MailIncomingQueuePath { get; }
 		public string MailOutgoingQueuePath { get; }
-		public string[] RelayDomains { get; }
+		public SmtpRelayDomain[] SmtpRelayDomain { get; }
 		public string DomainSettingsPath { get; }
 	    public int? IdleDelay { get; }
 	}
+
+    public class SmtpRelayDomain
+    {
+        public SmtpRelayDomain(string name, int? port = null)
+        {
+            Name = name;
+            Port = port;
+        }
+
+        public string Name { get; }
+        public int? Port { get; }
+    }
 }
