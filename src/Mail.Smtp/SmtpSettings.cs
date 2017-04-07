@@ -9,7 +9,7 @@
 			string mailOutgoingQueuePath = null,
 			string userPasswordFile = null,
 			string domainSettingsPath = null,
-			string[] relayDomains = null,
+			SmtpRelayDomain[] relayDomains = null,
 			string passwordAlgorithm = null,
 			int? idleDelay = null)
 			: base(ports, domainName, userPasswordFile, passwordAlgorithm)
@@ -23,7 +23,7 @@
 
 		public string MailIncomingQueuePath { get; }
 		public string MailOutgoingQueuePath { get; }
-		public SmtpRelayDomain[] SmtpRelayDomain { get; }
+		public SmtpRelayDomain[] RelayDomains { get; }
 		public string DomainSettingsPath { get; }
 	    public int? IdleDelay { get; }
 	}

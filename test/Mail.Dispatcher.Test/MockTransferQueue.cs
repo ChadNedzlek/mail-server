@@ -16,19 +16,19 @@ namespace Mail.Dispatcher.Test
 		public int Count => References.Count + DeletedReferences.Count;
 		public IList<MockMailReference> SavedReferences => References.Where(r => r.IsSaved).ToList();
 
-		public Task<IMailWriteReference> NewMailAsync(IImmutableList<string> recipients, string sender, CancellationToken token)
+		public Task<IMailWriteReference> NewMailAsync(string sender, IImmutableList<string> recipients, CancellationToken token)
 		{
-		    var reference = new MockMailReference($"tranfser-{Count}", sender, recipients, false);
-		    References.Add(reference);
-		    return Task.FromResult((IMailWriteReference) reference);
+			var reference = new MockMailReference($"tranfser-{Count}", sender, recipients, false);
+			References.Add(reference);
+			return Task.FromResult((IMailWriteReference)reference);
 		}
 
-	    public Task<IMailWriteReference> NewMailAsync(string sender, IImmutableList<string> recipients, CancellationToken token)
+	    public IEnumerable<string> GetMailsByDomain()
 	    {
-	        throw new System.NotImplementedException();
+	        return References.Select(r => MailUtilities.GetDomainFromMailbox(r.Recipients[0])).Distinct();
 	    }
 
-	    public IEnumerable<IMailReference> GetAllMailReferences()
+	    public IEnumerable<IMailReference> GetAllMailForDomain(string domain)
 	    {
 	        throw new System.NotImplementedException();
 	    }

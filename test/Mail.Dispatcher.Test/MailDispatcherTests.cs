@@ -50,7 +50,7 @@ namespace Mail.Dispatcher.Test
 				aliases: new Dictionary<string, string>{
 					{"alias-1@example.com", "box@example.com"},
 				});
-		    _settings = new SmtpSettings(domainName: "example.com", relayDomains: new []{"relay.example.com"}, idleDelay: 1);
+		    _settings = new SmtpSettings(domainName: "example.com", relayDomains: new []{new SmtpRelayDomain("relay.example.com"), }, idleDelay: 1);
 		    _dispatcher = new MailDispatcher(
 				_queue,
 				_mailbox,

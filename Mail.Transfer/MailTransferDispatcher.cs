@@ -80,7 +80,7 @@ namespace Vaettir.Mail.Transfer
                 return false;
             }
 
-            var relayDescription = _settings.Value.SmtpRelayDomain?
+            var relayDescription = _settings.Value.RelayDomains?
 				.FirstOrDefault(r => String.Equals(r.Name, domain, StringComparison.OrdinalIgnoreCase));
 
             int port = relayDescription?.Port ?? 25;
@@ -157,8 +157,12 @@ namespace Vaettir.Mail.Transfer
                         _log.Warning("Failed to send at least one mail");
                         return false;
                     }
+
+                    await SendCommand(writer, "QUIT");
                 }
             }
+
+            return true;
         }
 
         private Task HandleRejectedMailAsync(IMailReference mail)

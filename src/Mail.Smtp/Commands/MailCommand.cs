@@ -63,7 +63,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
             }
 
             if (!_channel.IsAuthenticated &&
-                _settings.RelayDomains.Contains(MailUtilities.GetDomainFromMailbox(mailBox)))
+                _settings.RelayDomains.Any(d => String.Equals(d.Name, MailUtilities.GetDomainFromMailbox(mailBox), StringComparison.OrdinalIgnoreCase)))
             {
                 return _channel.SendReplyAsync(
                     ReplyCode.InvalidArguments,

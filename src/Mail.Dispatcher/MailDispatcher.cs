@@ -137,7 +137,7 @@ namespace Vaettir.Mail.Dispatcher
 		                    if (_settings.Value.DomainName == g.Key)
 		                        return g.Select(r => _mailBox.NewMailAsync(r, token));
 
-		                    if (_settings.Value.RelayDomains.Contains(g.Key) || _settings.Value.DomainName == senderDomain)
+		                    if (_settings.Value.RelayDomains.Any(d => String.Equals(d.Name, g.Key, StringComparison.OrdinalIgnoreCase)) || _settings.Value.DomainName == senderDomain)
 		                        return _transfer.NewMailAsync(sender, g.ToImmutableList(), token).ToEnumerable();
 
 		                    _log.Error($"Invalid domain {g.Key}");

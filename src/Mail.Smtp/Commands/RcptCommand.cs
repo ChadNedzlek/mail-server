@@ -60,7 +60,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
             string domain = mailboxParts[1];
 
             if (!_channel.IsAuthenticated &&
-				_settings.RelayDomains?.Contains(domain, StringComparer.OrdinalIgnoreCase) != true)
+				_settings.RelayDomains?.Any(d => String.Equals(d.Name, domain, StringComparison.OrdinalIgnoreCase)) != true)
             {
                 return _channel.SendReplyAsync(ReplyCode.MailboxUnavailable, "Invalid mailbox", token);
             }

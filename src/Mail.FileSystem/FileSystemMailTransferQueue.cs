@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -16,7 +17,7 @@ namespace Vaettir.Mail.Server.FileSystem
 		{
 		}
 
-		public Task<IMailWriteReference> NewMailAsync(IEnumerable<string> recipients, string sender, CancellationToken token)
+		public Task<IMailWriteReference> NewMailAsync(string sender, IImmutableList<string> recipients, CancellationToken token)
 		{
 			var recipientsByDomain = recipients.GroupBy(MailUtilities.GetDomainFromMailbox).ToList();
 			if (recipientsByDomain.Count > 1)
