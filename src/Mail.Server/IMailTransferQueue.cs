@@ -5,13 +5,10 @@ using System.Threading.Tasks;
 
 namespace Vaettir.Mail.Server
 {
-	public interface IMailTransferQueue
+	public interface IMailTransferQueue : IMailStore
 	{
-		Task<IMailWriteReference> NewMailAsync(string sender, IImmutableList<string> recipients, CancellationToken token);
+		Task<IMailWriteReference> NewMailAsync(string id, string sender, IImmutableList<string> recipients, CancellationToken token);
 		IEnumerable<string> GetMailsByDomain();
 		IEnumerable<IMailReference> GetAllMailForDomain(string domain);
-
-		Task<IMailReadReference> OpenReadAsync(IMailReference reference, CancellationToken token);
-		Task DeleteAsync(IMailReference reference);
 	}
 }

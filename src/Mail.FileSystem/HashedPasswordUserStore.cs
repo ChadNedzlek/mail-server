@@ -29,7 +29,7 @@ namespace Vaettir.Mail.Server.FileSystem
 			if (!ConstantTimeEquals(hash, 0, user.Hash, 0, hash.Length))
 				return null;
 
-			return new UserData(userName + "@" + _settings.DomainName);
+			return new UserData(userName);
 		}
 
 		public Task<byte[]> GetSaltForUserAsync(string username, CancellationToken cancellationToken)

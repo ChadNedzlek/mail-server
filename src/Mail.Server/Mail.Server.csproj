@@ -25,7 +25,7 @@
 
   <ItemGroup>
     <Reference Include="System.Net.Security">
-      <HintPath>..\..\..\..\..\.nuget\packages\system.net.security\4.3.0\ref\netstandard1.3\System.Net.Security.dll</HintPath>
+      <HintPath>..\..\..\..\Users\chadnedz\.nuget\packages\system.net.security\4.3.0\ref\netstandard1.3\System.Net.Security.dll</HintPath>
     </Reference>
   </ItemGroup>
 

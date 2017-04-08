@@ -175,7 +175,8 @@ namespace Mail.Dispatcher.Test
 					"box@external.example.com",
 					new[] { "box@external.example.com" }.ToImmutableList(),
 					true,
-					"My body\nNext Line"));
+					"My body\nNext Line",
+					_queue));
 
 			await _dispatcher.ProcessAllMailReferencesAsync(CancellationToken.None);
 
@@ -195,7 +196,8 @@ namespace Mail.Dispatcher.Test
 					"box@external.example.com",
 					new[] { "box@relay.example.com", "other@relay.example.com" }.ToImmutableList(),
 					true,
-					body));
+					body,
+					_queue));
 
 			await _dispatcher.ProcessAllMailReferencesAsync(CancellationToken.None);
 
@@ -223,7 +225,8 @@ namespace Mail.Dispatcher.Test
 					"box@example.com",
 					new[] { "box@external.example.com" }.ToImmutableList(),
 					true,
-					body));
+					body,
+					_queue));
 
 			await _dispatcher.ProcessAllMailReferencesAsync(CancellationToken.None);
 
@@ -251,7 +254,8 @@ namespace Mail.Dispatcher.Test
 					"senderbox@external.example.com",
 					new[] { "box@example.com", "other@example.com" }.ToImmutableList(),
 					true,
-					body));
+					body,
+					_queue));
 
 			await _dispatcher.ProcessAllMailReferencesAsync(CancellationToken.None);
 

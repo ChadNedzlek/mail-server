@@ -11,12 +11,12 @@ namespace Mail.Dispatcher.Test
 {
     public class MockMailReference : IMailReference, IMailReadReference, IMailWriteReference
     {
-        public MockMailReference(string id, string sender, IImmutableList<string> recipients, bool saved)
-            : this(id, sender, recipients, saved, (byte[])null)
+        public MockMailReference(string id, string sender, IImmutableList<string> recipients, bool saved, IMailStore store)
+            : this(id, sender, recipients, saved, (byte[])null, store)
         {
         }
 
-        public MockMailReference(string id, string sender, IImmutableList<string> recipients, bool saved, byte[] body)
+        public MockMailReference(string id, string sender, IImmutableList<string> recipients, bool saved, byte[] body, IMailStore store)
         {
             Id = id;
             Sender = sender;
@@ -24,17 +24,19 @@ namespace Mail.Dispatcher.Test
             BackupBodyStream = body == null ? new MemoryStream() : new MemoryStream(body);
             BodyStream = new MultiStream(new[] {BackupBodyStream}, true);
             IsSaved = saved;
+	        Store = store;
         }
 
-        public MockMailReference(string id, string sender, IImmutableList<string> recipients, bool saved, string body)
-            : this(id, sender, recipients, saved, Encoding.ASCII.GetBytes(body))
+        public MockMailReference(string id, string sender, IImmutableList<string> recipients, bool saved, string body, IMailStore store)
+            : this(id, sender, recipients, saved, Encoding.ASCII.GetBytes(body), store)
         {
         }
 
         public string Id { get; }
         public string Sender { get; }
         public IImmutableList<string> Recipients { get; }
-        public bool IsSaved { get; private set; }
+	    public IMailStore Store { get; }
+	    public bool IsSaved { get; internal set; }
 
         public void Dispose()
         {

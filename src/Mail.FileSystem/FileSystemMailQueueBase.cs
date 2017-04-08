@@ -11,7 +11,7 @@ using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server.FileSystem
 {
-	public class FileSystemMailQueueBase
+	public abstract class FileSystemMailQueueBase : IMailStore
 	{
 		protected readonly SmtpSettings _settings;
 
@@ -43,6 +43,7 @@ namespace Vaettir.Mail.Server.FileSystem
 
 			public string Sender { get; }
 			public IImmutableList<string> Recipients { get; }
+			public IMailStore Store { get; }
 			public string Path { get; }
 
 			public string Id { get; }
@@ -52,10 +53,12 @@ namespace Vaettir.Mail.Server.FileSystem
 				string sender,
 				IEnumerable<string> recipients,
 				string path,
-				Stream bodyStream)
+				Stream bodyStream,
+				IMailStore store)
 			{
 				Id = id;
 				BodyStream = bodyStream;
+				Store = store;
 				Path = path;
 				Sender = sender;
 				Recipients = ImmutableList.CreateRange(recipients);
@@ -72,32 +75,22 @@ namespace Vaettir.Mail.Server.FileSystem
 			public override Stream BodyStream { get; }
 			public string Path { get; }
 
-			private readonly string _tempPath;
-			private bool _saved;
+			public string TempPath { get; }
+			public bool Saved { get; set; }
 
-			public WriteReference(string id, string tempPath, string path, string sender, IEnumerable<string> recipients, Stream bodyStream)
-				: base(id, sender, recipients)
+			public WriteReference(string id, string tempPath, string path, string sender, IEnumerable<string> recipients, Stream bodyStream, IMailStore store)
+				: base(id, sender, recipients, store)
 			{
 				BodyStream = bodyStream;
-				_tempPath = tempPath;
+				TempPath = tempPath;
 				Path = path;
-			}
-
-			public override Task SaveAsync(CancellationToken token)
-			{
-				if (_saved) throw new InvalidOperationException("Already saved");
-
-				BodyStream.Dispose();
-				File.Move(_tempPath, Path);
-				_saved = true;
-				return Task.FromResult((object) null);
 			}
 
 			public override void Dispose()
 			{
-				if (!_saved && File.Exists(_tempPath))
+				if (!Saved && File.Exists(TempPath))
 				{
-					File.Delete(_tempPath);
+					File.Delete(TempPath);
 				}
 			}
 		}
@@ -142,9 +135,11 @@ namespace Vaettir.Mail.Server.FileSystem
 					}
 				}
 
-				return new ReadReference(mailReference.Id, sender, recipients, mailReference.Path, stream.TakeValue());
+				return new ReadReference(mailReference.Id, sender, recipients, mailReference.Path, stream.TakeValue(), this);
 			}
 		}
+
+		public abstract Task SaveAsync(IMailWriteReference reference, CancellationToken token);
 
 		public Task DeleteAsync(IMailReference reference)
 		{
@@ -195,7 +190,7 @@ namespace Vaettir.Mail.Server.FileSystem
 					await writer.WriteLineAsync("----- BEGIN MESSAGE -----");
 				}
 
-				return new WriteReference(mailName, tempPath, targetPath, sender, enumerable, new OffsetStream(shared.TakeValue()));
+				return new WriteReference(mailName, tempPath, targetPath, sender, enumerable, new OffsetStream(shared.TakeValue()), this);
 			}
 		}
 	}

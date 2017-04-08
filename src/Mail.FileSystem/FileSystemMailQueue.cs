@@ -19,7 +19,6 @@ namespace Vaettir.Mail.Server.FileSystem
 		{
 		}
 
-
 		public Task<IMailWriteReference> NewMailAsync(string sender, IImmutableList<string> recipients, CancellationToken token)
 		{
 			string GetPathFromName(string name) => Path.Combine(_settings.MailOutgoingQueuePath, name);
@@ -35,6 +34,23 @@ namespace Vaettir.Mail.Server.FileSystem
 		public IEnumerable<IMailReference> GetAllMailReferences()
 		{
 			return Directory.GetFiles(_settings.MailIncomingQueuePath, "*", SearchOption.TopDirectoryOnly).Select(path => new Reference(Path.GetFileNameWithoutExtension(path), path));
+		}
+
+		public override Task SaveAsync(IMailWriteReference reference, CancellationToken token)
+		{
+			var writeReference = reference as WriteReference;
+			if (writeReference == null)
+				throw new ArgumentException("reference must be from NewMailAsync", nameof(reference));
+
+			if (writeReference.Saved) throw new InvalidOperationException("Already saved");
+
+			writeReference.BodyStream.Dispose();
+
+			// Check for spam and other income checks at this point
+
+			File.Move(writeReference.TempPath, writeReference.Path);
+			writeReference.Saved = true;
+			return Task.CompletedTask;
 		}
 	}
 }

@@ -7,6 +7,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 
 namespace Vaettir.Mail.Server
 {
@@ -18,15 +19,15 @@ namespace Vaettir.Mail.Server
 		private TcpClient _tcp;
 		private VariableStreamReader _variableReader;
 
-		public SecurableConnection(Stream source)
+		public SecurableConnection([NotNull] Stream source)
 		{
+			if (source == null) throw new ArgumentNullException(nameof(source));
 			Init(source);
 		}
 
 		public SecurableConnection(TcpClient tcp)
 		{
-			if (tcp == null) throw new ArgumentNullException(nameof(tcp));
-			_tcp = tcp;
+			_tcp = tcp ?? throw new ArgumentNullException(nameof(tcp));
 			Init(_tcp.GetStream());
 		}
 

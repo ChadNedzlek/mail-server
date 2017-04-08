@@ -18,9 +18,24 @@ namespace Mail.Dispatcher.Test
 
 		public Task<IMailWriteReference> NewMailAsync(string mailbox, CancellationToken token)
         {
-            var reference = new MockMailReference($"tranfser-{Count}", "ignored", ImmutableList.Create(mailbox), false);
+            var reference = new MockMailReference($"tranfser-{Count}", "ignored", ImmutableList.Create(mailbox), false, this);
 			References.Add(reference);
 			return Task.FromResult((IMailWriteReference)reference);
         }
+
+	    public Task<IMailReadReference> OpenReadAsync(IMailReference reference, CancellationToken token)
+	    {
+		    throw new System.NotImplementedException();
+	    }
+
+	    public Task SaveAsync(IMailWriteReference reference, CancellationToken token)
+	    {
+		    throw new System.NotImplementedException();
+	    }
+
+	    public Task DeleteAsync(IMailReference reference)
+	    {
+		    throw new System.NotImplementedException();
+	    }
     }
 }

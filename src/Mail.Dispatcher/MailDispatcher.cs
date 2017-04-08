@@ -15,13 +15,14 @@ namespace Vaettir.Mail.Dispatcher
 	[UsedImplicitly]
 	public sealed class MailDispatcher : IDisposable
 	{
-		private readonly IVolatile<SmtpSettings> _settings;
-		private readonly IMailQueue _incoming;
-		private readonly IMailBoxStore _mailBox;
-		private readonly IMailTransferQueue _transfer;
-		private readonly ILogger _log;
 		private readonly IDomainSettingResolver _domainResolver;
-		private IVolatile<DomainSettings> _domain;
+		private readonly IMailQueue _incoming;
+		private readonly ILogger _log;
+		private readonly IMailBoxStore _mailBox;
+		private readonly IVolatile<SmtpSettings> _settings;
+		private readonly IMailTransferQueue _transfer;
+
+		private Dictionary<string, Lazy<IVolatile<DomainSettings>>> _domainSettings;
 
 		public MailDispatcher(
 			IMailQueue incoming,
@@ -37,20 +38,59 @@ namespace Vaettir.Mail.Dispatcher
 			_transfer = transfer;
 			_log = log;
 			_domainResolver = domainResolver;
-			_domain = domainResolver.GetDomainSettings(settings.Value.DomainName);
 
 			_settings.ValueChanged += UpdateDomains;
+			UpdateDomains(null, _settings.Value, null);
+		}
+
+		public void Dispose()
+		{
+			foreach (Lazy<IVolatile<DomainSettings>> s in _domainSettings.Values)
+			{
+				if (s.IsValueCreated)
+				{
+					s.Value?.Dispose();
+				}
+			}
 		}
 
 		private void UpdateDomains(object sender, SmtpSettings newvalue, SmtpSettings oldvalue)
 		{
 			try
 			{
-				Interlocked.Exchange(ref _domain, _domainResolver.GetDomainSettings(newvalue.DomainName))?.Dispose();
+				var newSettings = new Dictionary<string, Lazy<IVolatile<DomainSettings>>>();
+				foreach (SmtpAcceptDomain d in newvalue.LocalDomains)
+				{
+					newSettings.Add(d.Name, new Lazy<IVolatile<DomainSettings>>(() => GetDomainSettings(d)));
+				}
+
+				Dictionary<string, Lazy<IVolatile<DomainSettings>>> oldSettings =
+					Interlocked.Exchange(ref _domainSettings, newSettings);
+
+				foreach (Lazy<IVolatile<DomainSettings>> s in oldSettings.Values)
+				{
+					if (s.IsValueCreated)
+					{
+						s.Value?.Dispose();
+					}
+				}
 			}
-			catch(Exception e)
+			catch (Exception e)
 			{
-				_log.Error($"Failed to load domain settings file for {newvalue.DomainName}: {e}");
+				_log.Error($"Failed to load domain settings files for {newvalue.DomainName}: {e}");
+			}
+		}
+
+		private IVolatile<DomainSettings> GetDomainSettings(SmtpAcceptDomain smtpAcceptDomain)
+		{
+			try
+			{
+				return _domainResolver.GetDomainSettings(smtpAcceptDomain.Name);
+			}
+			catch (Exception e)
+			{
+				_log.Error($"Failed to load domain settings file for {smtpAcceptDomain.Name}: {e}");
+				return null;
 			}
 		}
 
@@ -58,93 +98,102 @@ namespace Vaettir.Mail.Dispatcher
 		{
 			while (!token.IsCancellationRequested)
 			{
-			    await ProcessAllMailReferencesAsync(token);
+				await ProcessAllMailReferencesAsync(token);
 			}
 		}
 
-	    public async Task ProcessAllMailReferencesAsync(CancellationToken token)
-	    {
-	        List<IMailReference> mailReferences = _incoming.GetAllMailReferences().ToList();
+		public async Task ProcessAllMailReferencesAsync(CancellationToken token)
+		{
+			List<IMailReference> mailReferences = _incoming.GetAllMailReferences().ToList();
 
-	        if (mailReferences.Count == 0)
-	        {
-	            int msSleep = _settings.Value.IdleDelay ?? 5000;
-	            _log.Verbose($"No mail found, sleeping for {msSleep}ms");
-	            await Task.Delay(msSleep, token);
-	        }
-	        token.ThrowIfCancellationRequested();
+			if (mailReferences.Count == 0)
+			{
+				int msSleep = _settings.Value.IdleDelay ?? 5000;
+				_log.Verbose($"No mail found, sleeping for {msSleep}ms");
+				await Task.Delay(msSleep, token);
+			}
+			token.ThrowIfCancellationRequested();
 
-	        foreach (var reference in mailReferences)
-	        {
-	            token.ThrowIfCancellationRequested();
-	            IMailReadReference readReference;
+			foreach (IMailReference reference in mailReferences)
+			{
+				token.ThrowIfCancellationRequested();
+				IMailReadReference readReference;
 
-	            try
-	            {
-	                readReference = await _incoming.OpenReadAsync(reference, token);
-	            }
-	            catch (IOException e)
-	            {
-	                // It's probably a sharing violation, just try again later.
-	                _log.Warning($"Failed to get read reference, exception: {e}");
-	                continue;
-	            }
+				try
+				{
+					readReference = await _incoming.OpenReadAsync(reference, token);
+				}
+				catch (IOException e)
+				{
+					// It's probably a sharing violation, just try again later.
+					_log.Warning($"Failed to get read reference, exception: {e}");
+					continue;
+				}
 
-	            try
-	            {
-	                _log.Verbose($"Processing mail {readReference.Id} from {readReference.Sender}");
+				try
+				{
+					_log.Verbose($"Processing mail {readReference.Id} from {readReference.Sender}");
 
-	                using (readReference)
-	                using (var bodyStream = readReference.BodyStream)
-	                {
-	                    var headers = await MailUtilities.ParseHeadersAsync(bodyStream, token);
-	                    var recipients = AugmentRecipients(readReference.Sender, readReference.Recipients, headers);
-	                    bodyStream.Seek(0, SeekOrigin.Begin);
-	                    var dispatchReferenecs = await CreateDispatchesAsync(recipients, readReference.Sender, token);
+					using (readReference)
+					using (Stream bodyStream = readReference.BodyStream)
+					{
+						IDictionary<string, IEnumerable<string>> headers = await MailUtilities.ParseHeadersAsync(bodyStream, token);
+						ISet<string> recipients = AugmentRecipients(readReference.Sender, readReference.Recipients, headers);
+						bodyStream.Seek(0, SeekOrigin.Begin);
+						IMailWriteReference[] dispatchReferenecs = await CreateDispatchesAsync(readReference.Id, recipients, readReference.Sender, token);
 
-	                    using (var targetStream = new MultiStream(dispatchReferenecs.Select(r => r.BodyStream)))
-	                    {
-	                        await bodyStream.CopyToAsync(targetStream);
-	                    }
+						using (var targetStream = new MultiStream(dispatchReferenecs.Select(r => r.BodyStream)))
+						{
+							await bodyStream.CopyToAsync(targetStream);
+						}
 
-	                    await Task.WhenAll(dispatchReferenecs.Select(r => r.SaveAsync(token)));
-	                }
+						await Task.WhenAll(dispatchReferenecs.Select(r => r.Store.SaveAsync(r, token)));
+					}
 
-	                _log.Verbose($"Processing mamil {readReference.Id} complete. Deleting incoming item...");
+					_log.Verbose($"Processing mamil {readReference.Id} complete. Deleting incoming item...");
 
-	                await _incoming.DeleteAsync(reference);
-	            }
-	            catch (TaskCanceledException)
-	            {
-	                throw;
-	            }
-	            catch (Exception e)
-	            {
-	                _log.Error("Failed to process mail", e);
-	            }
-	        }
-	    }
+					await _incoming.DeleteAsync(reference);
+				}
+				catch (TaskCanceledException)
+				{
+					throw;
+				}
+				catch (Exception e)
+				{
+					_log.Error("Failed to process mail", e);
+				}
+			}
+		}
 
-	    public Task<IMailWriteReference[]> CreateDispatchesAsync(IEnumerable<string> recipients, string sender, CancellationToken token)
-	    {
-	        var senderDomain = MailUtilities.GetDomainFromMailbox(sender);
+		public Task<IMailWriteReference[]> CreateDispatchesAsync(
+			string mailId,
+			IEnumerable<string> recipients,
+			string sender,
+			CancellationToken token)
+		{
+			string senderDomain = MailUtilities.GetDomainFromMailbox(sender);
 			return Task.WhenAll(
-		        recipients
-		            .GroupBy(MailUtilities.GetDomainFromMailbox)
-		            .SelectMany(
-		                g =>
-		                {
-		                    if (_settings.Value.DomainName == g.Key)
-		                        return g.Select(r => _mailBox.NewMailAsync(r, token));
+				recipients
+					.GroupBy(MailUtilities.GetDomainFromMailbox)
+					.SelectMany(
+						g =>
+						{
+							if (_settings.Value.DomainName == g.Key)
+							{
+								return g.Select(r => _mailBox.NewMailAsync(r, token));
+							}
 
-		                    if (_settings.Value.RelayDomains.Any(d => String.Equals(d.Name, g.Key, StringComparison.OrdinalIgnoreCase)) || _settings.Value.DomainName == senderDomain)
-		                        return _transfer.NewMailAsync(sender, g.ToImmutableList(), token).ToEnumerable();
+							if (_settings.Value.RelayDomains.Any(d => string.Equals(d.Name, g.Key, StringComparison.OrdinalIgnoreCase)) ||
+								_settings.Value.DomainName == senderDomain)
+							{
+								return _transfer.NewMailAsync(mailId, sender, g.ToImmutableList(), token).ToEnumerable();
+							}
 
-		                    _log.Error($"Invalid domain {g.Key}");
-		                    return Enumerable.Empty<Task<IMailWriteReference>>();
-		                }
-		            )
-		    );
+							_log.Error($"Invalid domain {g.Key}");
+							return Enumerable.Empty<Task<IMailWriteReference>>();
+						}
+					)
+			);
 		}
 
 		public ISet<string> AugmentRecipients(
@@ -160,14 +209,14 @@ namespace Vaettir.Mail.Dispatcher
 				"Sender",
 				"Reply-To",
 				"Cc",
-				"Bcc",
+				"Bcc"
 			};
 
 			foreach (string header in alreadOnThreadHeaders)
 			{
 				if (headers.TryGetValue(header, out var targets))
 				{
-					foreach (var mbox in ParseMailboxListHeader(targets))
+					foreach (string mbox in ParseMailboxListHeader(targets))
 					{
 						excludedFromExpansion.Add(mbox);
 					}
@@ -180,13 +229,21 @@ namespace Vaettir.Mail.Dispatcher
 			return expandedRecipients;
 		}
 
-		public ISet<string> ExpandDistributionLists(string sender, IEnumerable<string> originalRecipients, HashSet<string> excludedFromExpansion)
+		public ISet<string> ExpandDistributionLists(
+			string sender,
+			IEnumerable<string> originalRecipients,
+			HashSet<string> excludedFromExpansion)
 		{
 			var to = new HashSet<string>();
-			DomainSettings domain = _domain.Value;
 			foreach (string recipient in originalRecipients)
 			{
-				DistributionList distributionList = domain.DistributionLists.FirstOrDefault(dl => dl.Mailbox == recipient);
+				DomainSettings domain = null;
+				if (_domainSettings.TryGetValue(MailUtilities.GetDomainFromMailbox(recipient), out var settings))
+				{
+					domain = settings.Value.Value;
+				}
+
+				DistributionList distributionList = domain?.DistributionLists.FirstOrDefault(dl => dl.Mailbox == recipient);
 				if (distributionList != null)
 				{
 					if (!CheckValidSender(sender, distributionList))
@@ -204,7 +261,7 @@ namespace Vaettir.Mail.Dispatcher
 				}
 
 				{
-					if (domain.Aliases.TryGetValue(recipient, out var newRecipient))
+					if (domain != null && domain.Aliases.TryGetValue(recipient, out var newRecipient))
 					{
 						if (excludedFromExpansion.Contains(newRecipient))
 						{
@@ -224,7 +281,9 @@ namespace Vaettir.Mail.Dispatcher
 		public static bool CheckValidSender(string sender, DistributionList distributionList)
 		{
 			if (!distributionList.Enabled)
+			{
 				return false;
+			}
 
 			if (!distributionList.AllowExternalSenders &&
 				MailUtilities.GetDomainFromMailbox(sender) != MailUtilities.GetDomainFromMailbox(distributionList.Mailbox))
@@ -234,19 +293,14 @@ namespace Vaettir.Mail.Dispatcher
 
 			return true;
 		}
-	
+
 
 		public IEnumerable<string> ParseMailboxListHeader(IEnumerable<string> header)
 		{
 			return header
 				.SelectMany(h => h.SplitQuoted(',', '"', '\\', StringSplitOptions.None))
 				.Select(address => MailUtilities.GetMailboxFromAddress(address, _log))
-				.Where(m => !String.IsNullOrEmpty(m));
-		}
-
-		public void Dispose()
-		{
-			_domain?.Dispose();
+				.Where(m => !string.IsNullOrEmpty(m));
 		}
 	}
 }
