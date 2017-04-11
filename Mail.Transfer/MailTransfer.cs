@@ -37,15 +37,17 @@ namespace Vaettir.Mail.Transfer
 		private readonly IMailTransferQueue _queue;
 		private readonly IVolatile<SmtpSettings> _settings;
 		private readonly IMailSendFailureManager _failures;
+		private readonly ITcpConnectionProvider _tcp;
 		private readonly IDnsResolve _dns;
 
-		public MailTransfer(IMailTransferQueue queue, IVolatile<SmtpSettings> settings, ILogger log, IDnsResolve dns, IMailSendFailureManager failures)
+		public MailTransfer(IMailTransferQueue queue, IVolatile<SmtpSettings> settings, ILogger log, IDnsResolve dns, IMailSendFailureManager failures, ITcpConnectionProvider _tcp)
 		{
 			_queue = queue;
 			_settings = settings;
 			_log = log;
 			_dns = dns;
 			_failures = failures;
+			this._tcp = _tcp;
 		}
 
 		public async Task RunAsync(CancellationToken token)
@@ -81,7 +83,7 @@ namespace Vaettir.Mail.Transfer
 			}
 		}
 
-		private async Task SendMailsToDomain(string domain, List<IMailReference> mails, CancellationToken token)
+		private async Task SendMailsToDomain(string domain, IReadOnlyList<IMailReference> mails, CancellationToken token)
 		{
 			_log.Verbose($"Sending outbound mails for {domain}");
 			foreach (DnsMxRecord mxRecord in await _dns.QueryMx(domain, token))
@@ -99,7 +101,7 @@ namespace Vaettir.Mail.Transfer
 		private async Task<bool> TrySendToMx(
 			string domain,
 			string target,
-			List<IMailReference> mails,
+			IEnumerable<IMailReference> mails,
 			CancellationToken token)
 		{
 			_log.Verbose($"Looking up information for MX {target}");
@@ -115,19 +117,19 @@ namespace Vaettir.Mail.Transfer
 				.FirstOrDefault(r => string.Equals(r.Name, domain, StringComparison.OrdinalIgnoreCase));
 
 			int port = relayDescription?.Port ?? 25;
-			using (var mxClient = new TcpClient())
+			using (var mxClient = _tcp.GetClient())
 			{
 				_log.Information($"Connecting to MX {target} at {targetIp} on port {port}");
 				await mxClient.ConnectAsync(targetIp, port);
 
-				using (NetworkStream mxStream = mxClient.GetStream())
+				using (Stream mxStream = mxClient.GetStream())
 				if (!await TrySendMailsonStream(target, mails, mxStream, token)) return false;
 			}
 
 			return true;
 		}
 
-		private async Task<bool> TrySendMailsonStream(string target, IEnumerable<IMailReference> mails, Stream mxStream, CancellationToken token)
+		public async Task<bool> TrySendMailsonStream(string target, IEnumerable<IMailReference> mails, Stream mxStream, CancellationToken token)
 		{
 			using (var stream = new RedirectableStream(mxStream))
 			using (var reader = new StreamReader(stream))
@@ -208,7 +210,7 @@ namespace Vaettir.Mail.Transfer
 			return Task.CompletedTask;
 		}
 
-		private bool ShouldAttemptRedelivery(IMailReference mail)
+		public bool ShouldAttemptRedelivery(IMailReference mail)
 		{
 			SmtpFailureData failure = _failures.GetFailure(mail.Id, true);
 			if (failure.Retries + 1 >= s_retryDelays.Length)
@@ -220,7 +222,7 @@ namespace Vaettir.Mail.Transfer
 			return true;
 		}
 
-		private bool IsReadyToSend(IMailReference mail)
+		public bool IsReadyToSend(IMailReference mail)
 		{
 			SmtpFailureData failure = _failures.GetFailure(mail.Id, false);
 			if (failure == null)
@@ -244,7 +246,7 @@ namespace Vaettir.Mail.Transfer
 			return s_retryDelays[retries];
 		}
 
-		private async Task<bool> SendSingleMailAsync(
+		public async Task<bool> SendSingleMailAsync(
 			CancellationToken token,
 			IMailReference mail,
 			StreamWriter writer,
@@ -301,7 +303,7 @@ namespace Vaettir.Mail.Transfer
 			return true;
 		}
 
-		private async Task<SmtpResponse> ReadResponse(StreamReader reader)
+		public async Task<SmtpResponse> ReadResponse(StreamReader reader)
 		{
 			var lines = new List<string>();
 			var more = true;
@@ -335,7 +337,7 @@ namespace Vaettir.Mail.Transfer
 			return new SmtpResponse(currentReply.Value, lines);
 		}
 
-		private Task SendCommand(StreamWriter writer, string command)
+		public Task SendCommand(StreamWriter writer, string command)
 		{
 			_log.Verbose(command);
 			return writer.WriteLineAsync(command);
