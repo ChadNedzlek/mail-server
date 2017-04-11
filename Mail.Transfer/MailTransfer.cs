@@ -8,10 +8,7 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using DnsClient;
-using DnsClient.Protocol;
 using JetBrains.Annotations;
-using Newtonsoft.Json;
 using Vaettir.Mail.Server;
 using Vaettir.Mail.Server.Smtp;
 using Vaettir.Utility;
@@ -39,64 +36,16 @@ namespace Vaettir.Mail.Transfer
 		private readonly ILogger _log;
 		private readonly IMailTransferQueue _queue;
 		private readonly IVolatile<SmtpSettings> _settings;
-		private readonly Lazy<Dictionary<string, SmtpFailureData>> _failures;
+		private readonly IMailSendFailureManager _failures;
 		private readonly IDnsResolve _dns;
 
-		public MailTransfer(IMailTransferQueue queue, IVolatile<SmtpSettings> settings, ILogger log, IDnsResolve dns)
+		public MailTransfer(IMailTransferQueue queue, IVolatile<SmtpSettings> settings, ILogger log, IDnsResolve dns, IMailSendFailureManager failures)
 		{
 			_queue = queue;
 			_settings = settings;
 			_log = log;
 			_dns = dns;
-			_failures = new Lazy<Dictionary<string,SmtpFailureData>>(LoadSavedFailureData);
-		}
-
-		private Dictionary<string, SmtpFailureData> LoadSavedFailureData()
-		{
-			string serializedPath = Path.Combine(_settings.Value.WorkingDirectory, "relay-failures.json");
-			if (!File.Exists(serializedPath))
-				return new Dictionary<string, SmtpFailureData>();
-
-			try
-			{
-				using (var stream = File.Open(serializedPath, FileMode.Open, FileAccess.Read, FileShare.Read))
-				using (var reader = new StreamReader(stream))
-				using (var jsonReader = new JsonTextReader(reader))
-				{
-					return new JsonSerializer().Deserialize<Dictionary<string,SmtpFailureData>>(jsonReader);
-				}
-			}
-			catch (IOException e)
-			{
-				_log.Warning($"Failed to load {serializedPath}, using no existing failures: {e}");
-				return new Dictionary<string, SmtpFailureData>();
-			}
-		}
-
-		private void SaveFailureData()
-		{
-			string serializedPath = Path.Combine(_settings.Value.WorkingDirectory, "relay-failures.json");
-
-			if (!_failures.IsValueCreated || _failures.Value.Count == 0)
-			{
-				try
-				{
-					File.Delete(serializedPath);
-				}
-				catch (Exception)
-				{
-					_log.Warning($"Failed to delete {serializedPath}");
-				}
-
-				return;
-			}
-
-			using (var stream = File.Open(serializedPath, FileMode.Create, FileAccess.Write, FileShare.None))
-			using (var reader = new StreamWriter(stream))
-			using (var jsonReader = new JsonTextWriter(reader))
-			{
-				new JsonSerializer().Serialize(jsonReader, _failures.Value);
-			}
+			_failures = failures;
 		}
 
 		public async Task RunAsync(CancellationToken token)
@@ -117,7 +66,7 @@ namespace Vaettir.Mail.Transfer
 						await SendMailsToDomain(domain, mails, token);
 					}
 
-					SaveFailureData();
+					_failures.SaveFailureData();
 
 					if (!sent)
 					{
@@ -149,7 +98,7 @@ namespace Vaettir.Mail.Transfer
 
 		private async Task<bool> TrySendToMx(
 			string domain,
-			DnsString target,
+			string target,
 			List<IMailReference> mails,
 			CancellationToken token)
 		{
@@ -172,78 +121,84 @@ namespace Vaettir.Mail.Transfer
 				await mxClient.ConnectAsync(targetIp, port);
 
 				using (NetworkStream mxStream = mxClient.GetStream())
-				using (var stream = new RedirectableStream(mxStream))
-				using (var reader = new StreamReader(stream))
-				using (var writer = new StreamWriter(stream))
-				{
-					await SendCommand(writer, $"EHLO {_settings.Value.DomainName}");
-					SmtpResponse response = await ReadResponse(reader);
-
-					var startTls = false;
-					if (response.Code == ReplyCode.Okay)
-					{
-						startTls = response.Lines.Contains("STARTTLS", StringComparer.OrdinalIgnoreCase);
-					}
-					else
-					{
-						await SendCommand(writer, $"HELO {_settings.Value.DomainName}");
-						response = await ReadResponse(reader);
-					}
-
-					if (response.Code != ReplyCode.Okay)
-					{
-						_log.Warning("Failed to HELO/EHLO, aborting");
-						return false;
-					}
-
-					if (startTls)
-					{
-						await SendCommand(writer, "STARTTLS");
-						response = await ReadResponse(reader);
-						if (response.Code != ReplyCode.Okay)
-						{
-							_log.Warning("Failed to STARTTLS, aborting");
-							return false;
-						}
-
-						var sslStream = new SslStream(mxStream, true);
-						await sslStream.AuthenticateAsClientAsync(target.Value);
-						stream.ChangeSteam(sslStream);
-					}
-
-					var allSuccess = true;
-					foreach (IMailReference mail in mails)
-					{
-						if (!IsReadyToSend(mail))
-						{
-							continue;
-						}
-
-						if (await SendSingleMailAsync(token, mail, writer, reader))
-						{
-							_failures.Value.Remove(mail.Id);
-							continue;
-						}
-
-						if (!ShouldAttemptRedelivery(mail))
-						{
-							await HandleRejectedMailAsync(mail);
-							_failures.Value.Remove(mail.Id);
-							await _queue.DeleteAsync(mail);
-						}
-						allSuccess = false;
-					}
-
-					if (!allSuccess)
-					{
-						_log.Warning("Failed to send at least one mail");
-						return false;
-					}
-
-					await SendCommand(writer, "QUIT");
-				}
+				if (!await TrySendMailsonStream(target, mails, mxStream, token)) return false;
 			}
 
+			return true;
+		}
+
+		private async Task<bool> TrySendMailsonStream(string target, IEnumerable<IMailReference> mails, Stream mxStream, CancellationToken token)
+		{
+			using (var stream = new RedirectableStream(mxStream))
+			using (var reader = new StreamReader(stream))
+			using (var writer = new StreamWriter(stream))
+			{
+				await SendCommand(writer, $"EHLO {_settings.Value.DomainName}");
+				SmtpResponse response = await ReadResponse(reader);
+
+				var startTls = false;
+				if (response.Code == ReplyCode.Okay)
+				{
+					startTls = response.Lines.Contains("STARTTLS", StringComparer.OrdinalIgnoreCase);
+				}
+				else
+				{
+					await SendCommand(writer, $"HELO {_settings.Value.DomainName}");
+					response = await ReadResponse(reader);
+				}
+
+				if (response.Code != ReplyCode.Okay)
+				{
+					_log.Warning("Failed to HELO/EHLO, aborting");
+					return false;
+				}
+
+				if (startTls)
+				{
+					await SendCommand(writer, "STARTTLS");
+					response = await ReadResponse(reader);
+					if (response.Code != ReplyCode.Okay)
+					{
+						_log.Warning("Failed to STARTTLS, aborting");
+						return false;
+					}
+
+					var sslStream = new SslStream(mxStream, true);
+					await sslStream.AuthenticateAsClientAsync(target);
+					stream.ChangeSteam(sslStream);
+				}
+
+				var allSuccess = true;
+				foreach (IMailReference mail in mails)
+				{
+					if (!IsReadyToSend(mail))
+					{
+						continue;
+					}
+
+					if (await SendSingleMailAsync(token, mail, writer, reader))
+					{
+						_failures.RemoveFailure(mail.Id);
+						continue;
+					}
+
+					if (!ShouldAttemptRedelivery(mail))
+					{
+						await HandleRejectedMailAsync(mail);
+						_failures.RemoveFailure(mail.Id);
+						await _queue.DeleteAsync(mail);
+					}
+					allSuccess = false;
+				}
+
+				if (!allSuccess)
+				{
+					_log.Warning("Failed to send at least one mail");
+					return false;
+				}
+
+				await SendCommand(writer, "QUIT");
+			}
 			return true;
 		}
 
@@ -255,13 +210,7 @@ namespace Vaettir.Mail.Transfer
 
 		private bool ShouldAttemptRedelivery(IMailReference mail)
 		{
-			if (!_failures.Value.TryGetValue(mail.Id, out var failure))
-			{
-				failure = new SmtpFailureData(mail.Id) { FirstFailure = DateTimeOffset.UtcNow, Retries = 0};
-				_failures.Value.Add(mail.Id, failure);
-				return true;
-			}
-
+			SmtpFailureData failure = _failures.GetFailure(mail.Id, true);
 			if (failure.Retries + 1 >= s_retryDelays.Length)
 			{
 				return false;
@@ -273,13 +222,12 @@ namespace Vaettir.Mail.Transfer
 
 		private bool IsReadyToSend(IMailReference mail)
 		{
-			if (!_failures.Value.TryGetValue(mail.Id, out var failureData))
-			{
+			SmtpFailureData failure = _failures.GetFailure(mail.Id, false);
+			if (failure == null)
 				return true;
-			}
 
-			TimeSpan currentLag = DateTimeOffset.UtcNow - failureData.FirstFailure;
-			if (currentLag < CalculateNextRetryInterval(failureData.Retries))
+			TimeSpan currentLag = DateTimeOffset.UtcNow - failure.FirstFailure;
+			if (currentLag < CalculateNextRetryInterval(failure.Retries))
 			{
 				return false;
 			}

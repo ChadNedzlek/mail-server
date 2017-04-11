@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Vaettir.Mail.Transfer
+namespace Vaettir.Mail.Server
 {
 	public class SmtpFailureData
 	{
