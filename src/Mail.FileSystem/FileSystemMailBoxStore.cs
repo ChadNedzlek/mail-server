@@ -18,6 +18,7 @@ namespace Vaettir.Mail.Server.FileSystem
 
 		public Task<IMailWriteReference> NewMailAsync(string mailbox, CancellationToken token)
 		{
+			throw new System.NotImplementedException();
 		}
 
 		public Task<IMailReadReference> OpenReadAsync(IMailReference reference, CancellationToken token)

@@ -37,13 +37,15 @@ namespace Vaettir.Mail.Transfer
 		private readonly ILogger _log;
 		private readonly IMailTransferQueue _queue;
 		private readonly IVolatile<SmtpSettings> _settings;
-		private Lazy<Dictionary<string, SmtpFailureData>> _failures;
+		private readonly Lazy<Dictionary<string, SmtpFailureData>> _failures;
+		private readonly IDnsResolve _dns;
 
-		public MailTransfer(IMailTransferQueue queue, IVolatile<SmtpSettings> settings, ILogger log)
+		public MailTransfer(IMailTransferQueue queue, IVolatile<SmtpSettings> settings, ILogger log, IDnsResolve dns)
 		{
 			_queue = queue;
 			_settings = settings;
 			_log = log;
+			_dns = dns;
 			_failures = new Lazy<Dictionary<string,SmtpFailureData>>(LoadSavedFailureData);
 		}
 
@@ -131,12 +133,10 @@ namespace Vaettir.Mail.Transfer
 		private async Task SendMailsToDomain(string domain, List<IMailReference> mails, CancellationToken token)
 		{
 			_log.Verbose($"Sending outbound mails for {domain}");
-			var dns = new LookupClient();
-			IDnsQueryResponse dnsResponse = await dns.QueryAsync(domain, QueryType.MX, token);
-			foreach (MxRecord mxRecord in dnsResponse.Answers.MxRecords().OrderBy(mx => mx.Preference))
+			foreach (DnsMxRecord mxRecord in await _dns.QueryMx(domain, token))
 			{
 				_log.Verbose($"Resolved MX record {mxRecord.Exchange} at priority {mxRecord.Preference}");
-				if (await TrySendToMx(domain, mxRecord.Exchange, dns, mails, token))
+				if (await TrySendToMx(domain, mxRecord.Exchange, mails, token))
 				{
 					return;
 				}
@@ -148,18 +148,11 @@ namespace Vaettir.Mail.Transfer
 		private async Task<bool> TrySendToMx(
 			string domain,
 			DnsString target,
-			LookupClient dns,
 			List<IMailReference> mails,
 			CancellationToken token)
 		{
 			_log.Verbose($"Looking up information for MX {target}");
-			IDnsQueryResponse aRecord = await dns.QueryAsync(target, QueryType.A, token);
-			IPAddress targetIp = aRecord.Answers.ARecords().FirstOrDefault()?.Address;
-			if (targetIp == null)
-			{
-				IDnsQueryResponse aaaaRecord = await dns.QueryAsync(target, QueryType.AAAA, token);
-				targetIp = aaaaRecord.Answers.AaaaRecords().FirstOrDefault()?.Address;
-			}
+			IPAddress targetIp = await _dns.QueryIp(target,  token);
 
 			if (targetIp == null)
 			{
