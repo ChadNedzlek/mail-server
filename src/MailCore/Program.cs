@@ -2,27 +2,41 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Autofac;
+using Vaettir.Mail.Dispatcher;
 using Vaettir.Mail.Server;
 using Vaettir.Mail.Server.Authentication;
 using Vaettir.Mail.Server.Authentication.Mechanism;
 using Vaettir.Mail.Server.FileSystem;
 using Vaettir.Mail.Server.Smtp;
 using Vaettir.Mail.Server.Smtp.Commands;
+using Vaettir.Mail.Transfer;
 using Vaettir.Utility;
 
 namespace MailCore
 {
 	public class Program
 	{
-		public static void Main(string[] args)
+		public static int Main(string[] args)
+		{
+			return MailAsync().GetAwaiter().GetResult();
+		}
+
+		private static async Task<int> MailAsync()
 		{
 			using (IContainer container = BuildContainer())
 			{
 				var smtp = container.Resolve<ProtocolListener>();
+				var dispatcher = container.Resolve<MailDispatcher>();
+				var transfer = container.Resolve<MailTransfer>();
+				// var imap
 				var cts = new CancellationTokenSource();
-				Task startTask = smtp.RunAsync(cts.Token);
-				startTask.GetAwaiter().GetResult();
+
+				await Task.WhenAll(
+					smtp.RunAsync(cts.Token), 
+					dispatcher.RunAsync(cts.Token),
+					transfer.RunAsync(cts.Token));
 			}
+			return 0;
 		}
 
 		private static IContainer BuildContainer()
@@ -38,6 +52,9 @@ namespace MailCore
 				.As<IAuthenticationTransport>()
 				.As<IMailBuilder>()
 				.InstancePerLifetimeScope();
+
+			builder.RegisterType<MailTransfer>();
+			builder.RegisterType<MailDispatcher>();
 
 			builder.RegisterType<ProtocolListener>();
 			builder.RegisterType<FileSystemMailQueue>().As<IMailQueue>().SingleInstance();
