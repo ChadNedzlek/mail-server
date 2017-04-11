@@ -10,7 +10,7 @@ namespace Vaettir.Mail.Transfer
 		}
 
 		public string MessageId { get; }
-		public DateTimeOffset LastAttempt { get; set; }
+		public DateTimeOffset FirstFailure { get; set; }
 		public int Retries { get; set; }
 	}
 }

@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using DnsClient;
 using DnsClient.Protocol;
+using JetBrains.Annotations;
 using Newtonsoft.Json;
 using Vaettir.Mail.Server;
 using Vaettir.Mail.Server.Smtp;
@@ -17,6 +18,7 @@ using Vaettir.Utility;
 
 namespace Vaettir.Mail.Transfer
 {
+	[UsedImplicitly(ImplicitUseKindFlags.InstantiatedWithFixedConstructorSignature)]
 	public class MailTransfer
 	{
 		private static readonly ImmutableArray<TimeSpan> s_retryDelays = ImmutableArray.Create(
@@ -255,7 +257,7 @@ namespace Vaettir.Mail.Transfer
 		{
 			if (!_failures.Value.TryGetValue(mail.Id, out var failure))
 			{
-				failure = new SmtpFailureData(mail.Id) {LastAttempt = DateTimeOffset.UtcNow, Retries = 0};
+				failure = new SmtpFailureData(mail.Id) { FirstFailure = DateTimeOffset.UtcNow, Retries = 0};
 				_failures.Value.Add(mail.Id, failure);
 				return true;
 			}
@@ -266,7 +268,6 @@ namespace Vaettir.Mail.Transfer
 			}
 
 			failure.Retries++;
-			failure.LastAttempt = DateTimeOffset.UtcNow;
 			return true;
 		}
 
@@ -277,7 +278,7 @@ namespace Vaettir.Mail.Transfer
 				return true;
 			}
 
-			TimeSpan currentLag = DateTimeOffset.UtcNow - failureData.LastAttempt;
+			TimeSpan currentLag = DateTimeOffset.UtcNow - failureData.FirstFailure;
 			if (currentLag < CalculateNextRetryInterval(failureData.Retries))
 			{
 				return false;
