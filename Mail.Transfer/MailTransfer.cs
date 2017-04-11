@@ -64,7 +64,7 @@ namespace Vaettir.Mail.Transfer
 			}
 			catch (IOException e)
 			{
-				LogExtentions.Warning(_log, $"Failed to load {serializedPath}, using no existing failures: {e}");
+				_log.Warning($"Failed to load {serializedPath}, using no existing failures: {e}");
 				return new Dictionary<string, SmtpFailureData>();
 			}
 		}
@@ -81,7 +81,7 @@ namespace Vaettir.Mail.Transfer
 				}
 				catch (Exception)
 				{
-					LogExtentions.Warning(_log, $"Failed to delete {serializedPath}");
+					_log.Warning($"Failed to delete {serializedPath}");
 				}
 
 				return;
@@ -104,7 +104,7 @@ namespace Vaettir.Mail.Transfer
 					bool sent = false;
 					foreach (string domain in _queue.GetMailsByDomain())
 					{
-						List<IMailReference> mails = Enumerable.ToList<IMailReference>(_queue.GetAllMailForDomain(domain).Where(IsReadyToSend));
+						List<IMailReference> mails = _queue.GetAllMailForDomain(domain).Where(IsReadyToSend).ToList();
 						if (mails.Count == 0)
 						{
 							continue;
@@ -117,32 +117,32 @@ namespace Vaettir.Mail.Transfer
 
 					if (!sent)
 					{
-						LogExtentions.Verbose(_log, "No mails to send, sleeping");
+						_log.Verbose("No mails to send, sleeping");
 						await Task.Delay(_settings.Value.IdleDelay ?? 30000, token);
 					}
 				}
 				catch (Exception e)
 				{
-					LogExtentions.Error(_log, "Failed processing outgoing mail queues", e);
+					_log.Error("Failed processing outgoing mail queues", e);
 				}
 			}
 		}
 
 		private async Task SendMailsToDomain(string domain, List<IMailReference> mails, CancellationToken token)
 		{
-			LogExtentions.Verbose(_log, $"Sending outbound mails for {domain}");
+			_log.Verbose($"Sending outbound mails for {domain}");
 			var dns = new LookupClient();
 			IDnsQueryResponse dnsResponse = await dns.QueryAsync(domain, QueryType.MX, token);
 			foreach (MxRecord mxRecord in dnsResponse.Answers.MxRecords().OrderBy(mx => mx.Preference))
 			{
-				LogExtentions.Verbose(_log, $"Resolved MX record {mxRecord.Exchange} at priority {mxRecord.Preference}");
+				_log.Verbose($"Resolved MX record {mxRecord.Exchange} at priority {mxRecord.Preference}");
 				if (await TrySendToMx(domain, mxRecord.Exchange, dns, mails, token))
 				{
 					return;
 				}
 			}
 
-			LogExtentions.Warning(_log, $"Unable to send to MX for {domain}");
+			_log.Warning($"Unable to send to MX for {domain}");
 		}
 
 		private async Task<bool> TrySendToMx(
@@ -152,7 +152,7 @@ namespace Vaettir.Mail.Transfer
 			List<IMailReference> mails,
 			CancellationToken token)
 		{
-			LogExtentions.Verbose(_log, $"Looking up information for MX {target}");
+			_log.Verbose($"Looking up information for MX {target}");
 			IDnsQueryResponse aRecord = await dns.QueryAsync(target, QueryType.A, token);
 			IPAddress targetIp = aRecord.Answers.ARecords().FirstOrDefault()?.Address;
 			if (targetIp == null)
@@ -163,7 +163,7 @@ namespace Vaettir.Mail.Transfer
 
 			if (targetIp == null)
 			{
-				LogExtentions.Warning(_log, $"Failed to resolve A or AAAA record for MX record {target}");
+				_log.Warning($"Failed to resolve A or AAAA record for MX record {target}");
 				return false;
 			}
 
@@ -173,7 +173,7 @@ namespace Vaettir.Mail.Transfer
 			int port = relayDescription?.Port ?? 25;
 			using (var mxClient = new TcpClient())
 			{
-				LogExtentions.Information(_log, $"Connecting to MX {target} at {targetIp} on port {port}");
+				_log.Information($"Connecting to MX {target} at {targetIp} on port {port}");
 				await mxClient.ConnectAsync(targetIp, port);
 
 				using (NetworkStream mxStream = mxClient.GetStream())
@@ -197,7 +197,7 @@ namespace Vaettir.Mail.Transfer
 
 					if (response.Code != ReplyCode.Okay)
 					{
-						LogExtentions.Warning(_log, "Failed to HELO/EHLO, aborting");
+						_log.Warning("Failed to HELO/EHLO, aborting");
 						return false;
 					}
 
@@ -207,7 +207,7 @@ namespace Vaettir.Mail.Transfer
 						response = await ReadResponse(reader);
 						if (response.Code != ReplyCode.Okay)
 						{
-							LogExtentions.Warning(_log, "Failed to STARTTLS, aborting");
+							_log.Warning("Failed to STARTTLS, aborting");
 							return false;
 						}
 
@@ -241,7 +241,7 @@ namespace Vaettir.Mail.Transfer
 
 					if (!allSuccess)
 					{
-						LogExtentions.Warning(_log, "Failed to send at least one mail");
+						_log.Warning("Failed to send at least one mail");
 						return false;
 					}
 
@@ -254,7 +254,7 @@ namespace Vaettir.Mail.Transfer
 
 		private Task HandleRejectedMailAsync(IMailReference mail)
 		{
-			LogExtentions.Warning(_log, $"Max reties attempted for mail {mail.Id}, deleting");
+			_log.Warning($"Max reties attempted for mail {mail.Id}, deleting");
 			return Task.CompletedTask;
 		}
 
@@ -308,14 +308,14 @@ namespace Vaettir.Mail.Transfer
 			StreamWriter writer,
 			StreamReader reader)
 		{
-			LogExtentions.Information(_log, $"Sending mail {mail.Id}");
+			_log.Information($"Sending mail {mail.Id}");
 			IMailReadReference readMail = await _queue.OpenReadAsync(mail, token);
-			LogExtentions.Information(_log, $"Sender: {readMail.Sender}, Recipients: {string.Join(",", readMail.Recipients)}");
+			_log.Information($"Sender: {readMail.Sender}, Recipients: {string.Join(",", readMail.Recipients)}");
 			await SendCommand(writer, $"MAIL FROM:<{readMail.Sender}>");
 			SmtpResponse response = await ReadResponse(reader);
 			if (response.Code != ReplyCode.Okay)
 			{
-				LogExtentions.Warning(_log, "Failed MAIL FROM, aborting");
+				_log.Warning("Failed MAIL FROM, aborting");
 				return false;
 			}
 
@@ -325,7 +325,7 @@ namespace Vaettir.Mail.Transfer
 				response = await ReadResponse(reader);
 				if (response.Code != ReplyCode.Okay)
 				{
-					LogExtentions.Warning(_log, "Failed RCPT TO, aborting");
+					_log.Warning("Failed RCPT TO, aborting");
 					return false;
 				}
 			}
@@ -334,7 +334,7 @@ namespace Vaettir.Mail.Transfer
 			response = await ReadResponse(reader);
 			if (response.Code != ReplyCode.Okay)
 			{
-				LogExtentions.Warning(_log, "Failed RCPT TO, aborting");
+				_log.Warning("Failed RCPT TO, aborting");
 				return false;
 			}
 
@@ -350,7 +350,7 @@ namespace Vaettir.Mail.Transfer
 			await writer.WriteLineAsync(".");
 			if (response.Code != ReplyCode.Okay)
 			{
-				LogExtentions.Warning(_log, "Failed RCPT TO, aborting");
+				_log.Warning("Failed RCPT TO, aborting");
 				return false;
 			}
 
@@ -367,22 +367,22 @@ namespace Vaettir.Mail.Transfer
 			while (more)
 			{
 				string line = await reader.ReadLineAsync();
-				LogExtentions.Verbose(_log, line);
+				_log.Verbose(line);
 
 				if (line.Length < 3)
 				{
-					LogExtentions.Warning(_log, $"Illegal response: {line}");
+					_log.Warning($"Illegal response: {line}");
 					return null;
 				}
 				if (!int.TryParse(line.Substring(0, 3), out var reponseCode))
 				{
-					LogExtentions.Warning(_log, $"Illegal response: {line}");
+					_log.Warning($"Illegal response: {line}");
 					return null;
 				}
 				var newReply = (ReplyCode) reponseCode;
 				if (currentReply.HasValue && newReply != currentReply.Value)
 				{
-					LogExtentions.Warning(_log, $"Illegal contiuation: Previous reply {currentReply}, new line: {line}");
+					_log.Warning($"Illegal contiuation: Previous reply {currentReply}, new line: {line}");
 					return null;
 				}
 				currentReply = newReply;
@@ -395,7 +395,7 @@ namespace Vaettir.Mail.Transfer
 
 		private Task SendCommand(StreamWriter writer, string command)
 		{
-			LogExtentions.Verbose(_log, command);
+			_log.Verbose(command);
 			return writer.WriteLineAsync(command);
 		}
 	}
