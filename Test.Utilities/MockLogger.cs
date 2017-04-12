@@ -1,7 +1,7 @@
 ﻿using System;
 using Vaettir.Utility;
 
-namespace Mail.Smtp.Test
+namespace Vaettir.Mail.Test.Utilities
 {
 	public class MockLogger : ILogger
     {

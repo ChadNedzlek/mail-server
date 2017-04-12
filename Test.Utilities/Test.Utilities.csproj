@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp1.1</TargetFramework>
+    <RootNamespace>Vaettir.Mail.Test.Utilities</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\src\Mail.Server\Mail.Server.csproj" />
+    <ProjectReference Include="..\src\Mail.Smtp\Mail.Smtp.csproj" />
+    <ProjectReference Include="..\src\Utility\Utility.csproj" />
+  </ItemGroup>
+
+</Project>

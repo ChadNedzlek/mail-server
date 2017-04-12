@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>    
-    <TargetFramework>netcoreapp1.1</TargetFramework>
+    <TargetFramework>netcoreapp1.1</TargetFramework>    
+    <RootNamespace>Vaettir.Mail.Smtp.Test</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -12,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Mail.Smtp\Mail.Smtp.csproj" />
+    <ProjectReference Include="..\..\Test.Utilities\Test.Utilities.csproj" />
     <ProjectReference Include="..\Utility.Test\Utility.Test.csproj" />
   </ItemGroup>
 

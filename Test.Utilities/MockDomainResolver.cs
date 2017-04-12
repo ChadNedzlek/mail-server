@@ -1,8 +1,7 @@
-using Utility.Test;
 using Vaettir.Mail.Server;
 using Vaettir.Utility;
 
-namespace Mail.Dispatcher.Test
+namespace Vaettir.Mail.Test.Utilities
 {
 	public class MockDomainResolver : IDomainSettingResolver
 	{

@@ -19,7 +19,7 @@ using Vaettir.Utility;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Mail.Smtp.Test
+namespace Vaettir.Mail.Smtp.Test
 {
 	public class SmtpSessionTest
 	{

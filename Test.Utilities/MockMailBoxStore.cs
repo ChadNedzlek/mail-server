@@ -3,10 +3,9 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Vaettir.Mail.Dispatcher;
 using Vaettir.Mail.Server;
 
-namespace Mail.Dispatcher.Test
+namespace Vaettir.Mail.Test.Utilities
 {
     public class MockMailBoxStore : IMailBoxStore
     {

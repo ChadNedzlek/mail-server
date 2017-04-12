@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
 using Vaettir.Mail.Server.Authentication;
 using Vaettir.Mail.Server.Authentication.Mechanism;
-using Xunit;
+using Vaettir.Mail.Test.Utilities;
 
-namespace Mail.Smtp.Test
+namespace Vaettir.Mail.Smtp.Test
 {
 	public static class TestHelpers
 	{

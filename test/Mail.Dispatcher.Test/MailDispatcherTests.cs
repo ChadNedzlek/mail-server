@@ -7,6 +7,7 @@ using Utility.Test;
 using Vaettir.Mail.Dispatcher;
 using Vaettir.Mail.Server;
 using Vaettir.Mail.Server.Smtp;
+using Vaettir.Mail.Test.Utilities;
 using Vaettir.Utility;
 using Xunit;
 using Xunit.Abstractions;
@@ -57,7 +58,7 @@ namespace Mail.Dispatcher.Test
 				_transfer,
 				new TestOutputLogger(output),
 				new MockDomainResolver(_domainSettings),
-				new MockVolatile<SmtpSettings>(_settings));
+				new Utility.Test.MockVolatile<SmtpSettings>(_settings));
 		}
 
 		private readonly MailDispatcher _dispatcher;
@@ -273,4 +274,5 @@ namespace Mail.Dispatcher.Test
 		    }
 		}
 	}
+
 }

@@ -1,12 +1,12 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Autofac.Features.Metadata;
 using Vaettir.Mail.Server.Smtp;
 using Vaettir.Mail.Server.Smtp.Commands;
+using Vaettir.Mail.Test.Utilities;
 using Xunit;
 
-namespace Mail.Smtp.Test
+namespace Vaettir.Mail.Smtp.Test
 {
 	public class HelloTest
     {

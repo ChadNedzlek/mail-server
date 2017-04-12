@@ -1,4 +1,3 @@
-using System.IO;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
@@ -7,9 +6,10 @@ using Utility.Test;
 using Vaettir.Mail.Server;
 using Vaettir.Mail.Server.Smtp;
 using Vaettir.Mail.Server.Smtp.Commands;
+using Vaettir.Mail.Test.Utilities;
 using Xunit;
 
-namespace Mail.Smtp.Test
+namespace Vaettir.Mail.Smtp.Test
 {
     public class ExtendedHelloTest
 	{

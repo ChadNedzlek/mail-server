@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Text;
@@ -7,7 +6,7 @@ using System.Threading.Tasks;
 using Vaettir.Mail.Server;
 using Vaettir.Utility;
 
-namespace Mail.Dispatcher.Test
+namespace Vaettir.Mail.Test.Utilities
 {
     public class MockMailReference : IMailReference, IMailReadReference, IMailWriteReference
     {

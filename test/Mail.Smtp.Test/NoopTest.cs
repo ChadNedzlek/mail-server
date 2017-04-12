@@ -6,7 +6,7 @@ using Vaettir.Mail.Server.Smtp;
 using Vaettir.Mail.Server.Smtp.Commands;
 using Xunit;
 
-namespace Mail.Smtp.Test
+namespace Vaettir.Mail.Smtp.Test
 {
     public class NoopTest
     {
