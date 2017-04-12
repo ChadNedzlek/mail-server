@@ -51,7 +51,11 @@ namespace Mail.Dispatcher.Test
 				aliases: new Dictionary<string, string>{
 					{"alias-1@example.com", "box@example.com"},
 				});
-		    _settings = new SmtpSettings(domainName: "example.com", relayDomains: new []{new SmtpRelayDomain("relay.example.com"), }, idleDelay: 1);
+			_settings = new SmtpSettings(
+				domainName: "example.com",
+				relayDomains: new[] {new SmtpRelayDomain("relay.example.com"),},
+				localDomains: new[] {new SmtpAcceptDomain("example.com")},
+				idleDelay: 1);
 		    _dispatcher = new MailDispatcher(
 				_queue,
 				_mailbox,
@@ -262,7 +266,7 @@ namespace Mail.Dispatcher.Test
 
 			Assert.Empty(_queue.References);
 			Assert.Empty(_transfer.References);
-			Assert.Equal(2, _mailbox.SavedReferences.Count);
+			Assert.Equal(2, _mailbox.SavedReferences.Count());
 		    HashSet<string> expected = new HashSet<string> {"box@example.com", "other@example.com"};
 		    foreach (var r in _mailbox.SavedReferences)
 		    {

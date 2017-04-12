@@ -67,11 +67,14 @@ namespace Vaettir.Mail.Dispatcher
 				Dictionary<string, Lazy<IVolatile<DomainSettings>>> oldSettings =
 					Interlocked.Exchange(ref _domainSettings, newSettings);
 
-				foreach (Lazy<IVolatile<DomainSettings>> s in oldSettings.Values)
+				if (oldSettings != null)
 				{
-					if (s.IsValueCreated)
+					foreach (Lazy<IVolatile<DomainSettings>> s in oldSettings.Values)
 					{
-						s.Value?.Dispose();
+						if (s.IsValueCreated)
+						{
+							s.Value?.Dispose();
+						}
 					}
 				}
 			}

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Immutable;
 using Vaettir.Mail.Server.Smtp;
 using Vaettir.Mail.Test.Utilities;
@@ -9,12 +10,12 @@ namespace Mail.Transfer.Test
 {
 	public class MailTransferTests
 	{
-		private MockMailTransferQueue _queue;
-		private MockVolatile<SmtpSettings> _settings;
-		private MockDnsResolve _dns;
-		private MockMailSendFailureManager _failures;
-		private MockTcpConnectionProvider _tcp;
-		private MailTransfer _transfer;
+		private readonly MockMailTransferQueue _queue;
+		private readonly MockVolatile<SmtpSettings> _settings;
+		private readonly MockDnsResolve _dns;
+		private readonly MockMailSendFailureManager _failures;
+		private readonly MockTcpConnectionProvider _tcp;
+		private readonly MailTransfer _transfer;
 
 		public MailTransferTests()
 		{
@@ -40,6 +41,19 @@ namespace Mail.Transfer.Test
 					"mock-1",
 					"test@test.example.com",
 					new[] {"test@external.example.com"}.ToImmutableList(),
+					true,
+					_queue)));
+		}
+
+	    [Fact]
+	    public void RepeatMailIsNotReadyYet()
+	    {
+	        _failures.AddFailure("mock-1", DateTimeOffset.UtcNow, 5);
+			Assert.False(_transfer.IsReadyToSend(
+				new MockMailReference(
+					"mock-1",
+					"test@test.example.com",
+					new[] { "test@external.example.com" }.ToImmutableList(),
 					true,
 					_queue)));
 		}

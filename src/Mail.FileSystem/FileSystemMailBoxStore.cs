@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Vaettir.Mail.Server.Smtp;
@@ -16,11 +17,6 @@ namespace Vaettir.Mail.Server.FileSystem
 			_settings = settings;
 		}
 
-		public Task<IMailWriteReference> NewMailAsync(string mailbox, CancellationToken token)
-		{
-			throw new System.NotImplementedException();
-		}
-
 		public Task<IMailReadReference> OpenReadAsync(IMailReference reference, CancellationToken token)
 		{
 			throw new System.NotImplementedException();
@@ -32,6 +28,21 @@ namespace Vaettir.Mail.Server.FileSystem
 		}
 
 		public Task DeleteAsync(IMailReference reference)
+		{
+			throw new System.NotImplementedException();
+		}
+
+		public Task<IMailWriteReference> NewMailAsync(string mailbox, string folder, CancellationToken token)
+		{
+			throw new System.NotImplementedException();
+		}
+
+		public Task MoveAsync(IMailReference reference, string folder, CancellationToken token)
+		{
+			throw new System.NotImplementedException();
+		}
+
+		public Task SetFlags(IMailReference reference, IEnumerable<string> flags, CancellationToken token)
 		{
 			throw new System.NotImplementedException();
 		}

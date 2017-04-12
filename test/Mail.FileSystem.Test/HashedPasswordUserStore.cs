@@ -30,7 +30,7 @@ namespace Mail.FileSystem.Test
 		{
 			await _store.AddUserAsync("testuser", "testpassword", CancellationToken.None);
 			var user = await _store.GetUserWithPasswordAsync("testuser", "testpassword", CancellationToken.None);
-			Assert.Equal("testuser@test.vaettir.net", user.MailBox);
+			Assert.Equal("testuser", user.MailBox);
 		}
 
 		[Fact]
