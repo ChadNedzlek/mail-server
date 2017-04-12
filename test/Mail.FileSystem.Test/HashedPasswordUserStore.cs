@@ -13,7 +13,7 @@ namespace Mail.FileSystem.Test
 		public HashedPasswordUserStore()
 		{
 			var storePath = Path.GetTempFileName();
-			_settings = new ProtocolSettings(null, "test.vaettir.net", storePath, "db:sha1:98374");
+			_settings = new ProtocolSettings(null, "test.vaettir.net", null, storePath, "db:sha1:98374");
 			_store = new Vaettir.Mail.Server.FileSystem.HashedPasswordUserStore(_settings);
 		}
 

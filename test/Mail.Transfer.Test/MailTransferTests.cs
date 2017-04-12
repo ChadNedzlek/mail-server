@@ -210,6 +210,32 @@ namespace Mail.Transfer.Test
 		}
 
 		[Fact]
+		public async Task SendSingle_Fail()
+		{
+			var responseMessages = @"250 Ok (MAIL)
+554 Fail (RCPT)
+";
+			var mockMailReference = new MockMailReference(
+				"mock-1",
+				"test@test.example.com",
+				new[] { "test@external.example.com" }.ToImmutableList(),
+				true,
+				"Some text",
+				_queue);
+			_queue.References.Add(mockMailReference);
+
+			using (MemoryStream outStream = new MemoryStream())
+			using (MemoryStream inStream = new MemoryStream(Encoding.ASCII.GetBytes(responseMessages)))
+			using (StreamReader reader = new StreamReader(inStream))
+			using (StreamWriter writer = new StreamWriter(outStream))
+			{
+				Assert.False(await _transfer.TrySendSingleMailAsync(mockMailReference, writer, reader, CancellationToken.None));
+			}
+			Assert.Equal(1, _queue.References.Count);
+			Assert.Equal(0, _queue.DeletedReferences.Count);
+		}
+
+		[Fact]
 		public async Task SendMultiple()
 		{
 			var responseMessages = @"250 Ok (MAIL)

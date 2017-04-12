@@ -132,20 +132,4 @@ namespace Vaettir.Mail.Server
 			public ILifetimeScope Scope { get; }
 		}
 	}
-
-	public class ProtocolSettings
-	{
-		public ProtocolSettings(int[] ports, string domainName, string userPasswordFile, string passwordAlgorithm)
-		{
-			Ports = ports;
-			DomainName = domainName;
-			UserPasswordFile = userPasswordFile;
-			PasswordAlgorithm = passwordAlgorithm;
-		}
-
-		public int[] Ports { get; }
-		public string DomainName { get; }
-		public string UserPasswordFile { get; }
-		public string PasswordAlgorithm { get; }
-	}
 }

@@ -53,7 +53,7 @@ namespace Mail.Dispatcher.Test
 				});
 			_settings = new SmtpSettings(
 				domainName: "example.com",
-				relayDomains: new[] {new SmtpRelayDomain("relay.example.com"),},
+				relayDomains: new[] {new SmtpRelayDomain("relay.example.com", "relay.example.com"),},
 				localDomains: new[] {new SmtpAcceptDomain("example.com")},
 				idleDelay: 1);
 		    _dispatcher = new MailDispatcher(

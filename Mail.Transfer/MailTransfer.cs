@@ -88,10 +88,27 @@ namespace Vaettir.Mail.Transfer
 		private async Task SendMailsToDomain(string domain, IReadOnlyList<IMailReference> mails, CancellationToken token)
 		{
 			_log.Verbose($"Sending outbound mails for {domain}");
-			foreach (DnsMxRecord mxRecord in await _dns.QueryMx(domain, token))
+
+			SmtpRelayDomain relayDomain = _settings.Value.RelayDomains.FirstOrDefault(rd => string.Equals(rd.Name, domain, StringComparison.OrdinalIgnoreCase));
+			if (relayDomain != null)
 			{
+				_log.Verbose($"Relayed mail detected, replaying from {relayDomain.Name} to {relayDomain.Relay}:{relayDomain.Port}");
+				if (await TrySendToMx(domain, relayDomain.Relay, mails, relayDomain.Port ?? 25, token))
+				{
+					_log.Warning("Relay failed");
+				}
+				return;
+			}
+
+			foreach (DnsMxRecord mxRecord in (await _dns.QueryMx(domain, token)).OrderBy(mx => mx.Preference))
+			{
+				if (IsSendToSelf(mxRecord.Exchange))
+				{
+					_log.Warning("Detected send to self in preference fallback, aborting");
+					break;
+				}
 				_log.Verbose($"Resolved MX record {mxRecord.Exchange} at priority {mxRecord.Preference}");
-				if (await TrySendToMx(domain, mxRecord.Exchange, mails, token))
+				if (await TrySendToMx(domain, mxRecord.Exchange, mails, 25, token))
 				{
 					return;
 				}
@@ -100,10 +117,22 @@ namespace Vaettir.Mail.Transfer
 			_log.Warning($"Unable to send to MX for {domain}");
 		}
 
+		private bool IsSendToSelf(string exchange)
+		{
+			if (String.Equals(_settings.Value.DomainName, exchange, StringComparison.OrdinalIgnoreCase))
+				return true;
+
+			if (_settings.Value.DomainAliases?.Contains(exchange, StringComparer.OrdinalIgnoreCase) == true)
+				return true;
+
+			return false;
+		}
+
 		private async Task<bool> TrySendToMx(
 			string domain,
 			string target,
 			IEnumerable<IMailReference> mails,
+			int port,
 			CancellationToken token)
 		{
 			_log.Verbose($"Looking up information for MX {target}");
@@ -114,11 +143,6 @@ namespace Vaettir.Mail.Transfer
 				_log.Warning($"Failed to resolve A or AAAA record for MX record {target}");
 				return false;
 			}
-
-			SmtpRelayDomain relayDescription = _settings.Value.RelayDomains?
-				.FirstOrDefault(r => string.Equals(r.Name, domain, StringComparison.OrdinalIgnoreCase));
-
-			int port = relayDescription?.Port ?? 25;
 			using (var mxClient = _tcp.GetClient())
 			{
 				_log.Information($"Connecting to MX {target} at {targetIp} on port {port}");

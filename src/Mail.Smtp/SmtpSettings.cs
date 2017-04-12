@@ -7,7 +7,8 @@
             string workingDirectory = null,
             int[] ports = null,
             string domainName = null,
-            SmtpAcceptDomain[] localDomains = null,
+            string[] domainAliases = null,
+			SmtpAcceptDomain[] localDomains = null,
             string mailIncomingQueuePath = null,
             string mailOutgoingQueuePath = null,
             string userPasswordFile = null,
@@ -15,7 +16,7 @@
             SmtpRelayDomain[] relayDomains = null,
             string passwordAlgorithm = null,
             int? idleDelay = null)
-            : base(ports, domainName, userPasswordFile, passwordAlgorithm)
+            : base(ports, domainName, domainAliases, userPasswordFile, passwordAlgorithm)
         {
             IncomingScan = incomingScan;
             WorkingDirectory = workingDirectory;
@@ -54,13 +55,15 @@
 
     public class SmtpRelayDomain
     {
-        public SmtpRelayDomain(string name, int? port = null)
+        public SmtpRelayDomain(string name, string relay, int? port = null)
         {
             Name = name;
-            Port = port;
+	        Relay = relay;
+	        Port = port;
         }
 
-        public string Name { get; }
-        public int? Port { get; }
+	    public string Name { get; }
+	    public string Relay { get; }
+		public int? Port { get; }
     }
 }
