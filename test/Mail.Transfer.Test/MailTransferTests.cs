@@ -210,6 +210,36 @@ namespace Mail.Transfer.Test
 		}
 
 		[Fact]
+		public async Task SendMultiple()
+		{
+			var responseMessages = @"250 Ok (MAIL)
+250 Ok (RCPT)
+250 Ok (RCPT)
+354 End data with <CR><LF>.<CR><LF> (DATA)
+250 Ok (DATA with .)
+250 Bye (QUIT)
+";
+			var mockMailReference = new MockMailReference(
+				"mock-1",
+				"test@test.example.com",
+				new[] { "test@external.example.com", "other@external.example.com" }.ToImmutableList(),
+				true,
+				"Some text",
+				_queue);
+			_queue.References.Add(mockMailReference);
+
+			using (MemoryStream outStream = new MemoryStream())
+			using (MemoryStream inStream = new MemoryStream(Encoding.ASCII.GetBytes(responseMessages)))
+			using (StreamReader reader = new StreamReader(inStream))
+			using (StreamWriter writer = new StreamWriter(outStream))
+			{
+				Assert.True(await _transfer.TrySendSingleMailAsync(mockMailReference, writer, reader, CancellationToken.None));
+			}
+			Assert.Equal(0, _queue.References.Count);
+			Assert.Equal(1, _queue.DeletedReferences.Count);
+		}
+
+		[Fact]
 		public async Task ProcessAll_NoEhloTest()
 		{
 			var responseMessages = @"554 No clue (EHLO)
@@ -232,21 +262,28 @@ namespace Mail.Transfer.Test
 			_dns.AddIp("mx.external.example.com", IPAddress.Parse("10.20.30.40"));
 
 			var (keep, give) = PairedStream.Create();
+			using (StreamReader reader = new StreamReader(keep))
+			{
+				var responseBytes = Encoding.ASCII.GetBytes(responseMessages);
+				await keep.WriteAsync(responseBytes, 0, responseBytes.Length);
 
-			var responseBytes = Encoding.ASCII.GetBytes(responseMessages);
-			await keep.WriteAsync(responseBytes, 0, responseBytes.Length);
+				Assert.True(
+					await _transfer.TrySendMailsToStream(
+						"external.example.com",
+						new[] {mockMailReference},
+						new UnclosableStream(give),
+						CancellationToken.None));
 
-			Assert.True(await _transfer.TrySendMailsToStream(
-				"external.example.com",
-				new[] { mockMailReference },
-				give,
-				CancellationToken.None));
-
-			Assert.Equal(0, _queue.References.Count);
-			Assert.Equal(1, _queue.DeletedReferences.Count);
-
-			keep.Dispose();
-			give.Dispose();
+				Assert.Equal(0, _queue.References.Count);
+				Assert.Equal(1, _queue.DeletedReferences.Count);
+				await AssertCommandRecieved(reader, "EHLO");
+				await AssertCommandRecieved(reader, "HELO");
+				await AssertCommandRecieved(reader, "MAIL");
+				await AssertCommandRecieved(reader, "RCPT");
+				await AssertCommandRecieved(reader, "DATA");
+				
+				give.Dispose();
+			}
 		}
 
 		[Fact]
@@ -271,29 +308,36 @@ namespace Mail.Transfer.Test
 			_dns.AddIp("mx.external.example.com", IPAddress.Parse("10.20.30.40"));
 
 			var (keep, give) = PairedStream.Create();
+			using (StreamReader reader = new StreamReader(keep))
+			{
+				var responseBytes = Encoding.ASCII.GetBytes(responseMessages);
+				await keep.WriteAsync(responseBytes, 0, responseBytes.Length);
 
-			var responseBytes = Encoding.ASCII.GetBytes(responseMessages);
-			await keep.WriteAsync(responseBytes, 0, responseBytes.Length);
+				Assert.True(
+					await _transfer.TrySendMailsToStream(
+						"external.example.com",
+						new[] {mockMailReference},
+						new UnclosableStream(give),
+						CancellationToken.None));
 
-			Assert.True(await _transfer.TrySendMailsToStream(
-				"external.example.com",
-				new[] { mockMailReference },
-				give,
-				CancellationToken.None));
+				Assert.Equal(0, _queue.References.Count);
+				Assert.Equal(1, _queue.DeletedReferences.Count);
 
-			Assert.Equal(0, _queue.References.Count);
-			Assert.Equal(1, _queue.DeletedReferences.Count);
+				await AssertCommandRecieved(reader, "EHLO");
+				await AssertCommandRecieved(reader, "MAIL");
+				await AssertCommandRecieved(reader, "RCPT");
+				await AssertCommandRecieved(reader, "DATA");
 
-			keep.Dispose();
-			give.Dispose();
+				give.Dispose();
+			}
 		}
 
 		[Fact]
 		public async Task ProcessAll_EhloStartTlsTest()
 		{
 			var responseMessagesPreEncrypt = @"220-STARTTLS
-200 example.com greets test.example.com (HELO)
-220 Ok, begin encryption
+220 example.com greets test.example.com (EHLO)
+250 Ok, begin encryption (STARTTLS)
 ";
 			var responseMessagesPostEncrypt = @"250 Ok (MAIL)
 250 Ok (RCPT)
@@ -309,37 +353,51 @@ namespace Mail.Transfer.Test
 				"Some text",
 				_queue);
 			_queue.References.Add(mockMailReference);
-			_dns.AddMx("external.example.com", "mx.external.example.com", 10);
-			_dns.AddIp("mx.external.example.com", IPAddress.Parse("10.20.30.40"));
+			_dns.AddMx("external.example.com", "test.example.com", 10);
+			_dns.AddIp("test.example.com", IPAddress.Parse("10.20.30.40"));
 
 			var (keep, give) = PairedStream.Create();
 
-			var responseBytes = Encoding.ASCII.GetBytes(responseMessagesPreEncrypt);
-			await keep.WriteAsync(responseBytes, 0, responseBytes.Length);
+			using (RedirectableStream recieveStream = new RedirectableStream(keep))
+			using (StreamReader reader = new StreamReader(recieveStream))
+			{
+				var sendMailsTask = Task.Run(
+					() => _transfer.TrySendMailsToStream(
+						"external.example.com",
+						new[] {mockMailReference},
+						new UnclosableStream(give),
+						CancellationToken.None));
 
-			SslStream encrypted = new SslStream(keep);
+				_transfer.RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true;
 
-			Task asServerAsync = encrypted.AuthenticateAsServerAsync(TestHelpers.GetSelfSigned());
-			Task<bool> trySendMailsToStream = _transfer.TrySendMailsToStream(
-				"external.example.com",
-				new[] { mockMailReference },
-				give,
-				CancellationToken.None);
+				var responseBytes = Encoding.ASCII.GetBytes(responseMessagesPreEncrypt);
+				await keep.WriteAsync(responseBytes, 0, responseBytes.Length);
 
-			var completed = await Task.WhenAny(asServerAsync, trySendMailsToStream);
+				await AssertCommandRecieved(reader, "EHLO");
+				await AssertCommandRecieved(reader, "STARTTLS");
 
-			Assert.Same(completed, asServerAsync);
+				SslStream encrypted = new SslStream(keep);
 
-			responseBytes = Encoding.ASCII.GetBytes(responseMessagesPostEncrypt);
-			await keep.WriteAsync(responseBytes, 0, responseBytes.Length);
+				await encrypted.AuthenticateAsServerAsync(TestHelpers.GetSelfSigned());
+				recieveStream.ChangeSteam(encrypted);
 
-			Assert.True(await trySendMailsToStream);
+				responseBytes = Encoding.ASCII.GetBytes(responseMessagesPostEncrypt);
+				await encrypted.WriteAsync(responseBytes, 0, responseBytes.Length);
 
-			Assert.Equal(0, _queue.References.Count);
-			Assert.Equal(1, _queue.DeletedReferences.Count);
+				Assert.True(await sendMailsTask);
 
-			keep.Dispose();
-			give.Dispose();
+				Assert.Equal(0, _queue.References.Count);
+				Assert.Equal(1, _queue.DeletedReferences.Count);
+
+				encrypted.Dispose();
+				keep.Dispose();
+				give.Dispose();
+			}
+		}
+		
+		private static async Task AssertCommandRecieved(TextReader reader, string command)
+		{
+			Assert.Equal(command, (await reader.ReadLineAsync()).Split(' ')[0]);
 		}
 
 		public void Dispose()

@@ -40,6 +40,8 @@ namespace Vaettir.Mail.Transfer
 		private readonly ITcpConnectionProvider _tcp;
 		private readonly IDnsResolve _dns;
 
+		public RemoteCertificateValidationCallback RemoteCertificateValidationCallback { get; set; }
+
 		public MailTransfer(IMailTransferQueue queue, IVolatile<SmtpSettings> settings, ILogger log, IDnsResolve dns, IMailSendFailureManager failures, ITcpConnectionProvider _tcp)
 		{
 			_queue = queue;
@@ -162,8 +164,16 @@ namespace Vaettir.Mail.Transfer
 						return false;
 					}
 
-					var sslStream = new SslStream(mxStream, true);
-					await sslStream.AuthenticateAsClientAsync(target);
+					var sslStream = new SslStream(mxStream, true, RemoteCertificateValidationCallback);
+					try
+					{
+						await sslStream.AuthenticateAsClientAsync(target);
+					}
+					catch (Exception e)
+					{
+						_log.Warning($"Failed TLS negotiations: {e}");
+						return false;
+					}
 					stream.ChangeSteam(sslStream);
 				}
 
