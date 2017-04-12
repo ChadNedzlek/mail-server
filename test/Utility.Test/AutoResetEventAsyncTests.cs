@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Vaettir.Mail.Test.Utilities;
 using Vaettir.Utility;
 using Xunit;
 

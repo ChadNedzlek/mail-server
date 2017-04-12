@@ -2,7 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace Utility.Test
+namespace Vaettir.Mail.Test.Utilities
 {
 	public static class TaskHelpers
 	{

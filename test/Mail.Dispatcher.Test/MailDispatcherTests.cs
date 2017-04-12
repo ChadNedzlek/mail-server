@@ -62,7 +62,7 @@ namespace Mail.Dispatcher.Test
 				_transfer,
 				new TestOutputLogger(output),
 				new MockDomainResolver(_domainSettings),
-				new Utility.Test.MockVolatile<SmtpSettings>(_settings));
+				new MockVolatile<SmtpSettings>(_settings));
 		}
 
 		private readonly MailDispatcher _dispatcher;

@@ -57,7 +57,7 @@ namespace Vaettir.Mail.Transfer
 				try
 				{
 					bool sent = false;
-					foreach (string domain in _queue.GetMailsByDomain())
+					foreach (string domain in _queue.GetAllPendingDomains())
 					{
 						List<IMailReference> mails = _queue.GetAllMailForDomain(domain).Where(IsReadyToSend).ToList();
 						if (mails.Count == 0)
@@ -123,33 +123,31 @@ namespace Vaettir.Mail.Transfer
 				await mxClient.ConnectAsync(targetIp, port);
 
 				using (Stream mxStream = mxClient.GetStream())
-				if (!await TrySendMailsonStream(target, mails, mxStream, token)) return false;
+				if (!await TrySendMailsToStream(target, mails, mxStream, token)) return false;
 			}
 
 			return true;
 		}
 
-		public async Task<bool> TrySendMailsonStream(string target, IEnumerable<IMailReference> mails, Stream mxStream, CancellationToken token)
+		public async Task<bool> TrySendMailsToStream(string target, IEnumerable<IMailReference> mails, Stream mxStream, CancellationToken token)
 		{
 			using (var stream = new RedirectableStream(mxStream))
 			using (var reader = new StreamReader(stream))
 			using (var writer = new StreamWriter(stream))
 			{
-				await SendCommand(writer, $"EHLO {_settings.Value.DomainName}");
-				SmtpResponse response = await ReadResponse(reader);
+				SmtpResponse response = await ExecuteRemoteCommandAsync(writer, reader, $"EHLO {_settings.Value.DomainName}");
 
 				var startTls = false;
-				if (response.Code == ReplyCode.Okay)
+				if (response.Code == ReplyCode.Greeting)
 				{
 					startTls = response.Lines.Contains("STARTTLS", StringComparer.OrdinalIgnoreCase);
 				}
 				else
 				{
-					await SendCommand(writer, $"HELO {_settings.Value.DomainName}");
-					response = await ReadResponse(reader);
+					response = await ExecuteRemoteCommandAsync(writer, reader, $"HELO {_settings.Value.DomainName}");
 				}
 
-				if (response.Code != ReplyCode.Okay)
+				if (response.Code != ReplyCode.Greeting)
 				{
 					_log.Warning("Failed to HELO/EHLO, aborting");
 					return false;
@@ -157,8 +155,7 @@ namespace Vaettir.Mail.Transfer
 
 				if (startTls)
 				{
-					await SendCommand(writer, "STARTTLS");
-					response = await ReadResponse(reader);
+					response = await ExecuteRemoteCommandAsync(writer, reader, "STARTTLS");
 					if (response.Code != ReplyCode.Okay)
 					{
 						_log.Warning("Failed to STARTTLS, aborting");
@@ -178,13 +175,13 @@ namespace Vaettir.Mail.Transfer
 						continue;
 					}
 
-					if (await SendSingleMailAsync(token, mail, writer, reader))
+					if (await TrySendSingleMailAsync(mail, writer, reader, token))
 					{
 						_failures.RemoveFailure(mail.Id);
 						continue;
 					}
 
-					if (!ShouldAttemptRedelivery(mail))
+					if (!ShouldAttemptRedeliveryAfterFailure(mail))
 					{
 						await HandleRejectedMailAsync(mail);
 						_failures.RemoveFailure(mail.Id);
@@ -199,7 +196,7 @@ namespace Vaettir.Mail.Transfer
 					return false;
 				}
 
-				await SendCommand(writer, "QUIT");
+				await SendCommandAsync(writer, "QUIT");
 			}
 			return true;
 		}
@@ -210,7 +207,7 @@ namespace Vaettir.Mail.Transfer
 			return Task.CompletedTask;
 		}
 
-		public bool ShouldAttemptRedelivery(IMailReference mail)
+		public bool ShouldAttemptRedeliveryAfterFailure(IMailReference mail)
 		{
 			SmtpFailureData failure = _failures.GetFailure(mail.Id, true);
 			if (failure.Retries + 1 >= s_retryDelays.Length)
@@ -246,17 +243,16 @@ namespace Vaettir.Mail.Transfer
 			return s_retryDelays[retries];
 		}
 
-		public async Task<bool> SendSingleMailAsync(
-			CancellationToken token,
+		public async Task<bool> TrySendSingleMailAsync(
 			IMailReference mail,
 			StreamWriter writer,
-			StreamReader reader)
+			StreamReader reader,
+			CancellationToken token)
 		{
 			_log.Information($"Sending mail {mail.Id}");
 			IMailReadReference readMail = await _queue.OpenReadAsync(mail, token);
 			_log.Information($"Sender: {readMail.Sender}, Recipients: {string.Join(",", readMail.Recipients)}");
-			await SendCommand(writer, $"MAIL FROM:<{readMail.Sender}>");
-			SmtpResponse response = await ReadResponse(reader);
+			SmtpResponse response = await ExecuteRemoteCommandAsync(writer, reader, $"MAIL FROM:<{readMail.Sender}>");
 			if (response.Code != ReplyCode.Okay)
 			{
 				_log.Warning("Failed MAIL FROM, aborting");
@@ -265,8 +261,7 @@ namespace Vaettir.Mail.Transfer
 
 			foreach (string recipient in readMail.Recipients)
 			{
-				await SendCommand(writer, $"RCPT TO:<{recipient}>");
-				response = await ReadResponse(reader);
+				response = await ExecuteRemoteCommandAsync(writer, reader, $"RCPT TO:<{recipient}>");
 				if (response.Code != ReplyCode.Okay)
 				{
 					_log.Warning("Failed RCPT TO, aborting");
@@ -274,11 +269,10 @@ namespace Vaettir.Mail.Transfer
 				}
 			}
 
-			await SendCommand(writer, "DATA");
-			response = await ReadResponse(reader);
-			if (response.Code != ReplyCode.Okay)
+			response = await ExecuteRemoteCommandAsync(writer, reader, "DATA");
+			if (response.Code != ReplyCode.StartMail)
 			{
-				_log.Warning("Failed RCPT TO, aborting");
+				_log.Warning("Failed DATA, aborting");
 				return false;
 			}
 
@@ -292,6 +286,7 @@ namespace Vaettir.Mail.Transfer
 			}
 
 			await writer.WriteLineAsync(".");
+			response = await ReadResponseAsync(reader);
 			if (response.Code != ReplyCode.Okay)
 			{
 				_log.Warning("Failed RCPT TO, aborting");
@@ -303,7 +298,7 @@ namespace Vaettir.Mail.Transfer
 			return true;
 		}
 
-		public async Task<SmtpResponse> ReadResponse(StreamReader reader)
+		private async Task<SmtpResponse> ReadResponseAsync(TextReader reader)
 		{
 			var lines = new List<string>();
 			var more = true;
@@ -331,16 +326,23 @@ namespace Vaettir.Mail.Transfer
 				}
 				currentReply = newReply;
 				more = line.Length >= 4 && line[3] == '-';
-				lines.Add(line.Substring(Math.Max(line.Length, 4)));
+				lines.Add(line.Substring(Math.Min(line.Length, 4)));
 			}
 
 			return new SmtpResponse(currentReply.Value, lines);
 		}
 
-		public Task SendCommand(StreamWriter writer, string command)
+		private async Task SendCommandAsync(TextWriter writer, string command)
 		{
 			_log.Verbose(command);
-			return writer.WriteLineAsync(command);
+			await writer.WriteLineAsync(command);
+			await writer.FlushAsync();
+		}
+
+		public async Task<SmtpResponse> ExecuteRemoteCommandAsync(StreamWriter writer, StreamReader reader, string command)
+		{
+			await SendCommandAsync(writer, command);
+			return await ReadResponseAsync(reader);
 		}
 	}
 }

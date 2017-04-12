@@ -41,7 +41,7 @@ namespace Vaettir.Mail.Server.FileSystem
 			);
 		}
 
-		public IEnumerable<string> GetMailsByDomain()
+		public IEnumerable<string> GetAllPendingDomains()
 		{
 			return Directory.GetDirectories(_settings.MailOutgoingQueuePath).Select(Path.GetFileName);
 		}

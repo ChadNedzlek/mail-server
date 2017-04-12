@@ -35,7 +35,7 @@ namespace Vaettir.Mail.Test.Utilities
         public string Sender { get; }
         public IImmutableList<string> Recipients { get; }
 	    public IMailStore Store { get; }
-	    public bool IsSaved { get; internal set; }
+	    public bool IsSaved { get; set; }
 
         public void Dispose()
         {

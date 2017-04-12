@@ -8,7 +8,7 @@ namespace Vaettir.Mail.Server
 	public interface IMailTransferQueue : IMailStore
 	{
 		Task<IMailWriteReference> NewMailAsync(string id, string sender, IImmutableList<string> recipients, CancellationToken token);
-		IEnumerable<string> GetMailsByDomain();
+		IEnumerable<string> GetAllPendingDomains();
 		IEnumerable<IMailReference> GetAllMailForDomain(string domain);
 	}
 }

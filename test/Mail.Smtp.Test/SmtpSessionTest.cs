@@ -15,6 +15,7 @@ using Vaettir.Mail.Server;
 using Vaettir.Mail.Server.Authentication;
 using Vaettir.Mail.Server.Smtp;
 using Vaettir.Mail.Server.Smtp.Commands;
+using Vaettir.Mail.Test.Utilities;
 using Vaettir.Utility;
 using Xunit;
 using Xunit.Abstractions;
@@ -43,8 +44,8 @@ namespace Vaettir.Mail.Smtp.Test
 
 			public TestConnection(ITestOutputHelper output)
 			{
-				Tuple<PairedStream, PairedStream> streamTuple = PairedStream.Create();
-				LocalStream = new RedirectableStream(streamTuple.Item1);
+				var (a,b) = PairedStream.Create();
+				LocalStream = new RedirectableStream(a);
 				Reader = new StreamReader(LocalStream);
 				Writer = new StreamWriter(LocalStream) {AutoFlush = true};
 
@@ -64,7 +65,7 @@ namespace Vaettir.Mail.Smtp.Test
 					.As<IAuthenticationTransport>()
 					.As<IProtocolSession>();
 
-				builder.RegisterInstance(new SecurableConnection(streamTuple.Item2) {Certificate = s_serverCert})
+				builder.RegisterInstance(new SecurableConnection(b) {Certificate = s_serverCert})
 					.As<IConnectionSecurity>()
 					.As<SecurableConnection>();
 

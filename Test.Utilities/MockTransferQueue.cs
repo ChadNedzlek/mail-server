@@ -27,7 +27,7 @@ namespace Vaettir.Mail.Test.Utilities
 			return Task.FromResult((IMailWriteReference) reference);
 		}
 
-		public IEnumerable<string> GetMailsByDomain()
+		public IEnumerable<string> GetAllPendingDomains()
 		{
 			return References.Select(r => MailUtilities.GetDomainFromMailbox(r.Recipients[0])).Distinct();
 		}

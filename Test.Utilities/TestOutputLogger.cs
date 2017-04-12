@@ -2,7 +2,7 @@ using System;
 using Vaettir.Utility;
 using Xunit.Abstractions;
 
-namespace Utility.Test
+namespace Vaettir.Mail.Test.Utilities
 {
 	public class TestOutputLogger : ILogger
 	{

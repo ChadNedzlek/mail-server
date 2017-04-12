@@ -7,8 +7,8 @@ namespace Vaettir.Utility
 {
 	public class PairedStream : Stream
 	{
-		private Stream _read;
-		private Stream _write;
+		private readonly Stream _read;
+		private readonly Stream _write;
 
 		private PairedStream(Stream read, Stream write)
 		{
@@ -89,25 +89,19 @@ namespace Vaettir.Utility
 		public override bool CanSeek => false;
 		public override bool CanWrite => _write.CanWrite;
 
-		public override long Length
-		{
-			get { throw new NotSupportedException(); }
-		}
+		public override long Length => throw new NotSupportedException();
 
 		public override long Position
 		{
-			get { throw new NotSupportedException(); }
-			set { throw new NotSupportedException(); }
+			get => throw new NotSupportedException();
+			set => throw new NotSupportedException();
 		}
 
-		public static Tuple<PairedStream, PairedStream> Create()
+		public static (Stream a, Stream b) Create()
 		{
 			DuplexStream a = new DuplexStream();
 			DuplexStream b = new DuplexStream();
-			return Tuple.Create(
-				new PairedStream(a, b),
-				new PairedStream(b, a)
-				);
+			return (new PairedStream(a, b), new PairedStream(b, a));
 		}
 	}
 }

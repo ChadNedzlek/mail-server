@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Xunit;
 
-namespace Utility.Test
+namespace Vaettir.Mail.Test.Utilities
 {
 	public static class SequenceAssert
 	{
