@@ -85,16 +85,18 @@ namespace Vaettir.Mail.Transfer
 			}
 		}
 
-		private async Task SendMailsToDomain(string domain, IReadOnlyList<IMailReference> mails, CancellationToken token)
+		public async Task SendMailsToDomain(string domain, IReadOnlyList<IMailReference> mails, CancellationToken token)
 		{
 			_log.Verbose($"Sending outbound mails for {domain}");
 
-			SmtpRelayDomain relayDomain = _settings.Value.RelayDomains.FirstOrDefault(rd => string.Equals(rd.Name, domain, StringComparison.OrdinalIgnoreCase));
+			SmtpRelayDomain relayDomain = _settings.Value.RelayDomains?.FirstOrDefault(rd => string.Equals(rd.Name, domain, StringComparison.OrdinalIgnoreCase));
 			if (relayDomain != null)
 			{
 				_log.Verbose($"Relayed mail detected, replaying from {relayDomain.Name} to {relayDomain.Relay}:{relayDomain.Port}");
-				if (await TrySendToMx(domain, relayDomain.Relay, mails, relayDomain.Port ?? 25, token))
+				IReadOnlyList<IMailReference> unsent = await TrySendToMx(domain, relayDomain.Relay, mails, relayDomain.Port ?? 25, token);
+				if ((unsent?.Count ?? 0) != 0)
 				{
+					await HandleFailedMailsAsync(unsent);
 					_log.Warning("Relay failed");
 				}
 				return;
@@ -108,13 +110,38 @@ namespace Vaettir.Mail.Transfer
 					break;
 				}
 				_log.Verbose($"Resolved MX record {mxRecord.Exchange} at priority {mxRecord.Preference}");
-				if (await TrySendToMx(domain, mxRecord.Exchange, mails, 25, token))
+				mails = await TrySendToMx(domain, mxRecord.Exchange, mails, 25, token);
+
+				if ((mails?.Count ?? 0) == 0)
 				{
 					return;
 				}
+
+				_log.Warning($"Failed to send {mails.Count} emails to {mxRecord.Exchange}, trying next");
 			}
 
+			await HandleFailedMailsAsync(mails);
+
 			_log.Warning($"Unable to send to MX for {domain}");
+		}
+
+		private async Task HandleFailedMailsAsync(IReadOnlyList<IMailReference> unsent)
+		{
+			foreach (var mail in unsent)
+			{
+				SmtpFailureData retryData = ShouldAttemptRedelivery(mail);
+				if (retryData == null)
+				{
+					// We're giving up, forget about it
+					_failures.RemoveFailure(mail.Id);
+					await HandleRejectedMailAsync(mail);
+					await _queue.DeleteAsync(mail);
+				}
+				else
+				{
+					retryData.Retries++;
+				}
+			}
 		}
 
 		private bool IsSendToSelf(string exchange)
@@ -128,10 +155,10 @@ namespace Vaettir.Mail.Transfer
 			return false;
 		}
 
-		private async Task<bool> TrySendToMx(
+		private async Task<IReadOnlyList<IMailReference>> TrySendToMx(
 			string domain,
 			string target,
-			IEnumerable<IMailReference> mails,
+			IReadOnlyList<IMailReference> mails,
 			int port,
 			CancellationToken token)
 		{
@@ -141,7 +168,7 @@ namespace Vaettir.Mail.Transfer
 			if (targetIp == null)
 			{
 				_log.Warning($"Failed to resolve A or AAAA record for MX record {target}");
-				return false;
+				return mails;
 			}
 			using (var mxClient = _tcp.GetClient())
 			{
@@ -149,14 +176,17 @@ namespace Vaettir.Mail.Transfer
 				await mxClient.ConnectAsync(targetIp, port);
 
 				using (Stream mxStream = mxClient.GetStream())
-				if (!await TrySendMailsToStream(target, mails, mxStream, token)) return false;
+				{
+					mails = await TrySendMailsToStream(target, mails, mxStream, token);
+				}
 			}
 
-			return true;
+			return mails;
 		}
 
-		public async Task<bool> TrySendMailsToStream(string target, IEnumerable<IMailReference> mails, Stream mxStream, CancellationToken token)
+		public async Task<IReadOnlyList<IMailReference>> TrySendMailsToStream(string target, IReadOnlyList<IMailReference> mails, Stream mxStream, CancellationToken token)
 		{
+			List<IMailReference> unsent = new List<IMailReference>();
 			using (var stream = new RedirectableStream(mxStream))
 			using (var reader = new StreamReader(stream))
 			using (var writer = new StreamWriter(stream))
@@ -176,7 +206,7 @@ namespace Vaettir.Mail.Transfer
 				if (response.Code != ReplyCode.Greeting)
 				{
 					_log.Warning("Failed to HELO/EHLO, aborting");
-					return false;
+					return mails;
 				}
 
 				if (startTls)
@@ -185,7 +215,7 @@ namespace Vaettir.Mail.Transfer
 					if (response.Code != ReplyCode.Okay)
 					{
 						_log.Warning("Failed to STARTTLS, aborting");
-						return false;
+						return mails;
 					}
 
 					var sslStream = new SslStream(mxStream, true, RemoteCertificateValidationCallback);
@@ -196,7 +226,7 @@ namespace Vaettir.Mail.Transfer
 					catch (Exception e)
 					{
 						_log.Warning($"Failed TLS negotiations: {e}");
-						return false;
+						return mails;
 					}
 					stream.ChangeSteam(sslStream);
 				}
@@ -206,6 +236,7 @@ namespace Vaettir.Mail.Transfer
 				{
 					if (!IsReadyToSend(mail))
 					{
+						unsent.Add(mail);
 						continue;
 					}
 
@@ -215,24 +246,19 @@ namespace Vaettir.Mail.Transfer
 						continue;
 					}
 
-					if (!ShouldAttemptRedeliveryAfterFailure(mail))
-					{
-						await HandleRejectedMailAsync(mail);
-						_failures.RemoveFailure(mail.Id);
-						await _queue.DeleteAsync(mail);
-					}
+					unsent.Add(mail);
 					allSuccess = false;
 				}
 
 				if (!allSuccess)
 				{
 					_log.Warning("Failed to send at least one mail");
-					return false;
+					return unsent;
 				}
 
 				await SendCommandAsync(writer, "QUIT");
 			}
-			return true;
+			return unsent;
 		}
 
 		private Task HandleRejectedMailAsync(IMailReference mail)
@@ -241,16 +267,15 @@ namespace Vaettir.Mail.Transfer
 			return Task.CompletedTask;
 		}
 
-		public bool ShouldAttemptRedeliveryAfterFailure(IMailReference mail)
+		public SmtpFailureData ShouldAttemptRedelivery(IMailReference mail)
 		{
 			SmtpFailureData failure = _failures.GetFailure(mail.Id, true);
 			if (failure.Retries + 1 >= s_retryDelays.Length)
 			{
-				return false;
+				return null;
 			}
 
-			failure.Retries++;
-			return true;
+			return failure;
 		}
 
 		public bool IsReadyToSend(IMailReference mail)
