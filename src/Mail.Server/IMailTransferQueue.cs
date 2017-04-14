@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Vaettir.Mail.Server
 {
-	public interface IMailTransferQueue : IMailStore
+	public interface IMailTransferQueue : IMailStore, IWriter
 	{
 		Task<IMailWriteReference> NewMailAsync(string id, string sender, IImmutableList<string> recipients, CancellationToken token);
 		IEnumerable<string> GetAllPendingDomains();

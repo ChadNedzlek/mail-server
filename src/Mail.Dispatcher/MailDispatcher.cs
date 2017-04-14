@@ -18,7 +18,7 @@ namespace Vaettir.Mail.Dispatcher
 		private readonly IDomainSettingResolver _domainResolver;
 		private readonly IMailQueue _incoming;
 		private readonly ILogger _log;
-		private readonly IMailBoxStore _mailBox;
+		private readonly IMailboxStore _mailbox;
 		private readonly IVolatile<SmtpSettings> _settings;
 		private readonly IMailTransferQueue _transfer;
 
@@ -26,7 +26,7 @@ namespace Vaettir.Mail.Dispatcher
 
 		public MailDispatcher(
 			IMailQueue incoming,
-			IMailBoxStore mailBox,
+			IMailboxStore mailbox,
 			IMailTransferQueue transfer,
 			ILogger log,
 			IDomainSettingResolver domainResolver,
@@ -34,7 +34,7 @@ namespace Vaettir.Mail.Dispatcher
 		{
 			_settings = settings;
 			_incoming = incoming;
-			_mailBox = mailBox;
+			_mailbox = mailbox;
 			_transfer = transfer;
 			_log = log;
 			_domainResolver = domainResolver;
@@ -143,7 +143,7 @@ namespace Vaettir.Mail.Dispatcher
 						IDictionary<string, IEnumerable<string>> headers = await MailUtilities.ParseHeadersAsync(bodyStream, token);
 						ISet<string> recipients = AugmentRecipients(readReference.Sender, readReference.Recipients, headers);
 						bodyStream.Seek(0, SeekOrigin.Begin);
-						IMailWriteReference[] dispatchReferenecs = await CreateDispatchesAsync(readReference.Id, recipients, readReference.Sender, token);
+						IWritable[] dispatchReferenecs = await CreateDispatchesAsync(readReference.Id, recipients, readReference.Sender, token);
 
 						using (var targetStream = new MultiStream(dispatchReferenecs.Select(r => r.BodyStream)))
 						{
@@ -168,7 +168,7 @@ namespace Vaettir.Mail.Dispatcher
 			}
 		}
 
-		public Task<IMailWriteReference[]> CreateDispatchesAsync(
+		public Task<IWritable[]> CreateDispatchesAsync(
 			string mailId,
 			IEnumerable<string> recipients,
 			string sender,
@@ -183,17 +183,17 @@ namespace Vaettir.Mail.Dispatcher
 						{
 							if (_settings.Value.DomainName == g.Key)
 							{
-								return g.Select(r => _mailBox.NewMailAsync(r, token));
+								return g.Select(r => _mailbox.NewMailAsync(mailId, r, token).Cast<IMailboxItemWriteReference, IWritable>());
 							}
 
 							if (_settings.Value.RelayDomains.Any(d => string.Equals(d.Name, g.Key, StringComparison.OrdinalIgnoreCase)) ||
 								_settings.Value.DomainName == senderDomain)
 							{
-								return _transfer.NewMailAsync(mailId, sender, g.ToImmutableList(), token).ToEnumerable();
+								return _transfer.NewMailAsync(mailId, sender, g.ToImmutableList(), token).Cast<IMailWriteReference, IWritable>().ToEnumerable();
 							}
 
 							_log.Error($"Invalid domain {g.Key}");
-							return Enumerable.Empty<Task<IMailWriteReference>>();
+							return Enumerable.Empty<Task<IWritable>>();
 						}
 					)
 			);

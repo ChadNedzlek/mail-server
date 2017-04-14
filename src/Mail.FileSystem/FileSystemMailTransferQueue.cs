@@ -30,7 +30,7 @@ namespace Vaettir.Mail.Server.FileSystem
 
 			string GetPathFromName(string name)
 			{
-				return Path.Combine(_settings.MailOutgoingQueuePath, domain, name);
+				return Path.Combine(Settings.MailOutgoingQueuePath, domain, name);
 			}
 
 			return CreateWriteReference(
@@ -43,16 +43,16 @@ namespace Vaettir.Mail.Server.FileSystem
 
 		public IEnumerable<string> GetAllPendingDomains()
 		{
-			return Directory.GetDirectories(_settings.MailOutgoingQueuePath).Select(Path.GetFileName);
+			return Directory.GetDirectories(Settings.MailOutgoingQueuePath).Select(Path.GetFileName);
 		}
 
 		public IEnumerable<IMailReference> GetAllMailForDomain(string domain)
 		{
-			return Directory.GetFiles(Path.Combine(_settings.MailOutgoingQueuePath, domain), "*", SearchOption.TopDirectoryOnly)
+			return Directory.GetFiles(Path.Combine(Settings.MailOutgoingQueuePath, domain), "*", SearchOption.TopDirectoryOnly)
 				.Select(path => new Reference(Path.GetFileNameWithoutExtension(path), path));
 		}
 
-		public override Task SaveAsync(IMailWriteReference reference, CancellationToken token)
+		public override Task SaveAsync(IWritable reference, CancellationToken token)
 		{
 			var writeReference = reference as WriteReference;
 			if (writeReference == null)

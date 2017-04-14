@@ -109,11 +109,9 @@ namespace Vaettir.Mail.Server
 		{
 			using (await SemaphoreLock.GetLockAsync(_sessionSemaphore, cancellationToken))
 			{
-				var closing = _sessions.Select(session => session.Session.CloseAsync(cancellationToken)).ToArray();
 				foreach (var session in _sessions)
 					session.Scope.Dispose();
-				Task.WaitAll(closing, cancellationToken);
-				Task.WaitAll(_sessions.Select(s => s.Task).ToArray(), cancellationToken);
+				await Task.WhenAll(_sessions.Select(s => s.Task));
 				_sessions = null;
 			}
 		}

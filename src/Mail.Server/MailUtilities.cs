@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -34,8 +33,8 @@ namespace Vaettir.Mail.Server
 			return mailbox.Substring(0, atIndex);
 		}
 
-		private static readonly Regex _headerRegex = new Regex(@"^(\w+):(.*)$");
-		private static readonly Regex _continutationRegex = new Regex(@"^(\s+.*)$");
+		private static readonly Regex s_headerRegex = new Regex(@"^(\w+):(.*)$");
+		private static readonly Regex s_continutationRegex = new Regex(@"^(\s+.*)$");
 
 		public static async Task<IDictionary<string, IEnumerable<string>>> ParseHeadersAsync(Stream mailStream, CancellationToken token)
 		{
@@ -49,7 +48,7 @@ namespace Vaettir.Mail.Server
 				{
 					if (existingHeaderName != null)
 					{
-						var match = _continutationRegex.Match(line);
+						var match = s_continutationRegex.Match(line);
 						if (match.Success)
 						{
 							existingHeaderValue += match.Groups[1].Value;
@@ -58,7 +57,7 @@ namespace Vaettir.Mail.Server
 					}
 
 					{
-						var match = _headerRegex.Match(line);
+						var match = s_headerRegex.Match(line);
 						if (match.Success)
 						{
 							if (existingHeaderName != null)
@@ -107,7 +106,7 @@ namespace Vaettir.Mail.Server
 			var mailboxPart = s_addressPart.Match(address);
 			if (!mailboxPart.Success)
 			{
-				logger?.Warning($"Unable to parse mailbox: {address}");
+				logger?.Warning($"Unable to parse Mailbox: {address}");
 				return null;
 			}
 			return mailboxPart.Groups[1].Value;

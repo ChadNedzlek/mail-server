@@ -13,11 +13,11 @@ namespace Vaettir.Mail.Server.FileSystem
 {
 	public abstract class FileSystemMailQueueBase : IMailStore
 	{
-		protected readonly SmtpSettings _settings;
+		protected readonly SmtpSettings Settings;
 
 		protected FileSystemMailQueueBase(SmtpSettings settings)
 		{
-			_settings = settings;
+			Settings = settings;
 		}
 
 		private interface IReference
@@ -139,8 +139,6 @@ namespace Vaettir.Mail.Server.FileSystem
 			}
 		}
 
-		public abstract Task SaveAsync(IMailWriteReference reference, CancellationToken token);
-
 		public Task DeleteAsync(IMailReference reference)
 		{
 			var mailReference = reference as IReference;
@@ -193,5 +191,7 @@ namespace Vaettir.Mail.Server.FileSystem
 				return new WriteReference(mailName, tempPath, targetPath, sender, enumerable, new OffsetStream(shared.TakeValue()), this);
 			}
 		}
+
+		public abstract Task SaveAsync(IWritable item, CancellationToken token);
 	}
 }

@@ -112,7 +112,8 @@ namespace Vaettir.Mail.Smtp.Test
 						return await FromAsync(txn.Message);
 				}
 
-				throw new NotImplementedException();
+				Assert.Contains(txn.Direction, new[] {TxnDirection.FromServer, TxnDirection.ToServer});
+				throw new Exception(); // unreachable
 			}
 
 			internal async Task<Match> FromAsync(string pattern)

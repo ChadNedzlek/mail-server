@@ -1,6 +1,4 @@
-using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,63 +6,70 @@ using Vaettir.Mail.Server;
 
 namespace Vaettir.Mail.Test.Utilities
 {
-    public class MockMailBoxStore : IMailBoxStore
-    {
-        public readonly Dictionary<string, List<MockMailReference>> References = new Dictionary<string, List<MockMailReference>>();
-        public readonly IList<MockMailReference> DeletedReferences = new List<MockMailReference>();
+	public class MockMailboxStore : IMailboxStore
+	{
+		public readonly IList<MockMailboxItemReference> DeletedReferences = new List<MockMailboxItemReference>();
 
-        public int Count => References.Count + DeletedReferences.Count;
+		public readonly Dictionary<string, List<MockMailboxItemReference>> References =
+			new Dictionary<string, List<MockMailboxItemReference>>();
 
-	    public IEnumerable<MockMailReference> SavedReferences => References.Values.SelectMany(v => v)
-		    .Where(r => r.IsSaved);
+		public int Count => References.Count + DeletedReferences.Count;
 
-	    public Task<IMailWriteReference> NewMailAsync(string mailbox, string folder, CancellationToken token)
-	    {
-			var reference = new MockMailReference($"tranfser-{Count}", "ignored", ImmutableList.Create(mailbox), false, this);
-		    AddToFolder(folder, reference);
-		    return Task.FromResult((IMailWriteReference)reference);
-        }
+		public IEnumerable<MockMailboxItemReference> SavedReferences => References.Values.SelectMany(v => v)
+			.Where(r => r.IsSaved);
 
-	    public Task<IMailReadReference> OpenReadAsync(IMailReference reference, CancellationToken token)
-	    {
-		    throw new System.NotImplementedException();
-	    }
-
-	    public Task SaveAsync(IMailWriteReference reference, CancellationToken token)
+		public Task<IMailboxItemWriteReference> NewMailAsync(
+			string id,
+			string mailbox,
+			string folder,
+			CancellationToken token)
 		{
-			var mockRef = (MockMailReference)reference;
+			var reference = new MockMailboxItemReference(id, mailbox, folder, MailboxFlags.None, false, this);
+			AddToFolder(folder, reference);
+			return Task.FromResult((IMailboxItemWriteReference) reference);
+		}
+
+		public Task<IMailboxItemReadReference> OpenReadAsync(IMailboxItemReference reference, CancellationToken token)
+		{
+			return Task.FromResult((IMailboxItemReadReference) reference);
+		}
+
+		public Task SaveAsync(IWritable reference, CancellationToken token)
+		{
+			var mockRef = (MockMailboxItemReference) reference;
 			mockRef.IsSaved = true;
 			return Task.CompletedTask;
 		}
 
-	    public Task DeleteAsync(IMailReference reference)
-	    {
-		    var mockRef = (MockMailReference) reference;
-		    References.FirstOrDefault(p => p.Value.Contains(mockRef)).Value.Remove(mockRef);
-		    DeletedReferences.Add(mockRef);
-		    return Task.CompletedTask;
+		public Task DeleteAsync(IMailboxItemReference reference)
+		{
+			var mockRef = (MockMailboxItemReference) reference;
+			References.FirstOrDefault(p => p.Value.Contains(mockRef)).Value.Remove(mockRef);
+			DeletedReferences.Add(mockRef);
+			return Task.CompletedTask;
 		}
 
-	    public Task MoveAsync(IMailReference reference, string folder, CancellationToken token)
+		public Task MoveAsync(IMailboxItemReference reference, string folder, CancellationToken token)
 		{
-			var mockRef = (MockMailReference)reference;
+			var mockRef = (MockMailboxItemReference) reference;
 			References.FirstOrDefault(p => p.Value.Contains(mockRef)).Value.Remove(mockRef);
 			AddToFolder(folder, mockRef);
 			return Task.CompletedTask;
 		}
 
-	    public Task SetFlags(IMailReference reference, IEnumerable<string> flags, CancellationToken token)
-	    {
-		    throw new System.NotImplementedException();
-	    }
-		
-	    public void AddToFolder(string folder, MockMailReference reference)
-	    {
-		    if (!References.TryGetValue(folder, out var folderList))
-		    {
-			    References.Add(folder, folderList = new List<MockMailReference>());
-		    }
-		    folderList.Add(reference);
-	    }
+		public Task SetFlags(IMailboxItemReference reference, MailboxFlags flags, CancellationToken token)
+		{
+			((MockMailboxItemReference) reference).Flags = flags;
+			return Task.CompletedTask;
+		}
+
+		public void AddToFolder(string folder, MockMailboxItemReference reference)
+		{
+			if (!References.TryGetValue(folder, out var folderList))
+			{
+				References.Add(folder, folderList = new List<MockMailboxItemReference>());
+			}
+			folderList.Add(reference);
+		}
 	}
 }

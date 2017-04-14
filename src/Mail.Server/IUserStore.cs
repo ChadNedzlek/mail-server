@@ -8,7 +8,7 @@ namespace Vaettir.Mail.Server
 		Task<UserData> GetUserWithPasswordAsync(string userName, string password, CancellationToken cancellationToken);
 		Task<byte[]> GetSaltForUserAsync(string username, CancellationToken cancellationToken);
 
-		bool CanUserSendAs(UserData user, string mailBox);
+		bool CanUserSendAs(UserData user, string mailbox);
 
 	    Task AddUserAsync(string username, string password, CancellationToken token);
 	}

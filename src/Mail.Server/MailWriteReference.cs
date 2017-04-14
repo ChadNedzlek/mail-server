@@ -18,8 +18,10 @@ namespace Vaettir.Mail.Server
 		public string Sender { get;  }
 		public IImmutableList<string> Recipients { get; }
 		public IMailStore Store { get; }
+		IWriter IWritable.Store => Store;
 
 		public abstract Stream BodyStream { get; }
+
 		public abstract void Dispose();
 	}
 }

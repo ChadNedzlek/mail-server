@@ -46,5 +46,10 @@ namespace Vaettir.Mail.Test.Utilities
 			DeletedReferences.Add(mockReference);
 			return Task.CompletedTask;
 		}
+
+		public Task SaveAsync(IWritable item, CancellationToken token)
+		{
+			return SaveAsync((IMailWriteReference)item, token);
+		}
 	}
 }

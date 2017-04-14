@@ -5,11 +5,10 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Vaettir.Mail.Server;
-using Vaettir.Mail.Test.Utilities;
 
-namespace Mail.Transfer.Test
+namespace Vaettir.Mail.Test.Utilities
 {
-	internal class MockMailTransferQueue : IMailTransferQueue
+	public class MockMailTransferQueue : IMailTransferQueue
 	{
 		public readonly IList<MockMailReference> DeletedReferences = new List<MockMailReference>();
 		public readonly IList<MockMailReference> References = new List<MockMailReference>();
@@ -53,6 +52,11 @@ namespace Mail.Transfer.Test
 					MailUtilities.GetDomainFromMailbox(r.Recipients[0]),
 					domain,
 					StringComparison.OrdinalIgnoreCase));
+		}
+
+		public Task SaveAsync(IWritable item, CancellationToken token)
+		{
+			return SaveAsync((IMailWriteReference) item, token);
 		}
 	}
 }

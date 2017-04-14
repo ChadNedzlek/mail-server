@@ -37,9 +37,9 @@ namespace Vaettir.Mail.Server.FileSystem
 			throw new NotImplementedException();
 		}
 
-		public bool CanUserSendAs(UserData user, string mailBox)
+		public bool CanUserSendAs(UserData user, string mailbox)
 		{
-			return string.Equals(user.MailBox, mailBox);
+			return string.Equals(user.Mailbox, mailbox);
 		}
 
 		public async Task AddUserAsync(string username, string password, CancellationToken token)

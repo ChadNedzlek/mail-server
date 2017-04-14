@@ -21,7 +21,7 @@ namespace Vaettir.Mail.Server.FileSystem
 
 		public Task<IMailWriteReference> NewMailAsync(string sender, IImmutableList<string> recipients, CancellationToken token)
 		{
-			string GetPathFromName(string name) => Path.Combine(_settings.MailOutgoingQueuePath, name);
+			string GetPathFromName(string name) => Path.Combine(Settings.MailOutgoingQueuePath, name);
 
 		    return CreateWriteReference(
 				sender,
@@ -33,10 +33,10 @@ namespace Vaettir.Mail.Server.FileSystem
 
 		public IEnumerable<IMailReference> GetAllMailReferences()
 		{
-			return Directory.GetFiles(_settings.MailIncomingQueuePath, "*", SearchOption.TopDirectoryOnly).Select(path => new Reference(Path.GetFileNameWithoutExtension(path), path));
+			return Directory.GetFiles(Settings.MailIncomingQueuePath, "*", SearchOption.TopDirectoryOnly).Select(path => new Reference(Path.GetFileNameWithoutExtension(path), path));
 		}
 
-		public override Task SaveAsync(IMailWriteReference reference, CancellationToken token)
+		public override Task SaveAsync(IWritable reference, CancellationToken token)
 		{
 			var writeReference = reference as WriteReference;
 			if (writeReference == null)

@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Security;
-using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
@@ -42,14 +41,14 @@ namespace Vaettir.Mail.Transfer
 
 		public RemoteCertificateValidationCallback RemoteCertificateValidationCallback { get; set; }
 
-		public MailTransfer(IMailTransferQueue queue, IVolatile<SmtpSettings> settings, ILogger log, IDnsResolve dns, IMailSendFailureManager failures, ITcpConnectionProvider _tcp)
+		public MailTransfer(IMailTransferQueue queue, IVolatile<SmtpSettings> settings, ILogger log, IDnsResolve dns, IMailSendFailureManager failures, ITcpConnectionProvider tcp)
 		{
 			_queue = queue;
 			_settings = settings;
 			_log = log;
 			_dns = dns;
 			_failures = failures;
-			this._tcp = _tcp;
+			_tcp = tcp;
 		}
 
 		public async Task RunAsync(CancellationToken token)
@@ -93,7 +92,7 @@ namespace Vaettir.Mail.Transfer
 			if (relayDomain != null)
 			{
 				_log.Verbose($"Relayed mail detected, replaying from {relayDomain.Name} to {relayDomain.Relay}:{relayDomain.Port}");
-				IReadOnlyList<IMailReference> unsent = await TrySendToMx(domain, relayDomain.Relay, mails, relayDomain.Port ?? 25, token);
+				IReadOnlyList<IMailReference> unsent = await TrySendToMx(relayDomain.Relay, mails, relayDomain.Port ?? 25, token);
 				if ((unsent?.Count ?? 0) != 0)
 				{
 					await HandleFailedMailsAsync(unsent);
@@ -110,7 +109,7 @@ namespace Vaettir.Mail.Transfer
 					break;
 				}
 				_log.Verbose($"Resolved MX record {mxRecord.Exchange} at priority {mxRecord.Preference}");
-				mails = await TrySendToMx(domain, mxRecord.Exchange, mails, 25, token);
+				mails = await TrySendToMx(mxRecord.Exchange, mails, 25, token);
 
 				if ((mails?.Count ?? 0) == 0)
 				{
@@ -156,7 +155,6 @@ namespace Vaettir.Mail.Transfer
 		}
 
 		private async Task<IReadOnlyList<IMailReference>> TrySendToMx(
-			string domain,
 			string target,
 			IReadOnlyList<IMailReference> mails,
 			int port,

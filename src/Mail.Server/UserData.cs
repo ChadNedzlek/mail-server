@@ -4,9 +4,9 @@ namespace Vaettir.Mail.Server
 	{
 	    public UserData(string mailbox)
 	    {
-	        MailBox = mailbox;
+	        Mailbox = mailbox;
 	    }
 
-	    public string MailBox { get; }
+	    public string Mailbox { get; }
 	}
 }
