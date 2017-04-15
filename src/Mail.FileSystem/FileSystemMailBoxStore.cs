@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,6 +12,11 @@ namespace Vaettir.Mail.Server.FileSystem
 {
 	public class FileSystemMailboxStore : IMailboxStore
 	{
+		public FileSystemMailboxStore(SmtpSettings settings)
+		{
+			_settings = settings;
+		}
+
 		private static readonly Regex s_maildirPattern = new Regex(@"^(.);2,(.*)$");
 
 		private static (string id, MailboxFlags) CalculateFlagsFromFileName(string fileName)
@@ -26,6 +32,16 @@ namespace Vaettir.Mail.Server.FileSystem
 		private static string CalculateFilnameFromFlags(string id, MailboxFlags flags)
 		{
 			return $"{id};2,{ImapHelper.GetMailDirFromFlags(flags)}";
+		}
+
+		private string GetPath(MboxReferenceBase mbox)
+		{
+			var folderPart = Path.Combine(mbox.Folder.Split('/').Select(s => "." + s).ToArray());
+			return Path.Combine(
+				_settings.MailLocalPath,
+				MailUtilities.GetDomainFromMailbox(mbox.Mailbox),
+				MailUtilities.GetNameFromMailbox(mbox.Mailbox),
+				folderPart);
 		}
 
 		private abstract class MboxReferenceBase
@@ -46,9 +62,9 @@ namespace Vaettir.Mail.Server.FileSystem
 			}
 
 			public string Id { get; }
-			public MailboxFlags Flags { get; }
+			public MailboxFlags Flags { get; set; }
 			public string Mailbox { get; }
-			public string Folder { get; }
+			public string Folder { get; set; }
 		}
 
 		private class MBoxReference : MboxReferenceBase, IMailboxItemReference
@@ -98,11 +114,6 @@ namespace Vaettir.Mail.Server.FileSystem
 
 		private readonly SmtpSettings _settings;
 
-		public FileSystemMailboxStore(SmtpSettings settings)
-		{
-			_settings = settings;
-		}
-
 		public Task<IMailboxItemReadReference> OpenReadAsync(IMailboxItemReference reference, CancellationToken token)
 		{
 			if (!(reference is MBoxReference mbox))
@@ -143,12 +154,33 @@ namespace Vaettir.Mail.Server.FileSystem
 
 		public Task MoveAsync(IMailboxItemReference reference, string folder, CancellationToken token)
 		{
-			throw new NotImplementedException();
+			if (!(reference is MBoxReference mbox))
+			{
+				throw new ArgumentException("reference of incorrect type", nameof(reference));
+			}
+
+			mbox.Folder = folder;
+			Relocate(mbox);
+			return Task.CompletedTask;
+		}
+
+		private void Relocate(MBoxReference mbox)
+		{
+			string newPath = GetPath(mbox);
+			File.Move(mbox.CurrentFileName, newPath);
+			mbox.CurrentFileName = newPath;
 		}
 
 		public Task SetFlags(IMailboxItemReference reference, MailboxFlags flags, CancellationToken token)
 		{
-			throw new NotImplementedException();
+			if (!(reference is MBoxReference mbox))
+			{
+				throw new ArgumentException("reference of incorrect type", nameof(reference));
+			}
+
+			mbox.Flags = flags;
+			Relocate(mbox);
+			return Task.CompletedTask;
 		}
 	}
 }

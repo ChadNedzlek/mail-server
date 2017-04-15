@@ -11,6 +11,7 @@
 			SmtpAcceptDomain[] localDomains = null,
             string mailIncomingQueuePath = null,
             string mailOutgoingQueuePath = null,
+			string mailLocalPath = null,
             string userPasswordFile = null,
             string domainSettingsPath = null,
             SmtpRelayDomain[] relayDomains = null,
@@ -23,7 +24,8 @@
             LocalDomains = localDomains;
             MailIncomingQueuePath = mailIncomingQueuePath;
             MailOutgoingQueuePath = mailOutgoingQueuePath;
-            RelayDomains = relayDomains;
+	        MailLocalPath = mailLocalPath;
+	        RelayDomains = relayDomains;
             IdleDelay = idleDelay;
             DomainSettingsPath = domainSettingsPath;
         }
@@ -36,6 +38,7 @@
         public int? IdleDelay { get; }
         public string WorkingDirectory { get; }
         public SmtpIncomingMailScan IncomingScan { get; }
+	    public string MailLocalPath { get; }
     }
 
     public class SmtpIncomingMailScan
