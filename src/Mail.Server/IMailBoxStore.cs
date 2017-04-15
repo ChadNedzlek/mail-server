@@ -20,8 +20,6 @@ namespace Vaettir.Mail.Server
 		string Folder { get; }
 		string Id { get; }
 		MailboxFlags Flags { get; }
-
-		Stream BodyStream { get; }
 	}
 
 	public interface IMailboxItemReadReference : IDisposable
@@ -42,6 +40,9 @@ namespace Vaettir.Mail.Server
 		Task SetFlags(IMailboxItemReference reference, MailboxFlags flags, CancellationToken token);
 		Task<IMailboxItemReadReference> OpenReadAsync(IMailboxItemReference reference, CancellationToken token);
 		Task DeleteAsync(IMailboxItemReference reference);
+
+		Task<IEnumerable<IMailboxItemReference>> GetMails(string mailbox, string folder, CancellationToken token);
+		Task<IEnumerable<string>> GetFolders(string mailbox, string folder, CancellationToken token);
 	}
 
 	public static class MailboxStoreExtensions

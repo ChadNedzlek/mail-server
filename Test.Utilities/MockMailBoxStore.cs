@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -10,12 +11,14 @@ namespace Vaettir.Mail.Test.Utilities
 	{
 		public readonly IList<MockMailboxItemReference> DeletedReferences = new List<MockMailboxItemReference>();
 
-		public readonly Dictionary<string, List<MockMailboxItemReference>> References =
-			new Dictionary<string, List<MockMailboxItemReference>>();
+		public readonly Dictionary<string, Dictionary<string, List<MockMailboxItemReference>>> References =
+			new Dictionary<string, Dictionary<string, List<MockMailboxItemReference>>>();
 
 		public int Count => References.Count + DeletedReferences.Count;
 
-		public IEnumerable<MockMailboxItemReference> SavedReferences => References.Values.SelectMany(v => v)
+		public IEnumerable<MockMailboxItemReference> SavedReferences => References.Values
+			.SelectMany(v => v.Values)
+			.SelectMany(v => v)
 			.Where(r => r.IsSaved);
 
 		public Task<IMailboxItemWriteReference> NewMailAsync(
@@ -25,7 +28,7 @@ namespace Vaettir.Mail.Test.Utilities
 			CancellationToken token)
 		{
 			var reference = new MockMailboxItemReference(id, mailbox, folder, MailboxFlags.None, false, this);
-			AddToFolder(folder, reference);
+			GetFolderItems(reference).Add(reference);
 			return Task.FromResult((IMailboxItemWriteReference) reference);
 		}
 
@@ -44,16 +47,54 @@ namespace Vaettir.Mail.Test.Utilities
 		public Task DeleteAsync(IMailboxItemReference reference)
 		{
 			var mockRef = (MockMailboxItemReference) reference;
-			References.FirstOrDefault(p => p.Value.Contains(mockRef)).Value.Remove(mockRef);
+			GetFolderItems(mockRef).Remove(mockRef);
 			DeletedReferences.Add(mockRef);
 			return Task.CompletedTask;
+		}
+
+		private ICollection<MockMailboxItemReference> GetFolderItems(MockMailboxItemReference mockRef)
+		{
+			return GetFolderItems(mockRef.Mailbox, mockRef.Folder);
+		}
+
+		private ICollection<MockMailboxItemReference> GetFolderItems(string mailbox, string folder)
+		{
+			Dictionary<string, List<MockMailboxItemReference>> folders = GetMailbox(mailbox);
+
+			if (!folders.TryGetValue(folder, out var collection))
+			{
+				folders.Add(folder, collection = new List<MockMailboxItemReference>());
+			}
+
+			return collection;
+		}
+
+		private Dictionary<string, List<MockMailboxItemReference>> GetMailbox(string mailbox)
+		{
+			if (!References.TryGetValue(mailbox, out var folders))
+			{
+				References.Add(mailbox, folders = new Dictionary<string, List<MockMailboxItemReference>>());
+			}
+
+			return folders;
+		}
+
+		public Task<IEnumerable<IMailboxItemReference>> GetMails(string mailbox, string folder, CancellationToken token)
+		{
+			return Task.FromResult((IEnumerable<IMailboxItemReference>) GetFolderItems(mailbox, folder));
+		}
+
+		public Task<IEnumerable<string>> GetFolders(string mailbox, string folder, CancellationToken token)
+		{
+			return Task.FromResult(GetMailbox(mailbox).Where(f => f.Key.StartsWith(folder + "/")).Select(f => f.Key));
 		}
 
 		public Task MoveAsync(IMailboxItemReference reference, string folder, CancellationToken token)
 		{
 			var mockRef = (MockMailboxItemReference) reference;
-			References.FirstOrDefault(p => p.Value.Contains(mockRef)).Value.Remove(mockRef);
-			AddToFolder(folder, mockRef);
+			GetFolderItems(mockRef).Remove(mockRef);
+			mockRef.Folder = folder;
+			GetFolderItems(mockRef).Add(mockRef);
 			return Task.CompletedTask;
 		}
 
@@ -61,15 +102,6 @@ namespace Vaettir.Mail.Test.Utilities
 		{
 			((MockMailboxItemReference) reference).Flags = flags;
 			return Task.CompletedTask;
-		}
-
-		public void AddToFolder(string folder, MockMailboxItemReference reference)
-		{
-			if (!References.TryGetValue(folder, out var folderList))
-			{
-				References.Add(folder, folderList = new List<MockMailboxItemReference>());
-			}
-			folderList.Add(reference);
 		}
 	}
 }

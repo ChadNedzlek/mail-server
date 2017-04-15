@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
@@ -36,11 +37,18 @@ namespace Vaettir.Mail.Server.FileSystem
 
 		private string GetPath(MboxReferenceBase mbox)
 		{
-			var folderPart = Path.Combine(mbox.Folder.Split('/').Select(s => "." + s).ToArray());
+			return Path.Combine(
+				GetFolderPath(mbox.Mailbox, mbox.Folder),
+				CalculateFilnameFromFlags(mbox.Id, mbox.Flags) + ".mbox");
+		}
+
+		private string GetFolderPath(string mailbox, string folder)
+		{
+			var folderPart = Path.Combine(folder.Split('/').Select(s => "." + s).ToArray());
 			return Path.Combine(
 				_settings.MailLocalPath,
-				MailUtilities.GetDomainFromMailbox(mbox.Mailbox),
-				MailUtilities.GetNameFromMailbox(mbox.Mailbox),
+				MailUtilities.GetDomainFromMailbox(mailbox),
+				MailUtilities.GetNameFromMailbox(mailbox),
 				folderPart);
 		}
 
@@ -126,7 +134,14 @@ namespace Vaettir.Mail.Server.FileSystem
 
 		public Task SaveAsync(IWritable reference, CancellationToken token)
 		{
-			throw new NotImplementedException();
+			if (!(reference is MBoxWriteReference mbox))
+			{
+				throw new ArgumentException("reference of incorrect type", nameof(reference));
+			}
+
+			string newPath = GetPath(mbox);
+			File.Move(mbox.TempPath, newPath);
+			return Task.CompletedTask;
 		}
 
 		public Task DeleteAsync(IMailboxItemReference reference)
@@ -138,6 +153,20 @@ namespace Vaettir.Mail.Server.FileSystem
 
 			File.Delete(mbox.CurrentFileName);
 			return Task.CompletedTask;
+		}
+
+		public Task<IEnumerable<IMailboxItemReference>> GetMails(string mailbox, string folder, CancellationToken token)
+		{
+			return Task.FromResult((IEnumerable<IMailboxItemReference>) Directory
+					.GetFiles(GetFolderPath(mailbox, folder), "*.mbox", SearchOption.TopDirectoryOnly)
+					.Select(file => new MBoxReference(mailbox, folder, file)));
+		}
+
+		public Task<IEnumerable<string>> GetFolders(string mailbox, string folder, CancellationToken token)
+		{
+			return Task.FromResult(Directory.GetDirectories(GetFolderPath(mailbox, folder), ".*", SearchOption.TopDirectoryOnly)
+				.Select(s => s.Substring(1)) // Strip off the leading .
+				);
 		}
 
 		public Task<IMailboxItemWriteReference> NewMailAsync(string id, string mailbox, string folder, CancellationToken token)

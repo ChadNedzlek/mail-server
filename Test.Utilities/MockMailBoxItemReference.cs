@@ -1,7 +1,5 @@
 using System.IO;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Vaettir.Mail.Server;
 using Vaettir.Utility;
 
@@ -32,7 +30,7 @@ namespace Vaettir.Mail.Test.Utilities
 		}
 
 		public string Mailbox { get; }
-		public string Folder { get; }
+		public string Folder { get; set; }
 		public string Id { get; }
 		public MailboxFlags Flags { get; set; }
 		public bool IsSaved { get; set; }
