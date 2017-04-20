@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Vaettir.Mail.Server.Smtp;
 
 namespace Vaettir.Mail.Server.FileSystem
@@ -15,6 +16,7 @@ namespace Vaettir.Mail.Server.FileSystem
 
 		private readonly SmtpSettings _settings;
 
+		[UsedImplicitly]
 		public FileSystemMailboxStore(SmtpSettings settings)
 		{
 			_settings = settings;
@@ -80,6 +82,11 @@ namespace Vaettir.Mail.Server.FileSystem
 			string folder,
 			CancellationToken token)
 		{
+			if (string.IsNullOrEmpty(id) || id[0] == '.' || Path.GetInvalidFileNameChars().Any(id.Contains))
+			{
+				throw new ArgumentException("Invalid mail id. Must be a valid file name and cannot start with .");
+			}
+
 			string tempFileName = Path.GetTempFileName();
 			return Task.FromResult(
 				(IMailboxItemWriteReference) new MBoxWriteReference(
