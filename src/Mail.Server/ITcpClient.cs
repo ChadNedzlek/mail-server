@@ -3,7 +3,7 @@ using System.IO;
 using System.Net;
 using System.Threading.Tasks;
 
-namespace Vaettir.Mail.Transfer
+namespace Vaettir.Mail.Server
 {
 	public interface ITcpClient : IDisposable
 	{

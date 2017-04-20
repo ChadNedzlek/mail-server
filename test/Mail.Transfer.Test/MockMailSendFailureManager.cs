@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Vaettir.Mail.Server;
+using Vaettir.Mail.Server.Smtp;
 
 namespace Mail.Transfer.Test
 {

@@ -3,7 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 
-namespace Vaettir.Mail.Transfer
+namespace Vaettir.Mail.Server
 {
 	public class WrappedTcpClientProvider : ITcpConnectionProvider
 	{

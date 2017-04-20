@@ -8,11 +8,10 @@ using System.Net.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
-using Vaettir.Mail.Server;
 using Vaettir.Mail.Server.Smtp;
 using Vaettir.Utility;
 
-namespace Vaettir.Mail.Transfer
+namespace Vaettir.Mail.Server
 {
 	[UsedImplicitly(ImplicitUseKindFlags.InstantiatedWithFixedConstructorSignature)]
 	public class MailTransfer

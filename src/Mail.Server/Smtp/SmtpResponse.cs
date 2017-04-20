@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
-using Vaettir.Mail.Server.Smtp;
 
-namespace Vaettir.Mail.Transfer
+namespace Vaettir.Mail.Server.Smtp
 {
 	public class SmtpResponse
 	{

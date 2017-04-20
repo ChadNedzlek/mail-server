@@ -6,11 +6,10 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
-using Vaettir.Mail.Server;
 using Vaettir.Mail.Server.Smtp;
 using Vaettir.Utility;
 
-namespace Vaettir.Mail.Dispatcher
+namespace Vaettir.Mail.Server
 {
 	[UsedImplicitly]
 	public sealed class MailDispatcher : IDisposable

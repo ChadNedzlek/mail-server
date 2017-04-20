@@ -11,7 +11,6 @@ using JetBrains.Annotations;
 using Vaettir.Mail.Server;
 using Vaettir.Mail.Server.Smtp;
 using Vaettir.Mail.Test.Utilities;
-using Vaettir.Mail.Transfer;
 using Vaettir.Utility;
 using Xunit;
 

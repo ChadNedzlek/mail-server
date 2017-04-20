@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -7,7 +6,7 @@ using System.Threading.Tasks;
 using DnsClient;
 using DnsClient.Protocol;
 
-namespace Vaettir.Mail.Transfer
+namespace Vaettir.Mail.Server
 {
 	public class DnsClientResolver : IDnsResolve
 	{

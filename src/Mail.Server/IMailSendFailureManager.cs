@@ -1,3 +1,5 @@
+using Vaettir.Mail.Server.Smtp;
+
 namespace Vaettir.Mail.Server
 {
 	public interface IMailSendFailureManager

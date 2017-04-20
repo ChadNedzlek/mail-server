@@ -2,20 +2,20 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Autofac;
-using Vaettir.Mail.Dispatcher;
+using JetBrains.Annotations;
 using Vaettir.Mail.Server;
 using Vaettir.Mail.Server.Authentication;
 using Vaettir.Mail.Server.Authentication.Mechanism;
 using Vaettir.Mail.Server.FileSystem;
 using Vaettir.Mail.Server.Smtp;
 using Vaettir.Mail.Server.Smtp.Commands;
-using Vaettir.Mail.Transfer;
 using Vaettir.Utility;
 
 namespace MailCore
 {
-	public class Program
+	public static class Program
 	{
+		[UsedImplicitly]
 		public static int Main(string[] args)
 		{
 			return MailAsync().GetAwaiter().GetResult();
@@ -57,8 +57,14 @@ namespace MailCore
 			builder.RegisterType<MailDispatcher>();
 
 			builder.RegisterType<ProtocolListener>();
+
 			builder.RegisterType<FileSystemMailQueue>().As<IMailQueue>().SingleInstance();
 			builder.RegisterType<HashedPasswordUserStore>().As<IUserStore>().SingleInstance();
+			builder.RegisterType<FileSystemDomainResolver>().As<IDomainSettingResolver>().SingleInstance();
+			builder.RegisterType<FileSystemMailTransferQueue>().As<IMailTransferQueue>();
+			builder.RegisterType<FileSystemMailboxStore>().As<IMailboxStore>();
+			builder.RegisterType<FileSystemMailSendFailureManager>().As<IMailSendFailureManager>();
+
 			FileWatcherSettings<SmtpSettings> settings = FileWatcherSettings<SmtpSettings>.Load("smtp.config.json");
 			SmtpSettings initialValue = settings.Value;
 			builder.RegisterInstance(initialValue)

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using Vaettir.Mail.Transfer;
+using Vaettir.Mail.Server;
 
 namespace Mail.Transfer.Test
 {

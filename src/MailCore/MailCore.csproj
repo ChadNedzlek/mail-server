@@ -13,10 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Mail.Transfer\Mail.Transfer.csproj" />
-    <ProjectReference Include="..\Mail.Dispatcher\Mail.Dispatcher.csproj" />
     <ProjectReference Include="..\Mail.FileSystem\Mail.FileSystem.csproj" />
-    <ProjectReference Include="..\Mail.Smtp\Mail.Smtp.csproj" />
   </ItemGroup>
 
   <ItemGroup>

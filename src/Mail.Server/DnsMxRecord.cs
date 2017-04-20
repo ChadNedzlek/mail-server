@@ -1,6 +1,4 @@
-using DnsClient;
-
-namespace Vaettir.Mail.Transfer
+namespace Vaettir.Mail.Server
 {
 	public struct DnsMxRecord
 	{
