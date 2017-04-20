@@ -34,14 +34,16 @@ namespace Vaettir.Mail.Server
 		{
 			_log.Information($"Opening ports: {string.Join(",", _settings.Ports.Select(p => p.ToString()))}");
 
-			var listeners = _settings.Ports
+			TcpListener[] listeners = _settings.Ports
 				.Select(p => new TcpListener(IPAddress.Any, p))
 				.ToArray();
 
-			foreach (var l in listeners)
+			foreach (TcpListener l in listeners)
+			{
 				l.Start();
+			}
 
-			var listenerTasks = listeners
+			Task<TcpClient>[] listenerTasks = listeners
 				.Select(tcp => tcp.AcceptTcpClientAsync())
 				.ToArray();
 
@@ -51,14 +53,14 @@ namespace Vaettir.Mail.Server
 				Array.Copy(listenerTasks, 0, tasks, 0, listenerTasks.Length);
 				_sessions.Select(s => s.Task).ToList().CopyTo(tasks, listenerTasks.Length);
 
-				var completedIndex = Task.WaitAny(tasks);
-				var task = tasks[completedIndex];
+				int completedIndex = Task.WaitAny(tasks);
+				Task task = tasks[completedIndex];
 
 				var tcpTask = task as Task<TcpClient>;
 				if (tcpTask != null)
 				{
 					// This is a new connection task
-					var client = tcpTask.Result;
+					TcpClient client = tcpTask.Result;
 					await AcceptNewClientAsync(client, cancellationToken);
 
 					// Wait for another connection
@@ -69,8 +71,8 @@ namespace Vaettir.Mail.Server
 					// One of the existing connections is closing
 					using (await SemaphoreLock.GetLockAsync(_sessionSemaphore, cancellationToken))
 					{
-						var sessionIndex = completedIndex - listenerTasks.Length;
-						var closingSession = _sessions[sessionIndex];
+						int sessionIndex = completedIndex - listenerTasks.Length;
+						SessionHolder closingSession = _sessions[sessionIndex];
 						_log.Information($"Closing session {closingSession.Session.Id}...");
 						_sessions.RemoveAt(sessionIndex);
 						closingSession.Scope.Dispose();
@@ -78,22 +80,26 @@ namespace Vaettir.Mail.Server
 				}
 			}
 
-			foreach (var l in listeners)
+			foreach (TcpListener l in listeners)
+			{
 				l.Stop();
+			}
 		}
 
 		private async Task AcceptNewClientAsync(TcpClient client, CancellationToken cancellationToken)
 		{
-			var newScope = _scope.BeginLifetimeScope(
+			ILifetimeScope newScope = _scope.BeginLifetimeScope(
 				b =>
 				{
-					b.RegisterInstance(new ConnectionInformation(
-						client.Client.LocalEndPoint.ToString(),
-						client.Client.RemoteEndPoint.ToString()));
-					b.RegisterInstance(new SecurableConnection(client.GetStream())
-					{
-						Certificate = ServerCertificate
-					});
+					b.RegisterInstance(
+						new ConnectionInformation(
+							client.Client.LocalEndPoint.ToString(),
+							client.Client.RemoteEndPoint.ToString()));
+					b.RegisterInstance(
+						new SecurableConnection(client.GetStream())
+						{
+							Certificate = ServerCertificate
+						});
 				}
 			);
 
@@ -109,8 +115,10 @@ namespace Vaettir.Mail.Server
 		{
 			using (await SemaphoreLock.GetLockAsync(_sessionSemaphore, cancellationToken))
 			{
-				foreach (var session in _sessions)
+				foreach (SessionHolder session in _sessions)
+				{
 					session.Scope.Dispose();
+				}
 				await Task.WhenAll(_sessions.Select(s => s.Task));
 				_sessions = null;
 			}

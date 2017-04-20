@@ -12,15 +12,15 @@ namespace Vaettir.Mail.Test.Utilities
 		public T Value { get; private set; }
 		public event ValueChanged<T> ValueChanged;
 
-		public void SetValue(T value)
-		{
-			var oldValue = value;
-			Value = value;
-			ValueChanged?.Invoke(this, value, oldValue);
-		}
-
 		public void Dispose()
 		{
+		}
+
+		public void SetValue(T value)
+		{
+			T oldValue = value;
+			Value = value;
+			ValueChanged?.Invoke(this, value, oldValue);
 		}
 	}
 }

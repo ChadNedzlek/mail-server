@@ -1,7 +1,7 @@
 namespace Vaettir.Mail.Server.Smtp
 {
-    public interface IMailBuilder
-    {
-        SmtpMailMessage PendingMail { get; set; }
-    }
+	public interface IMailBuilder
+	{
+		SmtpMailMessage PendingMail { get; set; }
+	}
 }

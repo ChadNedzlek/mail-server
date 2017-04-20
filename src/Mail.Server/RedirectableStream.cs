@@ -11,7 +11,10 @@ namespace Vaettir.Mail.Server
 
 		public RedirectableStream(Stream innerStream)
 		{
-			if (innerStream == null) throw new ArgumentNullException(nameof(innerStream));
+			if (innerStream == null)
+			{
+				throw new ArgumentNullException(nameof(innerStream));
+			}
 
 			_innerStream = innerStream;
 		}
@@ -26,15 +29,18 @@ namespace Vaettir.Mail.Server
 
 		public override long Position
 		{
-			get { return _innerStream.Position; }
-			set { _innerStream.Position = value; }
+			get => _innerStream.Position;
+			set => _innerStream.Position = value;
 		}
 
-	    public Stream InnerStream => _innerStream;
+		public Stream InnerStream => _innerStream;
 
-	    public Stream ChangeSteam(Stream newStream)
+		public Stream ChangeSteam(Stream newStream)
 		{
-			if (newStream == null) throw new ArgumentNullException(nameof(newStream));
+			if (newStream == null)
+			{
+				throw new ArgumentNullException(nameof(newStream));
+			}
 
 			return Interlocked.Exchange(ref _innerStream, newStream);
 		}

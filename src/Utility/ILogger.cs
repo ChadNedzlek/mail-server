@@ -2,22 +2,22 @@ using System;
 
 namespace Vaettir.Utility
 {
-    public interface ILogger : IDisposable
-    {
-        void Verbose(int eventId, string message);
-        void Information(int eventId, string message);
-        void Warning(int eventId, string message);
-        void Error(int eventId, string message, Exception exception);
-    }
-
-    public static class LogExtentions
+	public interface ILogger : IDisposable
 	{
-	    public static void Verbose(this ILogger logger, string message)
-	    {
-	        logger.Verbose(0, message);
-	    }
+		void Verbose(int eventId, string message);
+		void Information(int eventId, string message);
+		void Warning(int eventId, string message);
+		void Error(int eventId, string message, Exception exception);
+	}
 
-	    public static void Information(this ILogger logger, string message)
+	public static class LogExtentions
+	{
+		public static void Verbose(this ILogger logger, string message)
+		{
+			logger.Verbose(0, message);
+		}
+
+		public static void Information(this ILogger logger, string message)
 		{
 			logger.Information(0, message);
 		}

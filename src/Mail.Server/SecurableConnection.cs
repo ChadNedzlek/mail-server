@@ -11,8 +11,8 @@ using JetBrains.Annotations;
 
 namespace Vaettir.Mail.Server
 {
-    public sealed class SecurableConnection : IDisposable, IConnectionSecurity
-    {
+	public sealed class SecurableConnection : IDisposable, IConnectionSecurity
+	{
 		private RedirectableStream _current;
 		private SslStream _encrypted;
 		private Stream _source;
@@ -21,7 +21,10 @@ namespace Vaettir.Mail.Server
 
 		public SecurableConnection([NotNull] Stream source)
 		{
-			if (source == null) throw new ArgumentNullException(nameof(source));
+			if (source == null)
+			{
+				throw new ArgumentNullException(nameof(source));
+			}
 			Init(source);
 		}
 
@@ -31,16 +34,17 @@ namespace Vaettir.Mail.Server
 			Init(_tcp.GetStream());
 		}
 
-		public X509Certificate2 Certificate { get; set; }
 		public RemoteCertificateValidationCallback RemoteValidationCallback { get; set; }
 		public LocalCertificateSelectionCallback LocalCertSelectionCallback { get; set; }
-		public bool IsEncrypted => State == SecurableConnectionState.Secured;
 		public SecurableConnectionState State { get; private set; }
+
+		public X509Certificate2 Certificate { get; set; }
+		public bool IsEncrypted => State == SecurableConnectionState.Secured;
 
 		public void Dispose()
 		{
-		    _variableReader?.Dispose();
-		    _variableReader = null;
+			_variableReader?.Dispose();
+			_variableReader = null;
 			_encrypted?.Dispose();
 			_encrypted = null;
 			_source?.Dispose();
@@ -52,7 +56,10 @@ namespace Vaettir.Mail.Server
 
 		private void Init(Stream source)
 		{
-			if (source == null) throw new ArgumentNullException(nameof(source));
+			if (source == null)
+			{
+				throw new ArgumentNullException(nameof(source));
+			}
 			_current = new RedirectableStream(_source = source);
 			_variableReader = new VariableStreamReader(_current);
 			State = SecurableConnectionState.Open;
@@ -105,33 +112,48 @@ namespace Vaettir.Mail.Server
 
 		public Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
 		{
-			if (State == SecurableConnectionState.Closed) throw new ObjectDisposedException(nameof(SecurableConnection));
+			if (State == SecurableConnectionState.Closed)
+			{
+				throw new ObjectDisposedException(nameof(SecurableConnection));
+			}
 			return _current.WriteAsync(buffer, offset, count, cancellationToken);
 		}
 
 		public Task WriteAsync(string text, Encoding encoding, CancellationToken cancellationToken)
 		{
-			if (State == SecurableConnectionState.Closed) throw new ObjectDisposedException(nameof(SecurableConnection));
+			if (State == SecurableConnectionState.Closed)
+			{
+				throw new ObjectDisposedException(nameof(SecurableConnection));
+			}
 			byte[] buffer = encoding.GetBytes(text);
 			return _current.WriteAsync(buffer, 0, buffer.Length, cancellationToken);
 		}
 
 		public Task WriteLineAsync(string text, Encoding encoding, CancellationToken cancellationToken)
 		{
-			if (State == SecurableConnectionState.Closed) throw new ObjectDisposedException(nameof(SecurableConnection));
+			if (State == SecurableConnectionState.Closed)
+			{
+				throw new ObjectDisposedException(nameof(SecurableConnection));
+			}
 			byte[] buffer = encoding.GetBytes(text + "\r\n");
 			return _current.WriteAsync(buffer, 0, buffer.Length, cancellationToken);
 		}
 
 		public async Task<string> ReadLineAsync(Encoding encoding, CancellationToken cancellationToken)
 		{
-			if (State == SecurableConnectionState.Closed) throw new ObjectDisposedException(nameof(SecurableConnection));
+			if (State == SecurableConnectionState.Closed)
+			{
+				throw new ObjectDisposedException(nameof(SecurableConnection));
+			}
 			return await _variableReader.ReadLineAsync(encoding, cancellationToken);
 		}
 
 		public Task<int> ReadBytesAsync(byte[] read, int offset, int count, CancellationToken cancellationToken)
 		{
-			if (State == SecurableConnectionState.Closed) throw new ObjectDisposedException(nameof(SecurableConnection));
+			if (State == SecurableConnectionState.Closed)
+			{
+				throw new ObjectDisposedException(nameof(SecurableConnection));
+			}
 			return _variableReader.ReadBytesAsync(read, offset, count, cancellationToken);
 		}
 	}

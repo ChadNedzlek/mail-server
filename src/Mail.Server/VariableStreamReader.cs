@@ -21,7 +21,7 @@ namespace Vaettir.Mail.Server
 
 		public void Dispose()
 		{
-		    _stream?.Dispose();
+			_stream?.Dispose();
 			_readBuffer = null;
 			_charBuffer = null;
 		}

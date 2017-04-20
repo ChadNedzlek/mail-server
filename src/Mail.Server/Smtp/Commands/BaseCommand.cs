@@ -4,11 +4,16 @@ using System.Threading.Tasks;
 
 namespace Vaettir.Mail.Server.Smtp.Commands
 {
-    public abstract class BaseCommand : ICommand
+	public abstract class BaseCommand : ICommand
 	{
 		protected string Arguments { get; private set; }
 
 		public abstract Task ExecuteAsync(CancellationToken token);
+
+		public void Initialize(string command)
+		{
+			Arguments = command;
+		}
 
 		protected virtual bool TryProcessParameter(string key, string value)
 		{
@@ -21,7 +26,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 			out Task errorReport,
 			CancellationToken cancellationToken)
 		{
-			foreach (var parameter in parameterString.Split(new [] { ' '}, StringSplitOptions.RemoveEmptyEntries))
+			foreach (string parameter in parameterString.Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries))
 			{
 				int sepIndex = parameter.IndexOf("=", StringComparison.Ordinal);
 				if (sepIndex == -1)
@@ -45,10 +50,5 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 			errorReport = null;
 			return true;
 		}
-
-	    public void Initialize(string command)
-	    {
-	        Arguments = command;
-	    }
 	}
 }

@@ -6,11 +6,11 @@ using Vaettir.Mail.Server.Authentication;
 
 namespace Vaettir.Mail.Test.Utilities
 {
-    public class MockPlainTextAuth : IAuthenticationSession
-    {
-        public Task<UserData> AuthenticateAsync(bool hasInitialResponse, CancellationToken token)
-        {
-            throw new NotImplementedException();
-        }
-    }
+	public class MockPlainTextAuth : IAuthenticationSession
+	{
+		public Task<UserData> AuthenticateAsync(bool hasInitialResponse, CancellationToken token)
+		{
+			throw new NotImplementedException();
+		}
+	}
 }

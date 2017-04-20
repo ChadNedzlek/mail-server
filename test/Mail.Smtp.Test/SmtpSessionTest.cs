@@ -10,7 +10,6 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Autofac;
-using Utility.Test;
 using Vaettir.Mail.Server;
 using Vaettir.Mail.Server.Authentication;
 using Vaettir.Mail.Server.Smtp;
@@ -44,7 +43,7 @@ namespace Vaettir.Mail.Smtp.Test
 
 			public TestConnection(ITestOutputHelper output)
 			{
-				var (a,b) = PairedStream.Create();
+				var (a, b) = PairedStream.Create();
 				LocalStream = new RedirectableStream(a);
 				Reader = new StreamReader(LocalStream);
 				Writer = new StreamWriter(LocalStream) {AutoFlush = true};

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -11,6 +10,12 @@ namespace Vaettir.Mail.Server
 {
 	public static class MailUtilities
 	{
+		private const string DottedAtom = "[-a-zA-Z0-9!#$%&'*+-/=?^_`{|}~.]";
+
+		private static readonly Regex s_headerRegex = new Regex(@"^(\w+):(.*)$");
+		private static readonly Regex s_continutationRegex = new Regex(@"^(\s+.*)$");
+		private static readonly Regex s_addressPart = new Regex($@"<?\s*({DottedAtom}*@{DottedAtom}*)\s*>?$");
+
 		public static string GetDomainFromMailbox(string mailbox)
 		{
 			int atIndex = mailbox.LastIndexOf('@');
@@ -33,22 +38,21 @@ namespace Vaettir.Mail.Server
 			return mailbox.Substring(0, atIndex);
 		}
 
-		private static readonly Regex s_headerRegex = new Regex(@"^(\w+):(.*)$");
-		private static readonly Regex s_continutationRegex = new Regex(@"^(\s+.*)$");
-
-		public static async Task<IDictionary<string, IEnumerable<string>>> ParseHeadersAsync(Stream mailStream, CancellationToken token)
+		public static async Task<IDictionary<string, IEnumerable<string>>> ParseHeadersAsync(
+			Stream mailStream,
+			CancellationToken token)
 		{
 			string existingHeaderName = null;
 			string existingHeaderValue = null;
-			using (StreamReader reader = new StreamReader(mailStream, Encoding.UTF8, false, 1023, true))
+			using (var reader = new StreamReader(mailStream, Encoding.UTF8, false, 1023, true))
 			{
-				Dictionary<string, IEnumerable<string>> headers = new Dictionary<string, IEnumerable<string>>();
+				var headers = new Dictionary<string, IEnumerable<string>>();
 				string line;
 				while ((line = await reader.ReadLineAsync()) != null)
 				{
 					if (existingHeaderName != null)
 					{
-						var match = s_continutationRegex.Match(line);
+						Match match = s_continutationRegex.Match(line);
 						if (match.Success)
 						{
 							existingHeaderValue += match.Groups[1].Value;
@@ -57,7 +61,7 @@ namespace Vaettir.Mail.Server
 					}
 
 					{
-						var match = s_headerRegex.Match(line);
+						Match match = s_headerRegex.Match(line);
 						if (match.Success)
 						{
 							if (existingHeaderName != null)
@@ -70,7 +74,7 @@ namespace Vaettir.Mail.Server
 						}
 					}
 
-					if (String.IsNullOrWhiteSpace(line))
+					if (string.IsNullOrWhiteSpace(line))
 					{
 						break;
 					}
@@ -98,12 +102,9 @@ namespace Vaettir.Mail.Server
 			list.Add(value);
 		}
 
-		private const string DottedAtom = "[-a-zA-Z0-9!#$%&'*+-/=?^_`{|}~.]";
-		private static readonly Regex s_addressPart = new Regex($@"<?\s*({DottedAtom}*@{DottedAtom}*)\s*>?$");
-
 		public static string GetMailboxFromAddress(string address, ILogger logger = null)
 		{
-			var mailboxPart = s_addressPart.Match(address);
+			Match mailboxPart = s_addressPart.Match(address);
 			if (!mailboxPart.Success)
 			{
 				logger?.Warning($"Unable to parse Mailbox: {address}");

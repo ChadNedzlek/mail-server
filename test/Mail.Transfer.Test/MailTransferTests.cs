@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
@@ -7,7 +8,6 @@ using System.Net.Security;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
 using Vaettir.Mail.Server;
 using Vaettir.Mail.Server.Smtp;
 using Vaettir.Mail.Test.Utilities;
@@ -18,17 +18,11 @@ namespace Mail.Transfer.Test
 {
 	public class MailTransferTests : IDisposable
 	{
-		private readonly MockMailTransferQueue _queue;
-		private readonly MockVolatile<SmtpSettings> _settings;
-		private readonly MockDnsResolve _dns;
-		private readonly MockMailSendFailureManager _failures;
-		private readonly MockTcpConnectionProvider _tcp;
-		private readonly MailTransfer _transfer;
-
 		public MailTransferTests()
 		{
 			_queue = new MockMailTransferQueue();
-			_settings = new MockVolatile<SmtpSettings>(new SmtpSettings(relayDomains:new []{new SmtpRelayDomain("relay.example.com", "relaytarget.example.com", 99)}));
+			_settings = new MockVolatile<SmtpSettings>(
+				new SmtpSettings(relayDomains: new[] {new SmtpRelayDomain("relay.example.com", "relaytarget.example.com", 99)}));
 			_dns = new MockDnsResolve();
 			_failures = new MockMailSendFailureManager();
 			_tcp = new MockTcpConnectionProvider();
@@ -41,117 +35,56 @@ namespace Mail.Transfer.Test
 				_tcp);
 		}
 
-		[Fact]
-		public void FreshMailIsReadyToSend()
+		public void Dispose()
 		{
-			Assert.True(_transfer.IsReadyToSend(
-				new MockMailReference(
-					"mock-1",
-					"test@test.example.com",
-					new[] {"test@external.example.com"}.ToImmutableList(),
-					true,
-					_queue)));
+			_settings?.Dispose();
+			_tcp?.Dispose();
 		}
 
-	    [Fact]
-	    public void RepeatMailIsNotReadyYet()
-	    {
-	        _failures.AddFailure("mock-1", DateTimeOffset.UtcNow, 5);
-			Assert.False(_transfer.IsReadyToSend(
-				new MockMailReference(
-					"mock-1",
-					"test@test.example.com",
-					new[] { "test@external.example.com" }.ToImmutableList(),
-					true,
-					_queue)));
+		private readonly MockMailTransferQueue _queue;
+		private readonly MockVolatile<SmtpSettings> _settings;
+		private readonly MockDnsResolve _dns;
+		private readonly MockMailSendFailureManager _failures;
+		private readonly MockTcpConnectionProvider _tcp;
+		private readonly MailTransfer _transfer;
+
+		private Task WriteToAsync(Stream stream, string message)
+		{
+			byte[] bytes = Encoding.ASCII.GetBytes(message);
+			return stream.WriteAsync(bytes, 0, bytes.Length);
 		}
 
-		[Fact]
-		public void NewMailIsReadyToSend()
+		private async Task<MockTcpConnectionProvider.MockTcpClient> GetClientFor(IPAddress ipAddress)
 		{
-			Assert.True(_transfer.IsReadyToSend(
-				new MockMailReference(
-					"mock-1",
-					"test@test.example.com",
-					new[] { "test@external.example.com" }.ToImmutableList(),
-					true,
-					_queue)));
+			MockTcpConnectionProvider.MockTcpClient client = null;
+			while (client?.HalfStream == null)
+			{
+				client = _tcp.Created.FirstOrDefault(t => Equals(t.IpAddress, ipAddress));
+				if (client?.HalfStream == null)
+				{
+					await Task.Delay(100);
+				}
+			}
+			return client;
+		}
+
+		private static async Task AssertCommandRecieved(TextReader reader, string command)
+		{
+			Assert.Equal(command, (await reader.ReadLineAsync()).Split(' ')[0]);
 		}
 
 		[Fact]
 		public void BadMailIsNotReadyToSend()
 		{
 			_failures.AddFailure("mock-1", DateTimeOffset.UtcNow, 5);
-			Assert.False(_transfer.IsReadyToSend(
-				new MockMailReference(
-					"mock-1",
-					"test@test.example.com",
-					new[] { "test@external.example.com" }.ToImmutableList(),
-					true,
-					_queue)));
-		}
-
-		[Fact]
-		public async Task ReadSingleResponse()
-		{
-			var responseMessages = @"250 example.com greets test.example.com
-";
-			using (MemoryStream outStream = new MemoryStream())
-			using (MemoryStream inStream = new MemoryStream(Encoding.ASCII.GetBytes(responseMessages)))
-			using (StreamReader reader = new StreamReader(inStream))
-			using (StreamWriter writer = new StreamWriter(outStream))
-			{
-				var response = await _transfer.ExecuteRemoteCommandAsync(writer, reader, "HELO test.example.com");
-				Assert.Equal("HELO test.example.com" + Environment.NewLine, Encoding.ASCII.GetString(outStream.ToArray()));
-				Assert.Equal(ReplyCode.Okay, response.Code);
-				Assert.Equal(new[] { "example.com greets test.example.com" }, response.Lines);
-			}
-		}
-
-		[Fact]
-		public async Task ReadMultiResponse()
-		{
-			var responseMessages = @"250-STARTTLS
-250 example.com greets test.example.com
-";
-			using (MemoryStream outStream = new MemoryStream())
-			using (MemoryStream inStream = new MemoryStream(Encoding.ASCII.GetBytes(responseMessages)))
-			using (StreamReader reader = new StreamReader(inStream))
-			using (StreamWriter writer = new StreamWriter(outStream))
-			{
-				var response = await _transfer.ExecuteRemoteCommandAsync(writer, reader, "EHLO test.example.com");
-				Assert.Equal("EHLO test.example.com" + Environment.NewLine, Encoding.ASCII.GetString(outStream.ToArray()));
-				Assert.Equal(ReplyCode.Okay, response.Code);
-				Assert.Equal(new[] { "STARTTLS", "example.com greets test.example.com" }, response.Lines);
-			}
-		}
-
-		[Fact]
-		public void ShouldAttemptRetryAfterSingleFailure()
-		{
-			Assert.NotNull(_transfer.ShouldAttemptRedelivery(
-				new MockMailReference(
-					"mock-1",
-					"test@test.example.com",
-					new[] { "test@external.example.com" }.ToImmutableList(),
-					true,
-					_queue)));
-			SmtpFailureData failure = _failures.GetFailure("mock-1", false);
-			Assert.NotNull(failure);
-			Assert.InRange(failure.FirstFailure, DateTimeOffset.UtcNow - TimeSpan.FromSeconds(1), DateTime.UtcNow);
-		}
-
-		[Fact]
-		public void ShouldNotAttemptRetryAfterManyFailure()
-		{
-			_failures.AddFailure("mock-1", DateTimeOffset.UtcNow.Subtract(TimeSpan.FromDays(10)), 100);
-			Assert.Null(_transfer.ShouldAttemptRedelivery(
-				new MockMailReference(
-					"mock-1",
-					"test@test.example.com",
-					new[] { "test@external.example.com" }.ToImmutableList(),
-					true,
-					_queue)));
+			Assert.False(
+				_transfer.IsReadyToSend(
+					new MockMailReference(
+						"mock-1",
+						"test@test.example.com",
+						new[] {"test@external.example.com"}.ToImmutableList(),
+						true,
+						_queue)));
 		}
 
 		[Fact]
@@ -163,16 +96,16 @@ namespace Mail.Transfer.Test
 			var mockMailReference = new MockMailReference(
 				"mock-1",
 				"test@test.example.com",
-				new[] { "test@external.example.com" }.ToImmutableList(),
+				new[] {"test@external.example.com"}.ToImmutableList(),
 				true,
 				"Some text",
 				_queue);
 			_queue.References.Add(mockMailReference);
 
-			using (MemoryStream outStream = new MemoryStream())
-			using (MemoryStream inStream = new MemoryStream(Encoding.ASCII.GetBytes(responseMessages)))
-			using (StreamReader reader = new StreamReader(inStream))
-			using (StreamWriter writer = new StreamWriter(outStream))
+			using (var outStream = new MemoryStream())
+			using (var inStream = new MemoryStream(Encoding.ASCII.GetBytes(responseMessages)))
+			using (var reader = new StreamReader(inStream))
+			using (var writer = new StreamWriter(outStream))
 			{
 				Assert.False(await _transfer.TrySendSingleMailAsync(mockMailReference, writer, reader, CancellationToken.None));
 			}
@@ -181,135 +114,112 @@ namespace Mail.Transfer.Test
 		}
 
 		[Fact]
-		public async Task SendSingle()
+		public void FreshMailIsReadyToSend()
 		{
-			var responseMessages = @"250 Ok (MAIL)
-250 Ok (RCPT)
-354 End data with <CR><LF>.<CR><LF> (DATA)
-250 Ok (DATA with .)
-250 Bye (QUIT)
-";
+			Assert.True(
+				_transfer.IsReadyToSend(
+					new MockMailReference(
+						"mock-1",
+						"test@test.example.com",
+						new[] {"test@external.example.com"}.ToImmutableList(),
+						true,
+						_queue)));
+		}
+
+		[Fact]
+		public async Task LookupWithFallback()
+		{
 			var mockMailReference = new MockMailReference(
 				"mock-1",
-				"test@test.example.com",
-				new[] { "test@external.example.com" }.ToImmutableList(),
+				"test@example.com",
+				new[] {"test@external.example.com"}.ToImmutableList(),
 				true,
 				"Some text",
 				_queue);
 			_queue.References.Add(mockMailReference);
+			_dns.AddMx("example.com", "second.example.com", 20);
+			_dns.AddMx("example.com", "first.example.com", 10);
+			_dns.AddMx("example.com", "third.example.com", 30);
 
-			using (MemoryStream outStream = new MemoryStream())
-			using (MemoryStream inStream = new MemoryStream(Encoding.ASCII.GetBytes(responseMessages)))
-			using (StreamReader reader = new StreamReader(inStream))
-			using (StreamWriter writer = new StreamWriter(outStream))
-			{
-				Assert.True(await _transfer.TrySendSingleMailAsync(mockMailReference, writer, reader, CancellationToken.None));
-			}
-			Assert.Equal(0, _queue.References.Count);
-			Assert.Equal(1, _queue.DeletedReferences.Count);
-		}
+			_dns.AddIp("first.example.com", IPAddress.Parse("10.0.0.1"));
+			_dns.AddIp("second.example.com", IPAddress.Parse("10.0.0.2"));
+			_dns.AddIp("third.example.com", IPAddress.Parse("10.0.0.3"));
 
-		[Fact]
-		public async Task SendSingle_Fail()
-		{
-			var responseMessages = @"250 Ok (MAIL)
-554 Fail (RCPT)
-";
-			var mockMailReference = new MockMailReference(
-				"mock-1",
-				"test@test.example.com",
-				new[] { "test@external.example.com" }.ToImmutableList(),
-				true,
-				"Some text",
-				_queue);
-			_queue.References.Add(mockMailReference);
+			Task executeTask = Task.Run(
+				() => _transfer.SendMailsToDomain("example.com", new[] {mockMailReference}, CancellationToken.None));
 
-			using (MemoryStream outStream = new MemoryStream())
-			using (MemoryStream inStream = new MemoryStream(Encoding.ASCII.GetBytes(responseMessages)))
-			using (StreamReader reader = new StreamReader(inStream))
-			using (StreamWriter writer = new StreamWriter(outStream))
-			{
-				Assert.False(await _transfer.TrySendSingleMailAsync(mockMailReference, writer, reader, CancellationToken.None));
-			}
-			Assert.Equal(1, _queue.References.Count);
-			Assert.Equal(0, _queue.DeletedReferences.Count);
-		}
-
-		[Fact]
-		public async Task SendMultiple()
-		{
-			var responseMessages = @"250 Ok (MAIL)
-250 Ok (RCPT)
-250 Ok (RCPT)
-354 End data with <CR><LF>.<CR><LF> (DATA)
-250 Ok (DATA with .)
-250 Bye (QUIT)
-";
-			var mockMailReference = new MockMailReference(
-				"mock-1",
-				"test@test.example.com",
-				new[] { "test@external.example.com", "other@external.example.com" }.ToImmutableList(),
-				true,
-				"Some text",
-				_queue);
-			_queue.References.Add(mockMailReference);
-
-			using (MemoryStream outStream = new MemoryStream())
-			using (MemoryStream inStream = new MemoryStream(Encoding.ASCII.GetBytes(responseMessages)))
-			using (StreamReader reader = new StreamReader(inStream))
-			using (StreamWriter writer = new StreamWriter(outStream))
-			{
-				Assert.True(await _transfer.TrySendSingleMailAsync(mockMailReference, writer, reader, CancellationToken.None));
-			}
-			Assert.Equal(0, _queue.References.Count);
-			Assert.Equal(1, _queue.DeletedReferences.Count);
-		}
-
-		[Fact]
-		public async Task ProcessAll_NoEhloTest()
-		{
-			var responseMessages = @"554 No clue (EHLO)
-220 example.com greets test.example.com (HELO)
+			MockTcpConnectionProvider.MockTcpClient client = await GetClientFor(IPAddress.Parse("10.0.0.1"));
+			await WriteToAsync(
+				client.HalfStream,
+				@"554 Failed
+554 Failed
+");
+			client = await GetClientFor(IPAddress.Parse("10.0.0.2"));
+			await WriteToAsync(
+				client.HalfStream,
+				@"554 Failed
+554 Failed
+");
+			client = await GetClientFor(IPAddress.Parse("10.0.0.3"));
+			await WriteToAsync(
+				client.HalfStream,
+				@"220 example.com greets test.example.com (HELO)
 250 Ok (MAIL)
 250 Ok (RCPT)
 354 End data with <CR><LF>.<CR><LF> (DATA)
 250 Ok (DATA with .)
 250 Bye (QUIT)
-";
+");
+
+			await executeTask;
+			Assert.Equal(0, _queue.References.Count);
+			Assert.Equal(1, _queue.DeletedReferences.Count);
+		}
+
+		[Fact]
+		public async Task LookupWithFallback_FailedAll()
+		{
 			var mockMailReference = new MockMailReference(
 				"mock-1",
-				"test@test.example.com",
-				new[] { "test@external.example.com" }.ToImmutableList(),
+				"test@example.com",
+				new[] {"test@external.example.com"}.ToImmutableList(),
 				true,
 				"Some text",
 				_queue);
 			_queue.References.Add(mockMailReference);
-			_dns.AddMx("external.example.com", "mx.external.example.com", 10);
-			_dns.AddIp("mx.external.example.com", IPAddress.Parse("10.20.30.40"));
+			_dns.AddMx("example.com", "first.example.com", 10);
+			_dns.AddIp("first.example.com", IPAddress.Parse("10.0.0.1"));
 
-			var (keep, give) = PairedStream.Create();
-			using (StreamReader reader = new StreamReader(keep))
-			{
-				var responseBytes = Encoding.ASCII.GetBytes(responseMessages);
-				await keep.WriteAsync(responseBytes, 0, responseBytes.Length);
+			Task executeTask = Task.Run(
+				() => _transfer.SendMailsToDomain("example.com", new[] {mockMailReference}, CancellationToken.None));
 
-				Assert.Empty(
-					await _transfer.TrySendMailsToStream(
-						"external.example.com",
-						new[] {mockMailReference},
-						new UnclosableStream(give),
-						CancellationToken.None));
+			MockTcpConnectionProvider.MockTcpClient client = await GetClientFor(IPAddress.Parse("10.0.0.1"));
+			await WriteToAsync(
+				client.HalfStream,
+				@"554 Failed
+554 Failed
+");
+			await executeTask;
+			Assert.Equal(1, _queue.References.Count);
+			Assert.Equal(0, _queue.DeletedReferences.Count);
 
-				Assert.Equal(0, _queue.References.Count);
-				Assert.Equal(1, _queue.DeletedReferences.Count);
-				await AssertCommandRecieved(reader, "EHLO");
-				await AssertCommandRecieved(reader, "HELO");
-				await AssertCommandRecieved(reader, "MAIL");
-				await AssertCommandRecieved(reader, "RCPT");
-				await AssertCommandRecieved(reader, "DATA");
-				
-				give.Dispose();
-			}
+			SmtpFailureData failure = _failures.GetFailure("mock-1", false);
+			Assert.NotNull(failure);
+			Assert.Equal(1, failure.Retries);
+			Assert.InRange(failure.FirstFailure, DateTimeOffset.UtcNow - TimeSpan.FromSeconds(1), DateTime.UtcNow);
+		}
+
+		[Fact]
+		public void NewMailIsReadyToSend()
+		{
+			Assert.True(
+				_transfer.IsReadyToSend(
+					new MockMailReference(
+						"mock-1",
+						"test@test.example.com",
+						new[] {"test@external.example.com"}.ToImmutableList(),
+						true,
+						_queue)));
 		}
 
 		[Fact]
@@ -325,7 +235,7 @@ namespace Mail.Transfer.Test
 			var mockMailReference = new MockMailReference(
 				"mock-1",
 				"test@test.example.com",
-				new[] { "test@external.example.com" }.ToImmutableList(),
+				new[] {"test@external.example.com"}.ToImmutableList(),
 				true,
 				"Some text",
 				_queue);
@@ -334,9 +244,9 @@ namespace Mail.Transfer.Test
 			_dns.AddIp("mx.external.example.com", IPAddress.Parse("10.20.30.40"));
 
 			var (keep, give) = PairedStream.Create();
-			using (StreamReader reader = new StreamReader(keep))
+			using (var reader = new StreamReader(keep))
 			{
-				var responseBytes = Encoding.ASCII.GetBytes(responseMessages);
+				byte[] responseBytes = Encoding.ASCII.GetBytes(responseMessages);
 				await keep.WriteAsync(responseBytes, 0, responseBytes.Length);
 
 				Assert.Empty(
@@ -374,7 +284,7 @@ namespace Mail.Transfer.Test
 			var mockMailReference = new MockMailReference(
 				"mock-1",
 				"test@test.example.com",
-				new[] { "test@external.example.com" }.ToImmutableList(),
+				new[] {"test@external.example.com"}.ToImmutableList(),
 				true,
 				"Some text",
 				_queue);
@@ -384,25 +294,25 @@ namespace Mail.Transfer.Test
 
 			var (keep, give) = PairedStream.Create();
 
-			using (RedirectableStream recieveStream = new RedirectableStream(keep))
-			using (StreamReader reader = new StreamReader(recieveStream))
+			using (var recieveStream = new RedirectableStream(keep))
+			using (var reader = new StreamReader(recieveStream))
 			{
-				var sendMailsTask = Task.Run(
+				Task<IReadOnlyList<IMailReference>> sendMailsTask = Task.Run(
 					() => _transfer.TrySendMailsToStream(
 						"external.example.com",
-						new[] { mockMailReference },
+						new[] {mockMailReference},
 						new UnclosableStream(give),
 						CancellationToken.None));
 
 				_transfer.RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => true;
 
-				var responseBytes = Encoding.ASCII.GetBytes(responseMessagesPreEncrypt);
+				byte[] responseBytes = Encoding.ASCII.GetBytes(responseMessagesPreEncrypt);
 				await keep.WriteAsync(responseBytes, 0, responseBytes.Length);
 
 				await AssertCommandRecieved(reader, "EHLO");
 				await AssertCommandRecieved(reader, "STARTTLS");
 
-				SslStream encrypted = new SslStream(keep);
+				var encrypted = new SslStream(keep);
 
 				await encrypted.AuthenticateAsServerAsync(TestHelpers.GetSelfSigned());
 				recieveStream.ChangeSteam(encrypted);
@@ -431,7 +341,7 @@ namespace Mail.Transfer.Test
 			var mockMailReference = new MockMailReference(
 				"mock-1",
 				"test@test.example.com",
-				new[] { "test@external.example.com" }.ToImmutableList(),
+				new[] {"test@external.example.com"}.ToImmutableList(),
 				true,
 				"Some text",
 				_queue);
@@ -441,25 +351,25 @@ namespace Mail.Transfer.Test
 
 			var (keep, give) = PairedStream.Create();
 
-			using (RedirectableStream recieveStream = new RedirectableStream(keep))
-			using (StreamReader reader = new StreamReader(recieveStream))
+			using (var recieveStream = new RedirectableStream(keep))
+			using (var reader = new StreamReader(recieveStream))
 			{
-				var sendMailsTask = Task.Run(
+				Task<IReadOnlyList<IMailReference>> sendMailsTask = Task.Run(
 					() => _transfer.TrySendMailsToStream(
 						"external.example.com",
-						new[] { mockMailReference },
+						new[] {mockMailReference},
 						new UnclosableStream(give),
 						CancellationToken.None));
 
 				_transfer.RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => false;
 
-				var responseBytes = Encoding.ASCII.GetBytes(responseMessagesPreEncrypt);
+				byte[] responseBytes = Encoding.ASCII.GetBytes(responseMessagesPreEncrypt);
 				await keep.WriteAsync(responseBytes, 0, responseBytes.Length);
 
 				await AssertCommandRecieved(reader, "EHLO");
 				await AssertCommandRecieved(reader, "STARTTLS");
 
-				SslStream encrypted = new SslStream(keep);
+				var encrypted = new SslStream(keep);
 
 				await encrypted.AuthenticateAsServerAsync(TestHelpers.GetSelfSigned());
 				Assert.NotEmpty(await sendMailsTask);
@@ -474,78 +384,85 @@ namespace Mail.Transfer.Test
 		}
 
 		[Fact]
-		public async Task LookupWithFallback()
+		public async Task ProcessAll_NoEhloTest()
 		{
-			var mockMailReference = new MockMailReference(
-				"mock-1",
-				"test@example.com",
-				new[] { "test@external.example.com" }.ToImmutableList(),
-				true,
-				"Some text",
-				_queue);
-			_queue.References.Add(mockMailReference);
-			_dns.AddMx("example.com", "second.example.com", 20);
-			_dns.AddMx("example.com", "first.example.com", 10);
-			_dns.AddMx("example.com", "third.example.com", 30);
-
-			_dns.AddIp("first.example.com", IPAddress.Parse("10.0.0.1"));
-			_dns.AddIp("second.example.com", IPAddress.Parse("10.0.0.2"));
-			_dns.AddIp("third.example.com", IPAddress.Parse("10.0.0.3"));
-
-			var executeTask = Task.Run(
-				() => _transfer.SendMailsToDomain("example.com", new[] { mockMailReference }, CancellationToken.None));
-
-			MockTcpConnectionProvider.MockTcpClient client = await GetClientFor(IPAddress.Parse("10.0.0.1"));
-			await WriteToAsync(client.HalfStream, @"554 Failed
-554 Failed
-");
-			client = await GetClientFor(IPAddress.Parse("10.0.0.2"));
-			await WriteToAsync(client.HalfStream, @"554 Failed
-554 Failed
-");
-			client = await GetClientFor(IPAddress.Parse("10.0.0.3"));
-			await WriteToAsync(client.HalfStream, @"220 example.com greets test.example.com (HELO)
+			var responseMessages = @"554 No clue (EHLO)
+220 example.com greets test.example.com (HELO)
 250 Ok (MAIL)
 250 Ok (RCPT)
 354 End data with <CR><LF>.<CR><LF> (DATA)
 250 Ok (DATA with .)
 250 Bye (QUIT)
-");
-
-			await executeTask;
-			Assert.Equal(0, _queue.References.Count);
-			Assert.Equal(1, _queue.DeletedReferences.Count);
-		}
-
-		[Fact]
-		public async Task LookupWithFallback_FailedAll()
-		{
+";
 			var mockMailReference = new MockMailReference(
 				"mock-1",
-				"test@example.com",
-				new[] { "test@external.example.com" }.ToImmutableList(),
+				"test@test.example.com",
+				new[] {"test@external.example.com"}.ToImmutableList(),
 				true,
 				"Some text",
 				_queue);
 			_queue.References.Add(mockMailReference);
-			_dns.AddMx("example.com", "first.example.com", 10);
-			_dns.AddIp("first.example.com", IPAddress.Parse("10.0.0.1"));
+			_dns.AddMx("external.example.com", "mx.external.example.com", 10);
+			_dns.AddIp("mx.external.example.com", IPAddress.Parse("10.20.30.40"));
 
-			var executeTask = Task.Run(
-				() => _transfer.SendMailsToDomain("example.com", new[] { mockMailReference }, CancellationToken.None));
+			var (keep, give) = PairedStream.Create();
+			using (var reader = new StreamReader(keep))
+			{
+				byte[] responseBytes = Encoding.ASCII.GetBytes(responseMessages);
+				await keep.WriteAsync(responseBytes, 0, responseBytes.Length);
 
-			MockTcpConnectionProvider.MockTcpClient client = await GetClientFor(IPAddress.Parse("10.0.0.1"));
-			await WriteToAsync(client.HalfStream, @"554 Failed
-554 Failed
-");
-			await executeTask;
-			Assert.Equal(1, _queue.References.Count);
-			Assert.Equal(0, _queue.DeletedReferences.Count);
+				Assert.Empty(
+					await _transfer.TrySendMailsToStream(
+						"external.example.com",
+						new[] {mockMailReference},
+						new UnclosableStream(give),
+						CancellationToken.None));
 
-			SmtpFailureData failure = _failures.GetFailure("mock-1", false);
-			Assert.NotNull(failure);
-			Assert.Equal(1, failure.Retries);
-			Assert.InRange(failure.FirstFailure, DateTimeOffset.UtcNow - TimeSpan.FromSeconds(1), DateTime.UtcNow);
+				Assert.Equal(0, _queue.References.Count);
+				Assert.Equal(1, _queue.DeletedReferences.Count);
+				await AssertCommandRecieved(reader, "EHLO");
+				await AssertCommandRecieved(reader, "HELO");
+				await AssertCommandRecieved(reader, "MAIL");
+				await AssertCommandRecieved(reader, "RCPT");
+				await AssertCommandRecieved(reader, "DATA");
+
+				give.Dispose();
+			}
+		}
+
+		[Fact]
+		public async Task ReadMultiResponse()
+		{
+			var responseMessages = @"250-STARTTLS
+250 example.com greets test.example.com
+";
+			using (var outStream = new MemoryStream())
+			using (var inStream = new MemoryStream(Encoding.ASCII.GetBytes(responseMessages)))
+			using (var reader = new StreamReader(inStream))
+			using (var writer = new StreamWriter(outStream))
+			{
+				SmtpResponse response = await _transfer.ExecuteRemoteCommandAsync(writer, reader, "EHLO test.example.com");
+				Assert.Equal("EHLO test.example.com" + Environment.NewLine, Encoding.ASCII.GetString(outStream.ToArray()));
+				Assert.Equal(ReplyCode.Okay, response.Code);
+				Assert.Equal(new[] {"STARTTLS", "example.com greets test.example.com"}, response.Lines);
+			}
+		}
+
+		[Fact]
+		public async Task ReadSingleResponse()
+		{
+			var responseMessages = @"250 example.com greets test.example.com
+";
+			using (var outStream = new MemoryStream())
+			using (var inStream = new MemoryStream(Encoding.ASCII.GetBytes(responseMessages)))
+			using (var reader = new StreamReader(inStream))
+			using (var writer = new StreamWriter(outStream))
+			{
+				SmtpResponse response = await _transfer.ExecuteRemoteCommandAsync(writer, reader, "HELO test.example.com");
+				Assert.Equal("HELO test.example.com" + Environment.NewLine, Encoding.ASCII.GetString(outStream.ToArray()));
+				Assert.Equal(ReplyCode.Okay, response.Code);
+				Assert.Equal(new[] {"example.com greets test.example.com"}, response.Lines);
+			}
 		}
 
 		[Fact]
@@ -554,7 +471,7 @@ namespace Mail.Transfer.Test
 			var mockMailReference = new MockMailReference(
 				"mock-1",
 				"test@relay.example.com",
-				new[] { "test@external.example.com" }.ToImmutableList(),
+				new[] {"test@external.example.com"}.ToImmutableList(),
 				true,
 				"Some text",
 				_queue);
@@ -568,12 +485,14 @@ namespace Mail.Transfer.Test
 			_dns.AddIp("third.example.com", IPAddress.Parse("10.0.0.3"));
 			_dns.AddIp("relaytarget.example.com", IPAddress.Parse("10.0.0.99"));
 
-			var executeTask = Task.Run(
-				() => _transfer.SendMailsToDomain("relay.example.com", new[] { mockMailReference }, CancellationToken.None));
+			Task executeTask = Task.Run(
+				() => _transfer.SendMailsToDomain("relay.example.com", new[] {mockMailReference}, CancellationToken.None));
 
 			MockTcpConnectionProvider.MockTcpClient client = await GetClientFor(IPAddress.Parse("10.0.0.99"));
 			Assert.Equal(99, client.Port);
-			await WriteToAsync(client.HalfStream, @"220 example.com greets test.example.com (HELO)
+			await WriteToAsync(
+				client.HalfStream,
+				@"220 example.com greets test.example.com (HELO)
 250 Ok (MAIL)
 250 Ok (RCPT)
 354 End data with <CR><LF>.<CR><LF> (DATA)
@@ -586,33 +505,133 @@ namespace Mail.Transfer.Test
 			Assert.Equal(1, _queue.DeletedReferences.Count);
 		}
 
-		private Task WriteToAsync(Stream stream, string message)
+		[Fact]
+		public void RepeatMailIsNotReadyYet()
 		{
-			var bytes = Encoding.ASCII.GetBytes(message);
-			return stream.WriteAsync(bytes, 0, bytes.Length);
+			_failures.AddFailure("mock-1", DateTimeOffset.UtcNow, 5);
+			Assert.False(
+				_transfer.IsReadyToSend(
+					new MockMailReference(
+						"mock-1",
+						"test@test.example.com",
+						new[] {"test@external.example.com"}.ToImmutableList(),
+						true,
+						_queue)));
 		}
 
-		private async Task<MockTcpConnectionProvider.MockTcpClient> GetClientFor(IPAddress ipAddress)
+		[Fact]
+		public async Task SendMultiple()
 		{
-			MockTcpConnectionProvider.MockTcpClient client = null;
-			while (client?.HalfStream == null)
+			var responseMessages = @"250 Ok (MAIL)
+250 Ok (RCPT)
+250 Ok (RCPT)
+354 End data with <CR><LF>.<CR><LF> (DATA)
+250 Ok (DATA with .)
+250 Bye (QUIT)
+";
+			var mockMailReference = new MockMailReference(
+				"mock-1",
+				"test@test.example.com",
+				new[] {"test@external.example.com", "other@external.example.com"}.ToImmutableList(),
+				true,
+				"Some text",
+				_queue);
+			_queue.References.Add(mockMailReference);
+
+			using (var outStream = new MemoryStream())
+			using (var inStream = new MemoryStream(Encoding.ASCII.GetBytes(responseMessages)))
+			using (var reader = new StreamReader(inStream))
+			using (var writer = new StreamWriter(outStream))
 			{
-				client = _tcp.Created.FirstOrDefault(t => Object.Equals(t.IpAddress, ipAddress));
-				if (client?.HalfStream == null)
-					await Task.Delay(100);
+				Assert.True(await _transfer.TrySendSingleMailAsync(mockMailReference, writer, reader, CancellationToken.None));
 			}
-			return client;
+			Assert.Equal(0, _queue.References.Count);
+			Assert.Equal(1, _queue.DeletedReferences.Count);
 		}
 
-		private static async Task AssertCommandRecieved(TextReader reader, string command)
+		[Fact]
+		public async Task SendSingle()
 		{
-			Assert.Equal(command, (await reader.ReadLineAsync()).Split(' ')[0]);
+			var responseMessages = @"250 Ok (MAIL)
+250 Ok (RCPT)
+354 End data with <CR><LF>.<CR><LF> (DATA)
+250 Ok (DATA with .)
+250 Bye (QUIT)
+";
+			var mockMailReference = new MockMailReference(
+				"mock-1",
+				"test@test.example.com",
+				new[] {"test@external.example.com"}.ToImmutableList(),
+				true,
+				"Some text",
+				_queue);
+			_queue.References.Add(mockMailReference);
+
+			using (var outStream = new MemoryStream())
+			using (var inStream = new MemoryStream(Encoding.ASCII.GetBytes(responseMessages)))
+			using (var reader = new StreamReader(inStream))
+			using (var writer = new StreamWriter(outStream))
+			{
+				Assert.True(await _transfer.TrySendSingleMailAsync(mockMailReference, writer, reader, CancellationToken.None));
+			}
+			Assert.Equal(0, _queue.References.Count);
+			Assert.Equal(1, _queue.DeletedReferences.Count);
 		}
 
-		public void Dispose()
+		[Fact]
+		public async Task SendSingle_Fail()
 		{
-			_settings?.Dispose();
-			_tcp?.Dispose();
+			var responseMessages = @"250 Ok (MAIL)
+554 Fail (RCPT)
+";
+			var mockMailReference = new MockMailReference(
+				"mock-1",
+				"test@test.example.com",
+				new[] {"test@external.example.com"}.ToImmutableList(),
+				true,
+				"Some text",
+				_queue);
+			_queue.References.Add(mockMailReference);
+
+			using (var outStream = new MemoryStream())
+			using (var inStream = new MemoryStream(Encoding.ASCII.GetBytes(responseMessages)))
+			using (var reader = new StreamReader(inStream))
+			using (var writer = new StreamWriter(outStream))
+			{
+				Assert.False(await _transfer.TrySendSingleMailAsync(mockMailReference, writer, reader, CancellationToken.None));
+			}
+			Assert.Equal(1, _queue.References.Count);
+			Assert.Equal(0, _queue.DeletedReferences.Count);
+		}
+
+		[Fact]
+		public void ShouldAttemptRetryAfterSingleFailure()
+		{
+			Assert.NotNull(
+				_transfer.ShouldAttemptRedelivery(
+					new MockMailReference(
+						"mock-1",
+						"test@test.example.com",
+						new[] {"test@external.example.com"}.ToImmutableList(),
+						true,
+						_queue)));
+			SmtpFailureData failure = _failures.GetFailure("mock-1", false);
+			Assert.NotNull(failure);
+			Assert.InRange(failure.FirstFailure, DateTimeOffset.UtcNow - TimeSpan.FromSeconds(1), DateTime.UtcNow);
+		}
+
+		[Fact]
+		public void ShouldNotAttemptRetryAfterManyFailure()
+		{
+			_failures.AddFailure("mock-1", DateTimeOffset.UtcNow.Subtract(TimeSpan.FromDays(10)), 100);
+			Assert.Null(
+				_transfer.ShouldAttemptRedelivery(
+					new MockMailReference(
+						"mock-1",
+						"test@test.example.com",
+						new[] {"test@external.example.com"}.ToImmutableList(),
+						true,
+						_queue)));
 		}
 	}
 }

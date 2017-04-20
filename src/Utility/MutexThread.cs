@@ -9,26 +9,13 @@ namespace Vaettir.Utility
 {
 	public class MutexThread
 	{
-		private class WaitBlock
-		{
-			public WaitBlock(Mutex mutex)
-			{
-				Mutex = mutex;
-				Source = new TaskCompletionSource<object>();
-			}
-
-			public Mutex Mutex { get; }
-
-			public TaskCompletionSource<object> Source { get; }
-		}
+		private readonly ConcurrentBag<WaitBlock> _pending = new ConcurrentBag<WaitBlock>();
+		private readonly EventWaitHandle _pendingReady = new AutoResetEvent(false);
+		private readonly ConcurrentBag<Mutex> _releaseable = new ConcurrentBag<Mutex>();
 
 		private MutexThread()
 		{
 		}
-
-		private readonly ConcurrentBag<WaitBlock> _pending = new ConcurrentBag<WaitBlock>();
-		private readonly ConcurrentBag<Mutex> _releaseable = new ConcurrentBag<Mutex>();
-		private readonly EventWaitHandle _pendingReady = new AutoResetEvent(false);
 
 		public Task Task { get; private set; }
 
@@ -36,7 +23,7 @@ namespace Vaettir.Utility
 		{
 			using (token.Register(() => _pendingReady.Set()))
 			{
-				List<WaitBlock> waiting = new List<WaitBlock>();
+				var waiting = new List<WaitBlock>();
 				while (!token.IsCancellationRequested)
 				{
 					var waits = new WaitHandle[1 + waiting.Count];
@@ -70,7 +57,7 @@ namespace Vaettir.Utility
 					index--;
 
 					{
-						var item = waiting[index];
+						WaitBlock item = waiting[index];
 						waiting.RemoveAt(index);
 						item.Source.TrySetResult(null);
 					}
@@ -78,27 +65,9 @@ namespace Vaettir.Utility
 			}
 		}
 
-		private sealed class MutexLock : IDisposable
-		{
-			private MutexThread _mutexThread;
-			private Mutex _mutex;
-
-			public MutexLock(MutexThread mutexThread, Mutex mutex)
-			{
-				_mutexThread = mutexThread;
-				_mutex = mutex;
-			}
-
-			public void Dispose()
-			{
-				Interlocked.Exchange(ref _mutexThread, null)?.Release(_mutex);
-				_mutex = null;
-			}
-		}
-
 		public Task<IDisposable> WaitAsync(Mutex mutex)
 		{
-			WaitBlock block = new WaitBlock(mutex);
+			var block = new WaitBlock(mutex);
 			_pending.Add(block);
 			_pendingReady.Set();
 			return block.Source.Task.ContinueWith(_ => (IDisposable) new MutexLock(this, mutex));
@@ -115,6 +84,37 @@ namespace Vaettir.Utility
 			var thread = new MutexThread();
 			thread.Task = Task.Run(() => thread.Run(token), token);
 			return thread;
+		}
+
+		private class WaitBlock
+		{
+			public WaitBlock(Mutex mutex)
+			{
+				Mutex = mutex;
+				Source = new TaskCompletionSource<object>();
+			}
+
+			public Mutex Mutex { get; }
+
+			public TaskCompletionSource<object> Source { get; }
+		}
+
+		private sealed class MutexLock : IDisposable
+		{
+			private Mutex _mutex;
+			private MutexThread _mutexThread;
+
+			public MutexLock(MutexThread mutexThread, Mutex mutex)
+			{
+				_mutexThread = mutexThread;
+				_mutex = mutex;
+			}
+
+			public void Dispose()
+			{
+				Interlocked.Exchange(ref _mutexThread, null)?.Release(_mutex);
+				_mutex = null;
+			}
 		}
 	}
 }

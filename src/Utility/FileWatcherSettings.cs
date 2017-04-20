@@ -1,4 +1,3 @@
-using System;
 using System.IO;
 using System.Threading;
 using Newtonsoft.Json;
@@ -23,15 +22,6 @@ namespace Vaettir.Utility
 			};
 
 			_watcher.Changed += FileChanged;
-
-		}
-
-		private void FileChanged(object sender, FileSystemEventArgs e)
-		{
-			var oldValue = _settings;
-			var newValue = ReadSettings(_settingsFileName);
-			Interlocked.Exchange(ref _settings, newValue);
-			ValueChanged?.Invoke(this, newValue, oldValue);
 		}
 
 		public void Dispose()
@@ -42,6 +32,16 @@ namespace Vaettir.Utility
 
 		public T Value => _settings;
 
+		public event ValueChanged<T> ValueChanged;
+
+		private void FileChanged(object sender, FileSystemEventArgs e)
+		{
+			T oldValue = _settings;
+			T newValue = ReadSettings(_settingsFileName);
+			Interlocked.Exchange(ref _settings, newValue);
+			ValueChanged?.Invoke(this, newValue, oldValue);
+		}
+
 		public static FileWatcherSettings<T> Load(string filePath)
 		{
 			return new FileWatcherSettings<T>(filePath, ReadSettings(filePath));
@@ -49,14 +49,12 @@ namespace Vaettir.Utility
 
 		private static T ReadSettings(string filePath)
 		{
-			using (var stream = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+			using (FileStream stream = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
 			using (var reader = new StreamReader(stream))
 			using (var jsonReader = new JsonTextReader(reader))
 			{
 				return new JsonSerializer().Deserialize<T>(jsonReader);
 			}
 		}
-
-		public event ValueChanged<T> ValueChanged;
 	}
 }

@@ -16,18 +16,27 @@ namespace Vaettir.Mail.Server.FileSystem
 			_settings = settings;
 		}
 
-		public async Task<UserData> GetUserWithPasswordAsync(string userName, string password, CancellationToken cancellationToken)
+		public async Task<UserData> GetUserWithPasswordAsync(
+			string userName,
+			string password,
+			CancellationToken cancellationToken)
 		{
-			var user = await GetUserAsync(userName, cancellationToken);
+			FileUserData user = await GetUserAsync(userName, cancellationToken);
 			if (user == null)
+			{
 				return null;
+			}
 
-			var hash = CalculateHash(user.Salt, password, user.Algorithm);
+			byte[] hash = CalculateHash(user.Salt, password, user.Algorithm);
 
 			if (hash.Length != user.Hash.Length)
+			{
 				return null;
+			}
 			if (!ConstantTimeEquals(hash, 0, user.Hash, 0, hash.Length))
+			{
 				return null;
+			}
 
 			return new UserData(userName);
 		}
@@ -45,17 +54,21 @@ namespace Vaettir.Mail.Server.FileSystem
 		public async Task AddUserAsync(string username, string password, CancellationToken token)
 		{
 			var salt = new byte[64];
-			using (var rng = RandomNumberGenerator.Create())
+			using (RandomNumberGenerator rng = RandomNumberGenerator.Create())
 			{
 				rng.GetBytes(salt);
 			}
 
 			string passwordAlgorithm = _settings.PasswordAlgorithm;
-			var hash = CalculateHash(salt, password, passwordAlgorithm);
+			byte[] hash = CalculateHash(salt, password, passwordAlgorithm);
 
-			var tempPasswordFile = Path.GetTempFileName();
-			using (var tempStream = File.Open(tempPasswordFile, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
-			using (var stream = File.Open(_settings.UserPasswordFile, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
+			string tempPasswordFile = Path.GetTempFileName();
+			using (FileStream tempStream = File.Open(tempPasswordFile, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
+			using (FileStream stream = File.Open(
+				_settings.UserPasswordFile,
+				FileMode.Create,
+				FileAccess.ReadWrite,
+				FileShare.None))
 			using (var reader = new StreamReader(stream))
 			using (var tempWriter = new StreamWriter(tempStream))
 			{
@@ -63,14 +76,17 @@ namespace Vaettir.Mail.Server.FileSystem
 				var replacedUser = false;
 				while (await reader.TryReadLineAsync(l => line = l, token))
 				{
-					var parts = line.Split(new[] {' '}, 3);
+					string[] parts = line.Split(new[] {' '}, 3);
 					if (parts.Length != 3)
+					{
 						continue;
+					}
 
 					if (parts[0] == username)
 					{
 						replacedUser = true;
-						await tempWriter.WriteLineAsync($"{username} {passwordAlgorithm} {Convert.ToBase64String(salt)} {Convert.ToBase64String(hash)}");
+						await tempWriter.WriteLineAsync(
+							$"{username} {passwordAlgorithm} {Convert.ToBase64String(salt)} {Convert.ToBase64String(hash)}");
 					}
 					else
 					{
@@ -79,7 +95,10 @@ namespace Vaettir.Mail.Server.FileSystem
 				}
 
 				if (!replacedUser)
-					await tempWriter.WriteLineAsync($"{username} {passwordAlgorithm} {Convert.ToBase64String(salt)} {Convert.ToBase64String(hash)}");
+				{
+					await tempWriter.WriteLineAsync(
+						$"{username} {passwordAlgorithm} {Convert.ToBase64String(salt)} {Convert.ToBase64String(hash)}");
+				}
 
 				await tempWriter.FlushAsync();
 
@@ -94,20 +113,22 @@ namespace Vaettir.Mail.Server.FileSystem
 		{
 			var differentbits = 0;
 			for (var i = 0; i < length; i++)
+			{
 				differentbits |= x[xOffset + i] ^ y[yOffset + i];
+			}
 			return (1 & (unchecked((uint) differentbits - 1) >> 8)) != 0;
 		}
 
 		private byte[] CalculateHash(byte[] salt, string password, string algorithm)
 		{
-			var algParts = algorithm.ToLowerInvariant().Split(':');
+			string[] algParts = algorithm.ToLowerInvariant().Split(':');
 			switch (algParts[0])
 			{
 				case "db":
 					switch (algParts[1])
 					{
 						case "sha1":
-							int iterationCount = Int32.Parse(algParts[2]);
+							int iterationCount = int.Parse(algParts[2]);
 							using (var alg = new Rfc2898DeriveBytes(password, salt, iterationCount))
 							{
 								return alg.GetBytes(32);
@@ -123,17 +144,20 @@ namespace Vaettir.Mail.Server.FileSystem
 
 		private async Task<FileUserData> GetUserAsync(string username, CancellationToken token)
 		{
-			using (var stream = File.Open(_settings.UserPasswordFile, FileMode.Open, FileAccess.Read, FileShare.Read))
+			using (FileStream stream = File.Open(_settings.UserPasswordFile, FileMode.Open, FileAccess.Read, FileShare.Read))
 			using (var reader = new StreamReader(stream))
 			{
 				string line = null;
 				while (await reader.TryReadLineAsync(l => line = l, token))
 				{
-					var parts = line.Split(' ');
+					string[] parts = line.Split(' ');
 					if (parts.Length != 4)
+					{
 						continue;
+					}
 
 					if (parts[0] == username)
+					{
 						return new FileUserData
 						{
 							Name = username,
@@ -141,6 +165,7 @@ namespace Vaettir.Mail.Server.FileSystem
 							Salt = Convert.FromBase64String(parts[2]),
 							Hash = Convert.FromBase64String(parts[3])
 						};
+					}
 				}
 			}
 

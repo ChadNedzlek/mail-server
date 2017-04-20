@@ -16,15 +16,12 @@ namespace Vaettir.Utility
 		public override bool CanSeek => false;
 		public override bool CanWrite => !_writeClosed && _chunks != null;
 
-		public override long Length
-		{
-			get { throw new NotSupportedException(); }
-		}
+		public override long Length => throw new NotSupportedException();
 
 		public override long Position
 		{
-			get { throw new NotSupportedException(); }
-			set { throw new NotSupportedException(); }
+			get => throw new NotSupportedException();
+			set => throw new NotSupportedException();
 		}
 
 		public override void Flush()
@@ -53,21 +50,32 @@ namespace Vaettir.Utility
 
 		public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
 		{
-			if (_chunks == null) throw new ObjectDisposedException(nameof(DuplexStream));
+			if (_chunks == null)
+			{
+				throw new ObjectDisposedException(nameof(DuplexStream));
+			}
 
-			if (_chunks.Count == 0 && _writeClosed) return 0;
+			if (_chunks.Count == 0 && _writeClosed)
+			{
+				return 0;
+			}
 
 			SemaphoreLock semaphoreLock = await SemaphoreLock.GetLockAsync(_semaphore, cancellationToken);
 			try
 			{
 				while (_chunks.Count == 0)
 				{
-					if (_writeClosed) return 0;
+					if (_writeClosed)
+					{
+						return 0;
+					}
 					semaphoreLock.Dispose();
 					semaphoreLock = null;
 					await _newData.WaitAsync(cancellationToken);
-				    if (_chunks == null)
-				        throw new ObjectDisposedException("DuplexStream");
+					if (_chunks == null)
+					{
+						throw new ObjectDisposedException("DuplexStream");
+					}
 					semaphoreLock = await SemaphoreLock.GetLockAsync(_semaphore, cancellationToken);
 				}
 
@@ -95,8 +103,14 @@ namespace Vaettir.Utility
 
 		public override async Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
 		{
-			if (_writeClosed) throw new InvalidOperationException();
-			if (_chunks == null) throw new ObjectDisposedException(nameof(DuplexStream));
+			if (_writeClosed)
+			{
+				throw new InvalidOperationException();
+			}
+			if (_chunks == null)
+			{
+				throw new ObjectDisposedException(nameof(DuplexStream));
+			}
 
 			var insert = new byte[count];
 			Array.Copy(buffer, offset, insert, 0, count);
@@ -121,8 +135,8 @@ namespace Vaettir.Utility
 			if (disposing)
 			{
 				_writeClosed = true;
-			    _chunks = null;
-			    _newData.Set();
+				_chunks = null;
+				_newData.Set();
 			}
 		}
 	}

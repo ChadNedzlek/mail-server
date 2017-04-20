@@ -17,15 +17,19 @@ namespace Vaettir.Mail.Server.FileSystem
 		{
 		}
 
-		public Task<IMailWriteReference> NewMailAsync(string id, string sender, IImmutableList<string> recipients, CancellationToken token)
+		public Task<IMailWriteReference> NewMailAsync(
+			string id,
+			string sender,
+			IImmutableList<string> recipients,
+			CancellationToken token)
 		{
-			var recipientsByDomain = recipients.GroupBy(MailUtilities.GetDomainFromMailbox).ToList();
+			List<IGrouping<string, string>> recipientsByDomain = recipients.GroupBy(MailUtilities.GetDomainFromMailbox).ToList();
 			if (recipientsByDomain.Count > 1)
 			{
 				throw new ArgumentException("Multiple domains in recipients list", nameof(recipients));
 			}
 
-			var firstGroup = recipientsByDomain.First();
+			IGrouping<string, string> firstGroup = recipientsByDomain.First();
 			string domain = firstGroup.Key;
 
 			string GetPathFromName(string name)
@@ -56,9 +60,14 @@ namespace Vaettir.Mail.Server.FileSystem
 		{
 			var writeReference = reference as WriteReference;
 			if (writeReference == null)
+			{
 				throw new ArgumentException("reference must be from NewMailAsync", nameof(reference));
+			}
 
-			if (writeReference.Saved) throw new InvalidOperationException("Already saved");
+			if (writeReference.Saved)
+			{
+				throw new InvalidOperationException("Already saved");
+			}
 
 			writeReference.BodyStream.Dispose();
 			File.Move(writeReference.TempPath, writeReference.Path);

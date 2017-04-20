@@ -142,7 +142,11 @@ namespace Vaettir.Mail.Server
 						IDictionary<string, IEnumerable<string>> headers = await MailUtilities.ParseHeadersAsync(bodyStream, token);
 						ISet<string> recipients = AugmentRecipients(readReference.Sender, readReference.Recipients, headers);
 						bodyStream.Seek(0, SeekOrigin.Begin);
-						IWritable[] dispatchReferenecs = await CreateDispatchesAsync(readReference.Id, recipients, readReference.Sender, token);
+						IWritable[] dispatchReferenecs = await CreateDispatchesAsync(
+							readReference.Id,
+							recipients,
+							readReference.Sender,
+							token);
 
 						using (var targetStream = new MultiStream(dispatchReferenecs.Select(r => r.BodyStream)))
 						{
@@ -188,7 +192,9 @@ namespace Vaettir.Mail.Server
 							if (_settings.Value.RelayDomains.Any(d => string.Equals(d.Name, g.Key, StringComparison.OrdinalIgnoreCase)) ||
 								_settings.Value.DomainName == senderDomain)
 							{
-								return _transfer.NewMailAsync(mailId, sender, g.ToImmutableList(), token).Cast<IMailWriteReference, IWritable>().ToEnumerable();
+								return _transfer.NewMailAsync(mailId, sender, g.ToImmutableList(), token)
+									.Cast<IMailWriteReference, IWritable>()
+									.ToEnumerable();
 							}
 
 							_log.Error($"Invalid domain {g.Key}");

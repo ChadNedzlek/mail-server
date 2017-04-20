@@ -2,11 +2,11 @@ namespace Vaettir.Mail.Server
 {
 	public class UserData
 	{
-	    public UserData(string mailbox)
-	    {
-	        Mailbox = mailbox;
-	    }
+		public UserData(string mailbox)
+		{
+			Mailbox = mailbox;
+		}
 
-	    public string Mailbox { get; }
+		public string Mailbox { get; }
 	}
 }

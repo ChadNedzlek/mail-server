@@ -11,8 +11,8 @@ namespace Vaettir.Mail.Server.Smtp
 {
 	public class SmtpSession : IProtocolSession, IAuthenticationTransport, IDisposable, IMessageChannel, IMailBuilder
 	{
-		private readonly IComponentContext _context;
 		private readonly SecurableConnection _connection;
+		private readonly IComponentContext _context;
 		private readonly SmtpSettings _settings;
 
 		private bool _closeRequested;

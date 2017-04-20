@@ -31,16 +31,21 @@ namespace Vaettir.Mail.Server
 			TimeSpan.FromHours(72)
 		);
 
+		private readonly IDnsResolve _dns;
+		private readonly IMailSendFailureManager _failures;
+
 		private readonly ILogger _log;
 		private readonly IMailTransferQueue _queue;
 		private readonly IVolatile<SmtpSettings> _settings;
-		private readonly IMailSendFailureManager _failures;
 		private readonly ITcpConnectionProvider _tcp;
-		private readonly IDnsResolve _dns;
 
-		public RemoteCertificateValidationCallback RemoteCertificateValidationCallback { get; set; }
-
-		public MailTransfer(IMailTransferQueue queue, IVolatile<SmtpSettings> settings, ILogger log, IDnsResolve dns, IMailSendFailureManager failures, ITcpConnectionProvider tcp)
+		public MailTransfer(
+			IMailTransferQueue queue,
+			IVolatile<SmtpSettings> settings,
+			ILogger log,
+			IDnsResolve dns,
+			IMailSendFailureManager failures,
+			ITcpConnectionProvider tcp)
 		{
 			_queue = queue;
 			_settings = settings;
@@ -50,13 +55,15 @@ namespace Vaettir.Mail.Server
 			_tcp = tcp;
 		}
 
+		public RemoteCertificateValidationCallback RemoteCertificateValidationCallback { get; set; }
+
 		public async Task RunAsync(CancellationToken token)
 		{
 			while (!token.IsCancellationRequested)
 			{
 				try
 				{
-					bool sent = false;
+					var sent = false;
 					foreach (string domain in _queue.GetAllPendingDomains())
 					{
 						List<IMailReference> mails = _queue.GetAllMailForDomain(domain).Where(IsReadyToSend).ToList();
@@ -87,7 +94,9 @@ namespace Vaettir.Mail.Server
 		{
 			_log.Verbose($"Sending outbound mails for {domain}");
 
-			SmtpRelayDomain relayDomain = _settings.Value.RelayDomains?.FirstOrDefault(rd => string.Equals(rd.Name, domain, StringComparison.OrdinalIgnoreCase));
+			SmtpRelayDomain relayDomain =
+				_settings.Value.RelayDomains?.FirstOrDefault(
+					rd => string.Equals(rd.Name, domain, StringComparison.OrdinalIgnoreCase));
 			if (relayDomain != null)
 			{
 				_log.Verbose($"Relayed mail detected, replaying from {relayDomain.Name} to {relayDomain.Relay}:{relayDomain.Port}");
@@ -125,7 +134,7 @@ namespace Vaettir.Mail.Server
 
 		private async Task HandleFailedMailsAsync(IReadOnlyList<IMailReference> unsent)
 		{
-			foreach (var mail in unsent)
+			foreach (IMailReference mail in unsent)
 			{
 				SmtpFailureData retryData = ShouldAttemptRedelivery(mail);
 				if (retryData == null)
@@ -144,11 +153,15 @@ namespace Vaettir.Mail.Server
 
 		private bool IsSendToSelf(string exchange)
 		{
-			if (String.Equals(_settings.Value.DomainName, exchange, StringComparison.OrdinalIgnoreCase))
+			if (string.Equals(_settings.Value.DomainName, exchange, StringComparison.OrdinalIgnoreCase))
+			{
 				return true;
+			}
 
 			if (_settings.Value.DomainAliases?.Contains(exchange, StringComparer.OrdinalIgnoreCase) == true)
+			{
 				return true;
+			}
 
 			return false;
 		}
@@ -160,14 +173,14 @@ namespace Vaettir.Mail.Server
 			CancellationToken token)
 		{
 			_log.Verbose($"Looking up information for MX {target}");
-			IPAddress targetIp = await _dns.QueryIp(target,  token);
+			IPAddress targetIp = await _dns.QueryIp(target, token);
 
 			if (targetIp == null)
 			{
 				_log.Warning($"Failed to resolve A or AAAA record for MX record {target}");
 				return mails;
 			}
-			using (var mxClient = _tcp.GetClient())
+			using (ITcpClient mxClient = _tcp.GetClient())
 			{
 				_log.Information($"Connecting to MX {target} at {targetIp} on port {port}");
 				await mxClient.ConnectAsync(targetIp, port);
@@ -181,9 +194,13 @@ namespace Vaettir.Mail.Server
 			return mails;
 		}
 
-		public async Task<IReadOnlyList<IMailReference>> TrySendMailsToStream(string target, IReadOnlyList<IMailReference> mails, Stream mxStream, CancellationToken token)
+		public async Task<IReadOnlyList<IMailReference>> TrySendMailsToStream(
+			string target,
+			IReadOnlyList<IMailReference> mails,
+			Stream mxStream,
+			CancellationToken token)
 		{
-			List<IMailReference> unsent = new List<IMailReference>();
+			var unsent = new List<IMailReference>();
 			using (var stream = new RedirectableStream(mxStream))
 			using (var reader = new StreamReader(stream))
 			using (var writer = new StreamWriter(stream))
@@ -279,7 +296,9 @@ namespace Vaettir.Mail.Server
 		{
 			SmtpFailureData failure = _failures.GetFailure(mail.Id, false);
 			if (failure == null)
+			{
 				return true;
+			}
 
 			TimeSpan currentLag = DateTimeOffset.UtcNow - failure.FirstFailure;
 			if (currentLag < CalculateNextRetryInterval(failure.Retries))

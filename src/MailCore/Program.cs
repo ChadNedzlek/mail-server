@@ -32,7 +32,7 @@ namespace MailCore
 				var cts = new CancellationTokenSource();
 
 				await Task.WhenAll(
-					smtp.RunAsync(cts.Token), 
+					smtp.RunAsync(cts.Token),
 					dispatcher.RunAsync(cts.Token),
 					transfer.RunAsync(cts.Token));
 			}

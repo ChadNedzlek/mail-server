@@ -24,14 +24,15 @@ namespace Vaettir.Utility
 
 		public static Task<bool> TryReadLineAsync(this TextReader reader, Action<string> getLine, CancellationToken token)
 		{
-			return reader.ReadLineAsync().ContinueWith(
-				l =>
-				{
-					string line = l.Result;
-					getLine(line);
-					return line != null;
-				},
-				token);
+			return reader.ReadLineAsync()
+				.ContinueWith(
+					l =>
+					{
+						string line = l.Result;
+						getLine(line);
+						return line != null;
+					},
+					token);
 		}
 
 		public static bool TryReadLine(this TextReader reader, out string line)

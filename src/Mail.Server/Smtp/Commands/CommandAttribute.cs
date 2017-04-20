@@ -7,11 +7,11 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 	[AttributeUsage(AttributeTargets.Class)]
 	public class CommandAttribute : Attribute
 	{
-		public string Name { get; }
-
 		public CommandAttribute(string name)
 		{
 			Name = name;
 		}
+
+		public string Name { get; }
 	}
 }

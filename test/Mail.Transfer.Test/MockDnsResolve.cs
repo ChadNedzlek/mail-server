@@ -8,8 +8,8 @@ namespace Mail.Transfer.Test
 {
 	internal class MockDnsResolve : IDnsResolve
 	{
-		private readonly Dictionary<string, List<DnsMxRecord>> _mx = new Dictionary<string, List<DnsMxRecord>>();
 		private readonly Dictionary<string, IPAddress> _ip = new Dictionary<string, IPAddress>();
+		private readonly Dictionary<string, List<DnsMxRecord>> _mx = new Dictionary<string, List<DnsMxRecord>>();
 
 		public Task<IEnumerable<DnsMxRecord>> QueryMx(string domain, CancellationToken token)
 		{

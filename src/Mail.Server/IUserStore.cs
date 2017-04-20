@@ -10,6 +10,6 @@ namespace Vaettir.Mail.Server
 
 		bool CanUserSendAs(UserData user, string mailbox);
 
-	    Task AddUserAsync(string username, string password, CancellationToken token);
+		Task AddUserAsync(string username, string password, CancellationToken token);
 	}
 }

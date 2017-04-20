@@ -7,17 +7,17 @@ namespace Vaettir.Mail.Server.Authentication.Mechanism
 	[AttributeUsage(AttributeTargets.Class)]
 	public class AuthenticationMechanismAttribute : Attribute, IAuthencticationMechanismMetadata
 	{
-		public string Name { get; }
-	    public bool RequiresEncryption { get; }
-
-	    public AuthenticationMechanismAttribute(string name, bool requiresEncryption)
+		public AuthenticationMechanismAttribute(string name, bool requiresEncryption)
 		{
 			Name = name;
 			RequiresEncryption = requiresEncryption;
 		}
+
+		public string Name { get; }
+		public bool RequiresEncryption { get; }
 	}
 
-    public interface IAuthencticationMechanismMetadata
+	public interface IAuthencticationMechanismMetadata
 	{
 		string Name { get; }
 		bool RequiresEncryption { get; }

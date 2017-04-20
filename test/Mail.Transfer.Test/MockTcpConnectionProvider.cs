@@ -10,6 +10,25 @@ namespace Mail.Transfer.Test
 {
 	internal sealed class MockTcpConnectionProvider : ITcpConnectionProvider, IDisposable
 	{
+		public readonly List<MockTcpClient> Created = new List<MockTcpClient>();
+
+		public void Dispose()
+		{
+			foreach (MockTcpClient item in Created)
+			{
+				item.HalfStream?.Dispose();
+				item.ActiveStream?.Dispose();
+				item.Dispose();
+			}
+		}
+
+		public ITcpClient GetClient()
+		{
+			var c = new MockTcpClient();
+			Created.Add(c);
+			return c;
+		}
+
 		public class MockTcpClient : ITcpClient
 		{
 			public IPAddress IpAddress { get; private set; }
@@ -37,24 +56,6 @@ namespace Mail.Transfer.Test
 				HalfStream = a;
 				ActiveStream = b;
 				return b;
-			}
-		}
-
-		public readonly List<MockTcpClient> Created = new List<MockTcpClient>();
-		public ITcpClient GetClient()
-		{
-			var c = new MockTcpClient();
-			Created.Add(c);
-			return c;
-		}
-
-		public void Dispose()
-		{
-			foreach (var item in Created)
-			{
-				item.HalfStream?.Dispose();
-				item.ActiveStream?.Dispose();
-				item.Dispose();
 			}
 		}
 	}

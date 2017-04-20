@@ -16,6 +16,18 @@ namespace Vaettir.Utility
 			_write = write;
 		}
 
+		public override bool CanRead => _read.CanRead;
+		public override bool CanSeek => false;
+		public override bool CanWrite => _write.CanWrite;
+
+		public override long Length => throw new NotSupportedException();
+
+		public override long Position
+		{
+			get => throw new NotSupportedException();
+			set => throw new NotSupportedException();
+		}
+
 		public override void Flush()
 		{
 			_read.Flush();
@@ -67,7 +79,7 @@ namespace Vaettir.Utility
 			return Task.WhenAll(
 				_read.FlushAsync(cancellationToken),
 				_write.FlushAsync(cancellationToken)
-				);
+			);
 		}
 
 		public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
@@ -85,22 +97,10 @@ namespace Vaettir.Utility
 			_write.WriteByte(value);
 		}
 
-		public override bool CanRead => _read.CanRead;
-		public override bool CanSeek => false;
-		public override bool CanWrite => _write.CanWrite;
-
-		public override long Length => throw new NotSupportedException();
-
-		public override long Position
-		{
-			get => throw new NotSupportedException();
-			set => throw new NotSupportedException();
-		}
-
 		public static (Stream a, Stream b) Create()
 		{
-			DuplexStream a = new DuplexStream();
-			DuplexStream b = new DuplexStream();
+			var a = new DuplexStream();
+			var b = new DuplexStream();
 			return (new PairedStream(a, b), new PairedStream(b, a));
 		}
 	}

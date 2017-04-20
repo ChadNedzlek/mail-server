@@ -15,7 +15,7 @@ namespace Vaettir.Mail.Server
 		}
 
 		public string Id { get; }
-		public string Sender { get;  }
+		public string Sender { get; }
 		public IImmutableList<string> Recipients { get; }
 		public IMailStore Store { get; }
 		IWriter IWritable.Store => Store;

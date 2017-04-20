@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -52,6 +51,31 @@ namespace Vaettir.Mail.Test.Utilities
 			return Task.CompletedTask;
 		}
 
+		public Task<IEnumerable<IMailboxItemReference>> GetMails(string mailbox, string folder, CancellationToken token)
+		{
+			return Task.FromResult((IEnumerable<IMailboxItemReference>) GetFolderItems(mailbox, folder));
+		}
+
+		public Task<IEnumerable<string>> GetFolders(string mailbox, string folder, CancellationToken token)
+		{
+			return Task.FromResult(GetMailbox(mailbox).Where(f => f.Key.StartsWith(folder + "/")).Select(f => f.Key));
+		}
+
+		public Task MoveAsync(IMailboxItemReference reference, string folder, CancellationToken token)
+		{
+			var mockRef = (MockMailboxItemReference) reference;
+			GetFolderItems(mockRef).Remove(mockRef);
+			mockRef.Folder = folder;
+			GetFolderItems(mockRef).Add(mockRef);
+			return Task.CompletedTask;
+		}
+
+		public Task SetFlags(IMailboxItemReference reference, MailboxFlags flags, CancellationToken token)
+		{
+			((MockMailboxItemReference) reference).Flags = flags;
+			return Task.CompletedTask;
+		}
+
 		private ICollection<MockMailboxItemReference> GetFolderItems(MockMailboxItemReference mockRef)
 		{
 			return GetFolderItems(mockRef.Mailbox, mockRef.Folder);
@@ -77,31 +101,6 @@ namespace Vaettir.Mail.Test.Utilities
 			}
 
 			return folders;
-		}
-
-		public Task<IEnumerable<IMailboxItemReference>> GetMails(string mailbox, string folder, CancellationToken token)
-		{
-			return Task.FromResult((IEnumerable<IMailboxItemReference>) GetFolderItems(mailbox, folder));
-		}
-
-		public Task<IEnumerable<string>> GetFolders(string mailbox, string folder, CancellationToken token)
-		{
-			return Task.FromResult(GetMailbox(mailbox).Where(f => f.Key.StartsWith(folder + "/")).Select(f => f.Key));
-		}
-
-		public Task MoveAsync(IMailboxItemReference reference, string folder, CancellationToken token)
-		{
-			var mockRef = (MockMailboxItemReference) reference;
-			GetFolderItems(mockRef).Remove(mockRef);
-			mockRef.Folder = folder;
-			GetFolderItems(mockRef).Add(mockRef);
-			return Task.CompletedTask;
-		}
-
-		public Task SetFlags(IMailboxItemReference reference, MailboxFlags flags, CancellationToken token)
-		{
-			((MockMailboxItemReference) reference).Flags = flags;
-			return Task.CompletedTask;
 		}
 	}
 }

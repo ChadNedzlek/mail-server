@@ -1,5 +1,4 @@
 using System.IO;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -20,6 +19,20 @@ namespace Vaettir.Utility
 		{
 			_baseStream = inProgressStream;
 			_offset = inProgressStream.Position;
+		}
+
+		public override bool CanRead => _baseStream.CanRead;
+
+		public override bool CanSeek => _baseStream.CanSeek;
+
+		public override bool CanWrite => _baseStream.CanWrite;
+
+		public override long Length => _baseStream.Length - _offset;
+
+		public override long Position
+		{
+			get => _baseStream.Position - _offset;
+			set => _baseStream.Position = value + _offset;
 		}
 
 		public override void Flush()
@@ -48,10 +61,7 @@ namespace Vaettir.Utility
 			{
 				return _baseStream.Seek(offset - _offset, origin);
 			}
-			else
-			{
-				return _baseStream.Seek(offset, origin);
-			}
+			return _baseStream.Seek(offset, origin);
 		}
 
 		public override void SetLength(long value)
@@ -72,20 +82,6 @@ namespace Vaettir.Utility
 		public override Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
 		{
 			return _baseStream.CopyToAsync(destination, bufferSize, cancellationToken);
-		}
-
-		public override bool CanRead => _baseStream.CanRead;
-
-		public override bool CanSeek => _baseStream.CanSeek;
-
-		public override bool CanWrite => _baseStream.CanWrite;
-
-		public override long Length => _baseStream.Length - _offset;
-
-		public override long Position
-		{
-			get { return _baseStream.Position - _offset; }
-			set { _baseStream.Position = value + _offset; }
 		}
 
 		protected override void Dispose(bool disposing)

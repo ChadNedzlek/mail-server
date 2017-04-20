@@ -1,7 +1,5 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace Vaettir.Mail.Server
 {
@@ -14,7 +12,7 @@ namespace Vaettir.Mail.Server
 			{'S', MailboxFlags.Seen},
 			{'T', MailboxFlags.Deleted},
 			{'D', MailboxFlags.Draft},
-			{'F', MailboxFlags.Flagged},
+			{'F', MailboxFlags.Flagged}
 		};
 
 		private static readonly Dictionary<string, MailboxFlags> s_imapToInternal = new Dictionary<string, MailboxFlags>
@@ -24,16 +22,19 @@ namespace Vaettir.Mail.Server
 			{"\\Seen", MailboxFlags.Seen},
 			{"\\Deleted", MailboxFlags.Deleted},
 			{"\\Draft", MailboxFlags.Draft},
-			{"\\Flagged", MailboxFlags.Flagged},
+			{"\\Flagged", MailboxFlags.Flagged}
 		};
 
-		private static readonly Dictionary<MailboxFlags, char> s_internalToMaildir = Enumerable.ToDictionary<KeyValuePair<char, MailboxFlags>, MailboxFlags, char>(s_maildirToInternal, p => p.Value, p => p.Key);
-		private static readonly Dictionary<MailboxFlags, string> s_internalToImap = Enumerable.ToDictionary<KeyValuePair<string, MailboxFlags>, MailboxFlags, string>(s_imapToInternal, p => p.Value, p => p.Key);
+		private static readonly Dictionary<MailboxFlags, char> s_internalToMaildir =
+			s_maildirToInternal.ToDictionary(p => p.Value, p => p.Key);
+
+		private static readonly Dictionary<MailboxFlags, string> s_internalToImap =
+			s_imapToInternal.ToDictionary(p => p.Value, p => p.Key);
 
 		public static MailboxFlags GetFlagsFromMailDir(string maildirFlags)
 		{
-			MailboxFlags flags = MailboxFlags.None;
-			foreach (var c in maildirFlags)
+			var flags = MailboxFlags.None;
+			foreach (char c in maildirFlags)
 			{
 				if (s_maildirToInternal.TryGetValue(c, out var f))
 				{
@@ -45,7 +46,7 @@ namespace Vaettir.Mail.Server
 
 		public static string GetMailDirFromFlags(MailboxFlags flags)
 		{
-			return new String(s_internalToMaildir.Where(p => flags.HasFlag(p.Key)).Select(p => p.Value).ToArray());
+			return new string(s_internalToMaildir.Where(p => flags.HasFlag(p.Key)).Select(p => p.Value).ToArray());
 		}
 	}
 }

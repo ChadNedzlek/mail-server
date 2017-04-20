@@ -6,7 +6,9 @@ namespace Vaettir.Utility
 	{
 		public static Task<TOut> Cast<TIn, TOut>(this Task<TIn> task)
 		{
-			return task.ContinueWith(t => (TOut)(object)t.Result, TaskContinuationOptions.OnlyOnRanToCompletion | TaskContinuationOptions.ExecuteSynchronously);
+			return task.ContinueWith(
+				t => (TOut) (object) t.Result,
+				TaskContinuationOptions.OnlyOnRanToCompletion | TaskContinuationOptions.ExecuteSynchronously);
 		}
 	}
 }

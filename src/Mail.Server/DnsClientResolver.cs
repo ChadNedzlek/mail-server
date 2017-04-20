@@ -28,13 +28,17 @@ namespace Vaettir.Mail.Server
 			IDnsQueryResponse response = await _lookup.QueryAsync(domain, QueryType.A, token);
 			ARecord aRecord = response.Answers.ARecords().FirstOrDefault();
 			if (aRecord != null)
+			{
 				return aRecord.Address;
+			}
 
 			response = await _lookup.QueryAsync(domain, QueryType.AAAA, token);
 			AaaaRecord aaaaRecord = response.Answers.AaaaRecords().FirstOrDefault();
 			if (aaaaRecord != null)
+			{
 				return aaaaRecord.Address;
-			
+			}
+
 			return null;
 		}
 

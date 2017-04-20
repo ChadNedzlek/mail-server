@@ -43,17 +43,17 @@ namespace Vaettir.Utility
 			return readBuffer;
 		}
 
-	    public static async Task<string> ReadAllFromStreamAsync(Stream stream)
-	    {
-	        string newBody;
+		public static async Task<string> ReadAllFromStreamAsync(Stream stream)
+		{
+			string newBody;
 			stream.Seek(0, SeekOrigin.Begin);
-			using (StreamReader reader = new StreamReader(stream, Encoding.UTF8, false, 1024, true))
-	        {
-	            newBody = await reader.ReadToEndAsync();
-	        }
+			using (var reader = new StreamReader(stream, Encoding.UTF8, false, 1024, true))
+			{
+				newBody = await reader.ReadToEndAsync();
+			}
 			stream.Seek(0, SeekOrigin.Begin);
 
 			return newBody;
-	    }
+		}
 	}
 }

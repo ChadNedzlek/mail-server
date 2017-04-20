@@ -33,12 +33,6 @@ namespace Vaettir.Mail.Test.Utilities
 			return Task.FromResult((IMailReadReference) reference);
 		}
 
-		public Task SaveAsync(IMailWriteReference reference, CancellationToken token)
-		{
-			((MockMailReference) reference).IsSaved = true;
-			return Task.CompletedTask;
-		}
-
 		public Task DeleteAsync(IMailReference reference)
 		{
 			var mockReference = (MockMailReference) reference;
@@ -49,7 +43,13 @@ namespace Vaettir.Mail.Test.Utilities
 
 		public Task SaveAsync(IWritable item, CancellationToken token)
 		{
-			return SaveAsync((IMailWriteReference)item, token);
+			return SaveAsync((IMailWriteReference) item, token);
+		}
+
+		public Task SaveAsync(IMailWriteReference reference, CancellationToken token)
+		{
+			((MockMailReference) reference).IsSaved = true;
+			return Task.CompletedTask;
 		}
 	}
 }

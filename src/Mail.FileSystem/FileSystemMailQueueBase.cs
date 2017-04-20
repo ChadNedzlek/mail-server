@@ -20,81 +20,6 @@ namespace Vaettir.Mail.Server.FileSystem
 			Settings = settings;
 		}
 
-		private interface IReference
-		{
-			string Path { get; }
-		}
-
-		protected class Reference : IMailReference, IReference
-		{
-			public string Id { get; }
-			public string Path { get; }
-
-			public Reference(string id, string path)
-			{
-				Path = path;
-				Id = id;
-			}
-		}
-
-		private class ReadReference : IMailReadReference, IReference
-		{
-			public Stream BodyStream { get; }
-
-			public string Sender { get; }
-			public IImmutableList<string> Recipients { get; }
-			public IMailStore Store { get; }
-			public string Path { get; }
-
-			public string Id { get; }
-
-			public ReadReference(
-				string id,
-				string sender,
-				IEnumerable<string> recipients,
-				string path,
-				Stream bodyStream,
-				IMailStore store)
-			{
-				Id = id;
-				BodyStream = bodyStream;
-				Store = store;
-				Path = path;
-				Sender = sender;
-				Recipients = ImmutableList.CreateRange(recipients);
-			}
-
-			public void Dispose()
-			{
-				BodyStream?.Dispose();
-			}
-		}
-
-		protected class WriteReference : MailWriteReference, IReference
-		{
-			public override Stream BodyStream { get; }
-			public string Path { get; }
-
-			public string TempPath { get; }
-			public bool Saved { get; set; }
-
-			public WriteReference(string id, string tempPath, string path, string sender, IEnumerable<string> recipients, Stream bodyStream, IMailStore store)
-				: base(id, sender, recipients, store)
-			{
-				BodyStream = bodyStream;
-				TempPath = tempPath;
-				Path = path;
-			}
-
-			public override void Dispose()
-			{
-				if (!Saved && File.Exists(TempPath))
-				{
-					File.Delete(TempPath);
-				}
-			}
-		}
-
 		public async Task<IMailReadReference> OpenReadAsync(IMailReference reference, CancellationToken token)
 		{
 			var mailReference = reference as Reference;
@@ -103,13 +28,13 @@ namespace Vaettir.Mail.Server.FileSystem
 				throw new ArgumentNullException(nameof(reference));
 			}
 
-			using (var stream = Sharable.Create(File.OpenRead(mailReference.Path)))
+			using (Sharable<FileStream> stream = Sharable.Create(File.OpenRead(mailReference.Path)))
 			{
 				string sender;
-				List<string> recipients = new List<string>();
+				var recipients = new List<string>();
 				using (var reader = new StreamReader(stream.Peek(), Encoding.UTF8, false, 1024, true))
 				{
-					var fromLine = await reader.ReadLineAsync();
+					string fromLine = await reader.ReadLineAsync();
 					if (!fromLine.StartsWith("FROM:"))
 					{
 						throw new FormatException("Invalid mail file format, expected FROM line");
@@ -119,7 +44,7 @@ namespace Vaettir.Mail.Server.FileSystem
 
 					while (true)
 					{
-						var line = await reader.ReadLineAsync();
+						string line = await reader.ReadLineAsync();
 						if (line.StartsWith("-----"))
 						{
 							break;
@@ -162,7 +87,13 @@ namespace Vaettir.Mail.Server.FileSystem
 			return Task.FromResult((object) null);
 		}
 
-		protected async Task<IMailWriteReference> CreateWriteReference(string sender, CancellationToken token, IEnumerable<string> firstGroup, Func<string, string> getPathFromName)
+		public abstract Task SaveAsync(IWritable item, CancellationToken token);
+
+		protected async Task<IMailWriteReference> CreateWriteReference(
+			string sender,
+			CancellationToken token,
+			IEnumerable<string> firstGroup,
+			Func<string, string> getPathFromName)
 		{
 			IEnumerable<string> targetRecipients = firstGroup;
 
@@ -174,13 +105,13 @@ namespace Vaettir.Mail.Server.FileSystem
 
 			string tempPath = Path.Combine(Path.GetTempPath(), mailName);
 
-			using (var shared = Sharable.Create(File.Create(tempPath)))
+			using (Sharable<FileStream> shared = Sharable.Create(File.Create(tempPath)))
 			{
 				IEnumerable<string> enumerable = targetRecipients.ToList();
 				using (var writer = new StreamWriter(shared.Peek(), Encoding.UTF8, 1024, true))
 				{
 					await writer.WriteLineAsync($"FROM:{sender}");
-					foreach (var recipient in enumerable)
+					foreach (string recipient in enumerable)
 					{
 						token.ThrowIfCancellationRequested();
 						await writer.WriteLineAsync($"TO:{recipient}");
@@ -188,10 +119,98 @@ namespace Vaettir.Mail.Server.FileSystem
 					await writer.WriteLineAsync("----- BEGIN MESSAGE -----");
 				}
 
-				return new WriteReference(mailName, tempPath, targetPath, sender, enumerable, new OffsetStream(shared.TakeValue()), this);
+				return new WriteReference(
+					mailName,
+					tempPath,
+					targetPath,
+					sender,
+					enumerable,
+					new OffsetStream(shared.TakeValue()),
+					this);
 			}
 		}
 
-		public abstract Task SaveAsync(IWritable item, CancellationToken token);
+		private interface IReference
+		{
+			string Path { get; }
+		}
+
+		protected class Reference : IMailReference, IReference
+		{
+			public Reference(string id, string path)
+			{
+				Path = path;
+				Id = id;
+			}
+
+			public string Id { get; }
+			public string Path { get; }
+		}
+
+		private class ReadReference : IMailReadReference, IReference
+		{
+			public ReadReference(
+				string id,
+				string sender,
+				IEnumerable<string> recipients,
+				string path,
+				Stream bodyStream,
+				IMailStore store)
+			{
+				Id = id;
+				BodyStream = bodyStream;
+				Store = store;
+				Path = path;
+				Sender = sender;
+				Recipients = ImmutableList.CreateRange(recipients);
+			}
+
+			public Stream BodyStream { get; }
+
+			public string Sender { get; }
+			public IImmutableList<string> Recipients { get; }
+			public IMailStore Store { get; }
+
+			public string Id { get; }
+
+			public void Dispose()
+			{
+				BodyStream?.Dispose();
+			}
+
+			public string Path { get; }
+		}
+
+		protected class WriteReference : MailWriteReference, IReference
+		{
+			public WriteReference(
+				string id,
+				string tempPath,
+				string path,
+				string sender,
+				IEnumerable<string> recipients,
+				Stream bodyStream,
+				IMailStore store)
+				: base(id, sender, recipients, store)
+			{
+				BodyStream = bodyStream;
+				TempPath = tempPath;
+				Path = path;
+			}
+
+			public override Stream BodyStream { get; }
+
+			public string TempPath { get; }
+			public bool Saved { get; set; }
+			public string Path { get; }
+
+			public override void Dispose()
+			{
+				if (!Saved && File.Exists(TempPath))
+				{
+					File.Delete(TempPath);
+				}
+			}
+		}
 	}
 }

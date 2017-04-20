@@ -10,11 +10,11 @@ namespace Vaettir.Mail.Test.Utilities
 			Settings = new MockVolatile<DomainSettings>(settings);
 		}
 
+		public IVolatile<DomainSettings> Settings { get; }
+
 		public IVolatile<DomainSettings> GetDomainSettings(string domain)
 		{
 			return Settings;
 		}
-
-		public IVolatile<DomainSettings> Settings { get; }
 	}
 }
