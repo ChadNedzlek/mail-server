@@ -1,4 +1,6 @@
-﻿namespace Vaettir.Mail.Server.Smtp
+﻿using System;
+
+namespace Vaettir.Mail.Server.Smtp
 {
 	public class SmtpSettings : ProtocolSettings
 	{
@@ -16,7 +18,8 @@
 			string domainSettingsPath = null,
 			SmtpRelayDomain[] relayDomains = null,
 			string passwordAlgorithm = null,
-			int? idleDelay = null)
+			int? idleDelay = null,
+			MailDescriminator sendBounce = MailDescriminator.None)
 			: base(ports, domainName, domainAliases, userPasswordFile, passwordAlgorithm)
 		{
 			IncomingScan = incomingScan;
@@ -28,6 +31,7 @@
 			RelayDomains = relayDomains;
 			IdleDelay = idleDelay;
 			DomainSettingsPath = domainSettingsPath;
+			SendBounce = sendBounce;
 		}
 
 		public SmtpAcceptDomain[] LocalDomains { get; }
@@ -39,6 +43,16 @@
 		public string WorkingDirectory { get; }
 		public SmtpIncomingMailScan IncomingScan { get; }
 		public string MailLocalPath { get; }
+		public MailDescriminator SendBounce { get; }
+	}
+
+	[Flags]
+	public enum MailDescriminator
+	{
+		None = 0,
+		Internal = 0b01,
+		External = 0b10,
+		Both = Internal | External,
 	}
 
 	public class SmtpIncomingMailScan
