@@ -27,14 +27,12 @@ namespace MailCore
 			{
 				var smtp = container.Resolve<ProtocolListener>();
 				var dispatcher = container.Resolve<MailDispatcher>();
-				var transfer = container.Resolve<MailTransfer>();
 				// var imap
 				var cts = new CancellationTokenSource();
 
 				await Task.WhenAll(
 					smtp.RunAsync(cts.Token),
-					dispatcher.RunAsync(cts.Token),
-					transfer.RunAsync(cts.Token));
+					dispatcher.RunAsync(cts.Token));
 			}
 			return 0;
 		}

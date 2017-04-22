@@ -57,7 +57,7 @@ namespace Mail.Dispatcher.Test
 				{
 					{"alias-1@example.com", "box@example.com"}
 				});
-			_settings = new SmtpSettings(
+			_settings = TestHelpers.MakeSettings(
 				domainName: "example.com",
 				relayDomains: new[] {new SmtpRelayDomain("relay.example.com", "relay.example.com")},
 				localDomains: new[] {new SmtpAcceptDomain("example.com")},

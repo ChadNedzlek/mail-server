@@ -53,7 +53,7 @@ namespace Vaettir.Mail.Smtp.Test
 				builder.RegisterAssemblyTypes(typeof(SmtpSession).GetTypeInfo().Assembly)
 					.Where(t => t.GetTypeInfo().GetCustomAttribute<CommandAttribute>() != null)
 					.Keyed<ICommand>(t => t.GetTypeInfo().GetCustomAttribute<CommandAttribute>().Name);
-				builder.RegisterInstance(new SmtpSettings(domainName: "test.vaettir.net"))
+				builder.RegisterInstance(TestHelpers.MakeSettings(domainName: "test.vaettir.net"))
 					.As<SmtpSettings>()
 					.As<ProtocolSettings>();
 

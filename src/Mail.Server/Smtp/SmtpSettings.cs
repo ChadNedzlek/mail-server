@@ -5,17 +5,20 @@ namespace Vaettir.Mail.Server.Smtp
 	public class SmtpSettings : ProtocolSettings
 	{
 		public SmtpSettings(
-			SmtpIncomingMailScan incomingScan = null,
-			string workingDirectory = null,
-			int[] ports = null,
-			string domainName = null,
-			string[] domainAliases = null,
-			SmtpAcceptDomain[] localDomains = null,
-			string mailIncomingQueuePath = null,
-			string mailOutgoingQueuePath = null,
+			// Required settings for basic functionality
+			string domainName,
+			string mailIncomingQueuePath,
+			string mailOutgoingQueuePath,
+			string workingDirectory,
+			SmtpAcceptDomain[] localDomains,
+			string domainSettingsPath,
+
+			// Optional settings
 			string mailLocalPath = null,
+			SmtpIncomingMailScan incomingScan = null,
+			int[] ports = null,
+			string[] domainAliases = null,
 			string userPasswordFile = null,
-			string domainSettingsPath = null,
 			SmtpRelayDomain[] relayDomains = null,
 			string passwordAlgorithm = null,
 			int? idleDelay = null,
@@ -23,10 +26,10 @@ namespace Vaettir.Mail.Server.Smtp
 			: base(ports, domainName, domainAliases, userPasswordFile, passwordAlgorithm)
 		{
 			IncomingScan = incomingScan;
-			WorkingDirectory = workingDirectory;
 			LocalDomains = localDomains;
 			MailIncomingQueuePath = mailIncomingQueuePath;
 			MailOutgoingQueuePath = mailOutgoingQueuePath;
+			WorkingDirectory = workingDirectory;
 			MailLocalPath = mailLocalPath;
 			RelayDomains = relayDomains;
 			IdleDelay = idleDelay;
@@ -40,10 +43,10 @@ namespace Vaettir.Mail.Server.Smtp
 		public SmtpRelayDomain[] RelayDomains { get; }
 		public string DomainSettingsPath { get; }
 		public int? IdleDelay { get; }
-		public string WorkingDirectory { get; }
 		public SmtpIncomingMailScan IncomingScan { get; }
 		public string MailLocalPath { get; }
 		public MailDescriminator SendBounce { get; }
+		public string WorkingDirectory { get; }
 	}
 
 	[Flags]

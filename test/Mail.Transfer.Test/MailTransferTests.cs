@@ -21,8 +21,9 @@ namespace Mail.Transfer.Test
 		public MailTransferTests()
 		{
 			_queue = new MockMailTransferQueue();
-			_settings = new MockVolatile<SmtpSettings>(
-				new SmtpSettings(relayDomains: new[] {new SmtpRelayDomain("relay.example.com", "relaytarget.example.com", 99)}));
+			_settings = new MockVolatile<SmtpSettings>(TestHelpers.MakeSettings(
+				relayDomains: new[] {new SmtpRelayDomain("relay.example.com", "relaytarget.example.com", 99)}
+				));
 			_dns = new MockDnsResolve();
 			_failures = new MockMailSendFailureManager();
 			_tcp = new MockTcpConnectionProvider();

@@ -14,7 +14,7 @@ namespace Vaettir.Mail.Smtp.Test
 		public async Task HeloResponds()
 		{
 			var channel = new MockChannel();
-			var command = new HelloCommand(channel, new SmtpSettings(domainName: "Testexample.com"), new MockLogger());
+			var command = new HelloCommand(channel, TestHelpers.MakeSettings(domainName: "Testexample.com"), new MockLogger());
 			command.Initialize("Sender.net");
 			await command.ExecuteAsync(CancellationToken.None);
 
