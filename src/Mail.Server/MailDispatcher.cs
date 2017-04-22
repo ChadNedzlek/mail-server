@@ -251,7 +251,7 @@ namespace Vaettir.Mail.Server
 					domain = settings.Value.Value;
 				}
 
-				DistributionList distributionList = domain?.DistributionLists.FirstOrDefault(dl => dl.Mailbox == recipient);
+				DistributionList distributionList = domain?.DistributionLists?.FirstOrDefault(dl => dl.Mailbox == recipient);
 				if (distributionList != null)
 				{
 					if (!CheckValidSender(sender, distributionList))
@@ -269,7 +269,8 @@ namespace Vaettir.Mail.Server
 				}
 
 				{
-					if (domain != null && domain.Aliases.TryGetValue(recipient, out var newRecipient))
+					// C# compiler mistake that prevents collapsing the domain.Alias null check
+					if (domain?.Aliases != null && domain.Aliases.TryGetValue(recipient, out var newRecipient))
 					{
 						if (excludedFromExpansion.Contains(newRecipient))
 						{

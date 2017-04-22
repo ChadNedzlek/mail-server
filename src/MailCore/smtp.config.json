@@ -1,11 +1,13 @@
 ﻿{
-	"smtpSettings": {
-		"ports": [25],
-		"domainName": "smtp.vaettir.net",
-		"mailIncomingQueuePath": "D:\\temp\\mail\\in",
-		"mailOutgoingQueuePath": "D:\\temp\\mail\\out",
-		"userPasswordFile": "D:\\temp\\mail-user",
-		"passwordAlgorithm": "db:sha1:94857",
-		"relayDomains": ["vaettir.net", "xyons.net"]
-	}
+	"domainName": "testing.vaettir.net",
+	"ports": [9025],
+	"mailIncomingQueuePath": "C:\\temp\\mail\\in",
+	"mailOutgoingQueuePath": "C:\\temp\\mail\\out",
+	"workingDirectory": "C:\\temp\\mail\\working",
+	"localDomains": [
+		{ "name": "testing.vaettir.net" }
+	],
+	"domainSettingsPath": "C:\\temp\\mail\\domains",
+	"userPasswordFile": "C:\\temp\\mail\\mail-user.pwd",
+	"passwordAlgorithm": "db:sha1:94857"
 }

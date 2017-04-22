@@ -15,6 +15,7 @@ namespace Vaettir.Mail.Server.FileSystem
 	{
 		public FileSystemMailQueue(SmtpSettings settings) : base(settings)
 		{
+			Directory.CreateDirectory(Settings.MailIncomingQueuePath);
 		}
 
 		public Task<IMailWriteReference> NewMailAsync(
@@ -24,7 +25,7 @@ namespace Vaettir.Mail.Server.FileSystem
 		{
 			string GetPathFromName(string name)
 			{
-				return Path.Combine(Settings.MailOutgoingQueuePath, name);
+				return Path.Combine(Settings.MailIncomingQueuePath, name);
 			}
 
 			return CreateWriteReference(

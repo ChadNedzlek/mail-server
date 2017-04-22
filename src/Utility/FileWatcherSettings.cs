@@ -12,7 +12,7 @@ namespace Vaettir.Utility
 
 		private FileWatcherSettings(string settingsFileName, T initial)
 		{
-			_settingsFileName = settingsFileName;
+			_settingsFileName = Path.GetFullPath(settingsFileName);
 			_settings = initial;
 			_watcher = new FileSystemWatcher(
 				Path.GetDirectoryName(_settingsFileName),

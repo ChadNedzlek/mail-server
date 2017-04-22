@@ -3,8 +3,8 @@ namespace Vaettir.Mail.Server
 	public class ProtocolSettings
 	{
 		public ProtocolSettings(
-			int[] ports = null,
-			string domainName = null,
+			string domainName,
+			int[] ports,
 			string[] domainAliases = null,
 			string userPasswordFile = null,
 			string passwordAlgorithm = null)

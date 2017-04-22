@@ -31,8 +31,9 @@ namespace MailCore
 				var cts = new CancellationTokenSource();
 
 				await Task.WhenAll(
-					smtp.RunAsync(cts.Token),
-					dispatcher.RunAsync(cts.Token));
+					Task.Run(() => smtp.RunAsync(cts.Token), cts.Token),
+					Task.Run(() => dispatcher.RunAsync(cts.Token), cts.Token)
+					);
 			}
 			return 0;
 		}
