@@ -60,11 +60,11 @@ namespace Vaettir.Mail.Server.FileSystem
 					}
 				}
 
-				return new ReadReference(mailReference.Id, sender, recipients, mailReference.Path, stream.TakeValue(), this);
+				return new ReadReference(mailReference.Id, sender, recipients, mailReference.Path, new OffsetStream(stream.TakeValue()), this);
 			}
 		}
 
-		public Task DeleteAsync(IMailReference reference)
+		public virtual Task DeleteAsync(IMailReference reference)
 		{
 			var mailReference = reference as IReference;
 			if (mailReference != null)
@@ -72,15 +72,6 @@ namespace Vaettir.Mail.Server.FileSystem
 				if (File.Exists(mailReference.Path))
 				{
 					File.Delete(mailReference.Path);
-				}
-
-				try
-				{
-					Directory.Delete(Path.GetDirectoryName(mailReference.Path));
-				}
-				catch (Exception)
-				{
-					// Don't care, we were just cleaning up after ourselves, after all
 				}
 			}
 
@@ -92,18 +83,19 @@ namespace Vaettir.Mail.Server.FileSystem
 		protected async Task<IMailWriteReference> CreateWriteReference(
 			string sender,
 			CancellationToken token,
-			IEnumerable<string> firstGroup,
+			IEnumerable<string> recipients,
+			Func<string, string> getTempPathFromName,
 			Func<string, string> getPathFromName)
 		{
-			IEnumerable<string> targetRecipients = firstGroup;
+			IEnumerable<string> targetRecipients = recipients;
 
 			string mailName = Guid.NewGuid().ToString("D");
 
+			string tempPath = getTempPathFromName(mailName);
 			string targetPath = getPathFromName(mailName);
 
 			Directory.CreateDirectory(Path.GetDirectoryName(targetPath));
-
-			string tempPath = Path.Combine(Path.GetTempPath(), mailName);
+			Directory.CreateDirectory(Path.GetDirectoryName(tempPath));
 
 			using (Sharable<FileStream> shared = Sharable.Create(File.Create(tempPath)))
 			{
@@ -147,7 +139,7 @@ namespace Vaettir.Mail.Server.FileSystem
 			public string Path { get; }
 		}
 
-		private class ReadReference : IMailReadReference, IReference
+		protected class ReadReference : IMailReadReference, IReference
 		{
 			public ReadReference(
 				string id,

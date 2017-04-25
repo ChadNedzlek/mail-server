@@ -1,8 +1,9 @@
 ﻿{
 	"domainName": "testing.vaettir.net",
-	"ports": [9025],
+	"ports": [ 9025 ],
 	"mailIncomingQueuePath": "C:\\temp\\mail\\in",
 	"mailOutgoingQueuePath": "C:\\temp\\mail\\out",
+	"mailLocalPath": "C:\\temp\\mail\\local",
 	"workingDirectory": "C:\\temp\\mail\\working",
 	"localDomains": [
 		{ "name": "testing.vaettir.net" }

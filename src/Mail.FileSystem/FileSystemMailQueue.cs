@@ -25,20 +25,31 @@ namespace Vaettir.Mail.Server.FileSystem
 		{
 			string GetPathFromName(string name)
 			{
-				return Path.Combine(Settings.MailIncomingQueuePath, name);
+				return Path.Combine(GetRootPath("cur"), name);
+			}
+
+			string GetTempPathFromName(string name)
+			{
+				return Path.Combine(GetRootPath("tmp"), name);
 			}
 
 			return CreateWriteReference(
 				sender,
 				token,
 				recipients,
+				GetTempPathFromName,
 				GetPathFromName
 			);
 		}
 
+		private string GetRootPath(string type)
+		{
+			return Path.Combine(Settings.MailIncomingQueuePath, type);
+		}
+
 		public IEnumerable<IMailReference> GetAllMailReferences()
 		{
-			return Directory.GetFiles(Settings.MailIncomingQueuePath, "*", SearchOption.TopDirectoryOnly)
+			return Directory.GetFiles(GetRootPath("cur"), "*", SearchOption.TopDirectoryOnly)
 				.Select(path => new Reference(Path.GetFileNameWithoutExtension(path), path));
 		}
 

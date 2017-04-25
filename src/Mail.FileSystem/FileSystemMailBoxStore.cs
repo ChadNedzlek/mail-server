@@ -12,6 +12,9 @@ namespace Vaettir.Mail.Server.FileSystem
 {
 	public class FileSystemMailboxStore : IMailboxStore
 	{
+		private const string CurrentMailStatus = "cur";
+		private const string TempMailStatus = "tmp";
+
 		private static readonly Regex s_maildirPattern = new Regex(@"^(.);2,(.*)$");
 
 		private readonly SmtpSettings _settings;
@@ -44,9 +47,15 @@ namespace Vaettir.Mail.Server.FileSystem
 				throw new ArgumentException("reference of incorrect type", nameof(reference));
 			}
 
-			string newPath = GetPath(mbox);
+			string newPath = GetPath(mbox, "cur");
+			EnsureDirectoryFor(newPath);
 			File.Move(mbox.TempPath, newPath);
 			return Task.CompletedTask;
+		}
+
+		private static void EnsureDirectoryFor(string newPath)
+		{
+			Directory.CreateDirectory(Path.GetDirectoryName(newPath));
 		}
 
 		public Task DeleteAsync(IMailboxItemReference reference)
@@ -64,14 +73,14 @@ namespace Vaettir.Mail.Server.FileSystem
 		{
 			return Task.FromResult(
 				(IEnumerable<IMailboxItemReference>) Directory
-					.GetFiles(GetFolderPath(mailbox, folder), "*.mbox", SearchOption.TopDirectoryOnly)
+					.GetFiles(GetFolderPath(mailbox, folder, CurrentMailStatus), "*.mbox", SearchOption.TopDirectoryOnly)
 					.Select(file => new MBoxReference(mailbox, folder, file)));
 		}
 
 		public Task<IEnumerable<string>> GetFolders(string mailbox, string folder, CancellationToken token)
 		{
 			return Task.FromResult(
-				Directory.GetDirectories(GetFolderPath(mailbox, folder), ".*", SearchOption.TopDirectoryOnly)
+				Directory.GetDirectories(GetFolderPath(mailbox, folder, CurrentMailStatus), ".*", SearchOption.TopDirectoryOnly)
 					.Select(s => s.Substring(1)) // Strip off the leading .
 			);
 		}
@@ -87,7 +96,9 @@ namespace Vaettir.Mail.Server.FileSystem
 				throw new ArgumentException("Invalid mail id. Must be a valid file name and cannot start with .");
 			}
 
-			string tempFileName = Path.GetTempFileName();
+			
+			string tempFileName = Path.Combine(GetFolderPath(mailbox, folder, TempMailStatus), $"{id}.mbox");
+			EnsureDirectoryFor(tempFileName);
 			return Task.FromResult(
 				(IMailboxItemWriteReference) new MBoxWriteReference(
 					mailbox,
@@ -139,26 +150,28 @@ namespace Vaettir.Mail.Server.FileSystem
 			return $"{id};2,{ImapHelper.GetMailDirFromFlags(flags)}";
 		}
 
-		private string GetPath(MboxReferenceBase mbox)
+		private string GetPath(MboxReferenceBase mbox, string status)
 		{
 			return Path.Combine(
-				GetFolderPath(mbox.Mailbox, mbox.Folder),
+				GetFolderPath(mbox.Mailbox, mbox.Folder, status),
 				CalculateFilnameFromFlags(mbox.Id, mbox.Flags) + ".mbox");
 		}
 
-		private string GetFolderPath(string mailbox, string folder)
+		private string GetFolderPath(string mailbox, string folder, string status)
 		{
 			string folderPart = Path.Combine(folder.Split('/').Select(s => "." + s).ToArray());
 			return Path.Combine(
 				_settings.MailLocalPath,
 				MailUtilities.GetDomainFromMailbox(mailbox),
 				MailUtilities.GetNameFromMailbox(mailbox),
-				folderPart);
+				folderPart,
+				status);
 		}
 
 		private void Relocate(MBoxReference mbox)
 		{
-			string newPath = GetPath(mbox);
+			string newPath = GetPath(mbox, CurrentMailStatus);
+			EnsureDirectoryFor(newPath);
 			File.Move(mbox.CurrentFileName, newPath);
 			mbox.CurrentFileName = newPath;
 		}
