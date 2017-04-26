@@ -35,7 +35,7 @@ namespace Vaettir.Mail.Server.FileSystem
 				var recipients = new List<string>();
 				FileStream streamImpl = stream.Peek();
 				// 23 ASCII characters, up to 1 GB in size, should be sufficient
-				// Header-Legnth: 000000000
+				// Header-Legnth:000000000
 				var headerSizeHeader = Encoding.ASCII.GetString(await streamImpl.ReadExactlyAsync(23, token));
 
 				if (!headerSizeHeader.StartsWith(HeaderLengthHeader))
@@ -50,6 +50,9 @@ namespace Vaettir.Mail.Server.FileSystem
 
 				using (var reader = new StreamReader(new StreamSpan(streamImpl, 0, headerSize), Encoding.UTF8, false, 1, true))
 				{
+					// This should be the "new line" at the end of the Header-Length we've already consumed
+					// so all that is left is the rest of the line (which is empty).
+					// If it's not, then we didn't read what we thought we read, bail
 					string blankLine = await reader.ReadLineAsync();
 					if (!String.IsNullOrEmpty(blankLine))
 					{
