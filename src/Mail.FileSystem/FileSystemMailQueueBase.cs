@@ -32,7 +32,8 @@ namespace Vaettir.Mail.Server.FileSystem
 			{
 				string sender;
 				var recipients = new List<string>();
-				using (var reader = new StreamReader(stream.Peek(), Encoding.UTF8, false, 1024, true))
+				var headerLength = BitConverter.ToInt32(await stream.Peek().ReadExactlyAsync(4, token), 0);
+				using (var reader = new StreamReader(new OffsetStream(stream.Peek(), 4, headerLength), Encoding.UTF8, false, 1, true))
 				{
 					string fromLine = await reader.ReadLineAsync();
 					if (!fromLine.StartsWith("FROM:"))
@@ -42,14 +43,9 @@ namespace Vaettir.Mail.Server.FileSystem
 
 					sender = fromLine.Substring(5);
 
-					while (true)
+					string line = null;
+					while (await reader.TryReadLineAsync(l => line = l, token))
 					{
-						string line = await reader.ReadLineAsync();
-						if (line.StartsWith("-----"))
-						{
-							break;
-						}
-
 						if (line.StartsWith("TO:"))
 						{
 							recipients.Add(line.Substring(3));
@@ -99,8 +95,11 @@ namespace Vaettir.Mail.Server.FileSystem
 
 			using (Sharable<FileStream> shared = Sharable.Create(File.Create(tempPath)))
 			{
+				FileStream stream = shared.Peek();
 				IEnumerable<string> enumerable = targetRecipients.ToList();
-				using (var writer = new StreamWriter(shared.Peek(), Encoding.UTF8, 1024, true))
+				// Save room for header length
+				await stream.WriteAsync(new byte[4], 0, 4, token);
+				using (var writer = new StreamWriter(stream, Encoding.UTF8, 1024, true))
 				{
 					await writer.WriteLineAsync($"FROM:{sender}");
 					foreach (string recipient in enumerable)
@@ -108,8 +107,15 @@ namespace Vaettir.Mail.Server.FileSystem
 						token.ThrowIfCancellationRequested();
 						await writer.WriteLineAsync($"TO:{recipient}");
 					}
-					await writer.WriteLineAsync("----- BEGIN MESSAGE -----");
 				}
+				// Figure out where the headers end
+				int location = (int) stream.Position;
+				// Rewind
+				stream.Seek(0, SeekOrigin.Begin);
+				// Replace the 0's we saved with the real length
+				await stream.WriteAsync(BitConverter.GetBytes(location), 0, 4, token);
+				// Go back to the right place
+				stream.Seek(location, SeekOrigin.Begin);
 
 				return new WriteReference(
 					mailName,

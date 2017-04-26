@@ -15,7 +15,7 @@ namespace Vaettir.Mail.Server.FileSystem
 		private const string CurrentMailStatus = "cur";
 		private const string TempMailStatus = "tmp";
 
-		private static readonly Regex s_maildirPattern = new Regex(@"^(.);2,(.*)$");
+		private static readonly Regex s_maildirPattern = new Regex(@"^(.*);2,(.*)$");
 
 		private readonly SmtpSettings _settings;
 
