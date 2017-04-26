@@ -26,18 +26,12 @@ namespace Vaettir.Utility
 
 		public void Dispose()
 		{
+			// No op for console
 		}
 
-		private void Trace(int eventId, string level, string message)
+		private static void Trace(int eventId, string level, string message)
 		{
-			if (eventId != 0)
-			{
-				Console.WriteLine($"{eventId:####} {level} {message}");
-			}
-			else
-			{
-				Console.WriteLine($"{level} {message}");
-			}
+			Console.WriteLine($"{DateTime.Now:s} {eventId:0000} {level} {message}");
 		}
 	}
 }
