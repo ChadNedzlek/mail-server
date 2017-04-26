@@ -4,27 +4,27 @@ using System.Threading.Tasks;
 
 namespace Vaettir.Utility
 {
-	public class OffsetStream : Stream
+	public class StreamSpan : Stream
 	{
 		private readonly Stream _baseStream;
 		private readonly long _offset;
 		private long? _length;
 
-		public OffsetStream(Stream baseStream, long offset)
+		public StreamSpan(Stream baseStream, long offset)
 		{
 			_baseStream = baseStream;
 			_offset = offset;
 			_length = null;
 		}
 
-		public OffsetStream(Stream baseStream, long offset, long length)
+		public StreamSpan(Stream baseStream, long offset, long length)
 		{
 			_baseStream = baseStream;
 			_offset = offset;
 			_length = length;
 		}
 
-		public OffsetStream(Stream inProgressStream)
+		public StreamSpan(Stream inProgressStream)
 		{
 			_baseStream = inProgressStream;
 			_offset = inProgressStream.Position;

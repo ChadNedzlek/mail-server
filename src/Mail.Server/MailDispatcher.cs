@@ -125,10 +125,17 @@ namespace Vaettir.Mail.Server
 				{
 					readReference = await _incoming.OpenReadAsync(reference, token);
 				}
-				catch (IOException e)
+				catch (Exception e)
 				{
-					// It's probably a sharing violation, just try again later.
-					_log.Warning($"Failed to get read reference, exception: {e}");
+					_log.Warning($"Failed to get open read reference, deleting message: {e}");
+					try
+					{
+						await _incoming.DeleteAsync(reference);
+					}
+					catch (Exception deleteException)
+					{
+						_log.Error($"Failed to delete message: {deleteException}");
+					}
 					continue;
 				}
 

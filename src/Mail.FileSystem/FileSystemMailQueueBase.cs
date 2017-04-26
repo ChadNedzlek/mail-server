@@ -13,6 +13,7 @@ namespace Vaettir.Mail.Server.FileSystem
 {
 	public abstract class FileSystemMailQueueBase : IMailStore
 	{
+		private const string HeaderLengthHeader = "Header-Length:";
 		protected readonly SmtpSettings Settings;
 
 		protected FileSystemMailQueueBase(SmtpSettings settings)
@@ -32,9 +33,29 @@ namespace Vaettir.Mail.Server.FileSystem
 			{
 				string sender;
 				var recipients = new List<string>();
-				var headerLength = BitConverter.ToInt32(await stream.Peek().ReadExactlyAsync(4, token), 0);
-				using (var reader = new StreamReader(new OffsetStream(stream.Peek(), 4, headerLength), Encoding.UTF8, false, 1, true))
+				FileStream streamImpl = stream.Peek();
+				// 23 ASCII characters, up to 1 GB in size, should be sufficient
+				// Header-Legnth: 000000000
+				var headerSizeHeader = Encoding.ASCII.GetString(await streamImpl.ReadExactlyAsync(23, token));
+
+				if (!headerSizeHeader.StartsWith(HeaderLengthHeader))
 				{
+					throw new FormatException($"Invalid mail file format, expected {HeaderLengthHeader} line");
+				}
+
+				if (!Int32.TryParse(headerSizeHeader.Substring(HeaderLengthHeader.Length), out var headerSize) || headerSize <= 0)
+				{
+					throw new FormatException($"Invalid mail file format, {HeaderLengthHeader} is not a valid number");
+				}
+
+				using (var reader = new StreamReader(new StreamSpan(streamImpl, 0, headerSize), Encoding.UTF8, false, 1, true))
+				{
+					string blankLine = await reader.ReadLineAsync();
+					if (!String.IsNullOrEmpty(blankLine))
+					{
+						throw new FormatException($"Invalid mail file format, {HeaderLengthHeader} is improperly formatted");
+					}
+
 					string fromLine = await reader.ReadLineAsync();
 					if (!fromLine.StartsWith("FROM:"))
 					{
@@ -56,7 +77,7 @@ namespace Vaettir.Mail.Server.FileSystem
 					}
 				}
 
-				return new ReadReference(mailReference.Id, sender, recipients, mailReference.Path, new OffsetStream(stream.TakeValue()), this);
+				return new ReadReference(mailReference.Id, sender, recipients, mailReference.Path, new StreamSpan(stream.TakeValue()), this);
 			}
 		}
 
@@ -93,29 +114,28 @@ namespace Vaettir.Mail.Server.FileSystem
 			Directory.CreateDirectory(Path.GetDirectoryName(targetPath));
 			Directory.CreateDirectory(Path.GetDirectoryName(tempPath));
 
-			using (Sharable<FileStream> shared = Sharable.Create(File.Create(tempPath)))
+			using (Sharable<FileStream> shared = Sharable.Create(File.Open(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read)))
 			{
 				FileStream stream = shared.Peek();
 				IEnumerable<string> enumerable = targetRecipients.ToList();
 				// Save room for header length
-				await stream.WriteAsync(new byte[4], 0, 4, token);
-				using (var writer = new StreamWriter(stream, Encoding.UTF8, 1024, true))
+				using (var writer = new StreamWriter(stream, new UTF8Encoding(false), 1024, true))
 				{
+					await writer.WriteLineAsync($"{HeaderLengthHeader}000000000");
 					await writer.WriteLineAsync($"FROM:{sender}");
 					foreach (string recipient in enumerable)
 					{
 						token.ThrowIfCancellationRequested();
 						await writer.WriteLineAsync($"TO:{recipient}");
 					}
+					await writer.FlushAsync();
+					int location = (int)stream.Position;
+					stream.Seek(0, SeekOrigin.Begin);
+					await writer.FlushAsync();
+					await writer.WriteLineAsync($"{HeaderLengthHeader}{location:D9}");
+					await writer.FlushAsync();
+					stream.Seek(location, SeekOrigin.Begin);
 				}
-				// Figure out where the headers end
-				int location = (int) stream.Position;
-				// Rewind
-				stream.Seek(0, SeekOrigin.Begin);
-				// Replace the 0's we saved with the real length
-				await stream.WriteAsync(BitConverter.GetBytes(location), 0, 4, token);
-				// Go back to the right place
-				stream.Seek(location, SeekOrigin.Begin);
 
 				return new WriteReference(
 					mailName,
@@ -123,7 +143,7 @@ namespace Vaettir.Mail.Server.FileSystem
 					targetPath,
 					sender,
 					enumerable,
-					new OffsetStream(shared.TakeValue()),
+					new StreamSpan(shared.TakeValue()),
 					this);
 			}
 		}
