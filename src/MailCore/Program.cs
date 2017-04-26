@@ -1,8 +1,12 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Autofac;
 using JetBrains.Annotations;
+using Mono.Options;
 using Vaettir.Mail.Server;
 using Vaettir.Mail.Server.Authentication;
 using Vaettir.Mail.Server.Authentication.Mechanism;
@@ -13,32 +17,83 @@ using Vaettir.Utility;
 
 namespace MailCore
 {
+	internal class Options
+	{
+		public string SettingsPath { get; set; } = "smtp.config.json";
+	}
+
 	public static class Program
 	{
 		[UsedImplicitly]
 		public static int Main(string[] args)
 		{
-			return MailAsync().GetAwaiter().GetResult();
-		}
+			Options o = new Options();
+			OptionSet p = new OptionSet()
+				.Add("config|c=", "Configuration file. Default 'smtp.config.json'", s => o.SettingsPath = s);
 
-		private static async Task<int> MailAsync()
-		{
-			using (IContainer container = BuildContainer())
+			List<string> remaining = null;
+			try
 			{
-				var smtp = container.Resolve<ProtocolListener>();
-				var dispatcher = container.Resolve<MailDispatcher>();
-				// var imap
-				var cts = new CancellationTokenSource();
-
-				await Task.WhenAll(
-					Task.Run(() => smtp.RunAsync(cts.Token), cts.Token),
-					Task.Run(() => dispatcher.RunAsync(cts.Token), cts.Token)
-					);
+				remaining = p.Parse(args);
 			}
-			return 0;
+			catch (Exception e)
+			{
+				ShowHelp(Console.Error, "Usage: ", p, e);
+				return 1;
+			}
+
+			if (remaining.Count < 1)
+			{
+				ShowHelp(Console.Error, "Command required", p, null);
+				return 1;
+			}
+
+			var command = remaining[0];
+			remaining.RemoveAt(0);
+
+			CommandHandler handler = GetHandler(command);
+			if (handler == null)
+			{
+				ShowHelp(Console.Error, $"Unknown command '{command}'", p, null);
+				return 1;
+			}
+
+			using (var container = BuildContainer(o))
+			{
+				return handler.RunAsync(container, o, remaining).GetAwaiter().GetResult();
+			}
 		}
 
-		private static IContainer BuildContainer()
+		private static CommandHandler GetHandler(string command)
+		{
+			switch (command)
+			{
+				case "run":
+					return new AgentHandler();
+				case "user":
+					return new UserHandler();
+				default:
+					return null;
+			}
+		}
+
+		internal static void ShowHelp(TextWriter textWriter, string message, OptionSet optionSet, Exception optionException)
+		{
+			if (message != null)
+			{
+				textWriter.WriteLine(message);
+				textWriter.WriteLine();
+			}
+			textWriter.WriteLine(
+				@"Usage:
+  vmail [global options] run
+
+  global options:
+");
+			optionSet?.WriteOptionDescriptions(textWriter);
+		}
+
+		internal static IContainer BuildContainer(Options options)
 		{
 			var builder = new ContainerBuilder();
 
@@ -64,7 +119,7 @@ namespace MailCore
 			builder.RegisterType<FileSystemMailboxStore>().As<IMailboxStore>();
 			builder.RegisterType<FileSystemMailSendFailureManager>().As<IMailSendFailureManager>();
 
-			FileWatcherSettings<SmtpSettings> settings = FileWatcherSettings<SmtpSettings>.Load("smtp.config.json");
+			FileWatcherSettings<SmtpSettings> settings = FileWatcherSettings<SmtpSettings>.Load(options.SettingsPath);
 			SmtpSettings initialValue = settings.Value;
 			builder.RegisterInstance(initialValue)
 				.As<SmtpSettings>()
