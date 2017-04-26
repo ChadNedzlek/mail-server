@@ -95,7 +95,7 @@ namespace Vaettir.Mail.Server.FileSystem
 				}
 			}
 
-			return Task.FromResult((object) null);
+			return Task.CompletedTask;
 		}
 
 		public abstract Task SaveAsync(IWritable item, CancellationToken token);

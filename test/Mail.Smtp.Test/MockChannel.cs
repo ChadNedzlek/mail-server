@@ -17,7 +17,7 @@ namespace Vaettir.Mail.Smtp.Test
 		public Task SendReplyAsync(ReplyCode replyCode, bool more, string message, CancellationToken token)
 		{
 			Entries.Add(new Entry(replyCode, message, more));
-			return Task.FromResult((object) null);
+			return Task.CompletedTask;
 		}
 
 		public Task SendReplyAsync(ReplyCode replyCode, IEnumerable<string> messages, CancellationToken cancellationToken)
@@ -27,7 +27,7 @@ namespace Vaettir.Mail.Smtp.Test
 			{
 				Entries.Add(new Entry(replyCode, list[index], index != list.Count - 1));
 			}
-			return Task.FromResult((object) null);
+			return Task.CompletedTask;
 		}
 
 		public string ConnectedHost { get; set; }
