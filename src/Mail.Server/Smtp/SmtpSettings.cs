@@ -70,12 +70,14 @@ namespace Vaettir.Mail.Server.Smtp
 
 	public class SmtpAcceptDomain
 	{
-		public SmtpAcceptDomain(string name)
+		public SmtpAcceptDomain(string name, string fallbackMailbox = null)
 		{
 			Name = name;
+			FallbackMailbox = fallbackMailbox;
 		}
 
 		public string Name { get; }
+		public string FallbackMailbox { get; }
 	}
 
 	public class SmtpRelayDomain
