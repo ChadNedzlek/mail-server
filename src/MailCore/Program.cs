@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Autofac;
+using Autofac.Builder;
 using JetBrains.Annotations;
 using Mono.Options;
 using Vaettir.Mail.Server;
@@ -20,6 +21,7 @@ namespace MailCore
 	internal class Options
 	{
 		public string SettingsPath { get; set; } = "smtp.config.json";
+		public LogLevel Verbosity { get; set; }
 	}
 
 	public static class Program
@@ -51,27 +53,27 @@ namespace MailCore
 			var command = remaining[0];
 			remaining.RemoveAt(0);
 
-			CommandHandler handler = GetHandler(command);
-			if (handler == null)
-			{
-				ShowHelp(Console.Error, $"Unknown command '{command}'", p, null);
-				return 1;
-			}
-
 			using (var container = BuildContainer(o))
 			{
-				return handler.RunAsync(container, o, remaining).GetAwaiter().GetResult();
+				CommandHandler handler = GetHandler(command, container);
+				if (handler == null)
+				{
+					ShowHelp(Console.Error, $"Unknown command '{command}'", p, null);
+					return 1;
+				}
+				return handler.RunAsync(remaining).GetAwaiter().GetResult();
 			}
 		}
 
-		private static CommandHandler GetHandler(string command)
+		private static CommandHandler GetHandler(string command, IContainer container)
 		{
 			switch (command)
 			{
 				case "run":
-					return new AgentHandler();
+				case "agent":
+					return container.ResolveKeyed<CommandHandler>("agent");
 				case "user":
-					return new UserHandler();
+					return container.ResolveKeyed<CommandHandler>("user");
 				default:
 					return null;
 			}
@@ -93,12 +95,48 @@ namespace MailCore
 			optionSet?.WriteOptionDescriptions(textWriter);
 		}
 
-		internal static IContainer BuildContainer(Options options)
+		private static IContainer BuildContainer(Options options)
 		{
 			var builder = new ContainerBuilder();
 
-			builder.RegisterInstance(new CompositeLogger(new[] {new ConsoleLogger()}))
-				.As<ILogger>();
+			builder.RegisterInstance(options);
+			builder.RegisterType<UserHandler>().Keyed<CommandHandler>("user");
+			builder.RegisterType<AgentHandler>().Keyed<CommandHandler>("agent");
+
+			FileWatcherSettings<SmtpSettings> settings = FileWatcherSettings<SmtpSettings>.Load(options.SettingsPath);
+
+			IDictionary<string, LogSettings> logSettings = settings.Value.Logging;
+			if (logSettings != null)
+			{
+				LogSettings defaultSettings = null;
+				string defaultKey = null;
+				foreach (var log in logSettings)
+				{
+					switch (log.Key.ToLowerInvariant())
+					{
+						case "":
+						case "default":
+							defaultKey = log.Key;
+							defaultSettings = log.Value;
+							break;
+						case "console":
+						case "con":
+							builder.RegisterInstance(ChildWatcherSettings.Create(settings, s => s.Logging.GetValueOrDefault(log.Key)))
+								.Keyed<IVolatile<LogSettings>>("console");
+							builder.RegisterType<ConsoleLogger>()
+								.As<ILogSync>();
+							break;
+					}
+				}
+
+				if (defaultSettings != null)
+				{
+					builder.RegisterInstance(ChildWatcherSettings.Create(settings, s => s.Logging.GetValueOrDefault(defaultKey)))
+						.As<IVolatile<LogSettings>>();
+				}
+			}
+
+			builder.Register(c => new CompositeLogger(c.Resolve<IEnumerable<ILogSync>>())).As<ILogger>();
 
 			builder.RegisterType<SmtpSession>()
 				.As<IProtocolSession>()
@@ -118,8 +156,6 @@ namespace MailCore
 			builder.RegisterType<FileSystemMailTransferQueue>().As<IMailTransferQueue>();
 			builder.RegisterType<FileSystemMailboxStore>().As<IMailboxStore>();
 			builder.RegisterType<FileSystemMailSendFailureManager>().As<IMailSendFailureManager>();
-
-			FileWatcherSettings<SmtpSettings> settings = FileWatcherSettings<SmtpSettings>.Load(options.SettingsPath);
 			SmtpSettings initialValue = settings.Value;
 			builder.RegisterInstance(initialValue)
 				.As<SmtpSettings>()

@@ -1,6 +1,6 @@
 ﻿{
 	"domainName": "testing.vaettir.net",
-	"ports": [ 9025 ],
+	"ports": [9025],
 	"mailIncomingQueuePath": "C:\\temp\\mail\\in",
 	"mailOutgoingQueuePath": "C:\\temp\\mail\\out",
 	"mailLocalPath": "C:\\temp\\mail\\local",
@@ -10,5 +10,9 @@
 	],
 	"domainSettingsPath": "C:\\temp\\mail\\domains",
 	"userPasswordFile": "C:\\temp\\mail\\mail-user.pwd",
-	"passwordAlgorithm": "db:sha1:94857"
+	"passwordAlgorithm": "db:sha1:94857",
+	"logging": {
+		"default": { "LevelFilter": "error" },
+		"console": {}
+	}
 }

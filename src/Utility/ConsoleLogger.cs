@@ -1,37 +1,39 @@
 using System;
+using System.Runtime;
+using Autofac.Features.AttributeFilters;
 
 namespace Vaettir.Utility
 {
-	public sealed class ConsoleLogger : ILogger
+	public enum LogLevel
 	{
-		public void Verbose(int eventId, string message)
+		Verbose,
+		Information,
+		Warning,
+		Error,
+	}
+
+	public sealed class ConsoleLogger : BaseLogger
+	{
+		public ConsoleLogger([KeyFilter("console")]IVolatile<LogSettings> specificSettings,
+			IVolatile<LogSettings> baseSettings) : base(specificSettings, baseSettings)
 		{
-			Trace(eventId, "VERBOSE", message);
 		}
 
-		public void Information(int eventId, string message)
+		private static string GetStringFromLevel(LogLevel level)
 		{
-			Trace(eventId, "INFO   ", message);
+			switch (level)
+			{
+				case LogLevel.Verbose: return "VERBOSE";
+				case LogLevel.Information: return "INFO   ";
+				case LogLevel.Warning: return "WARNING";
+				case LogLevel.Error: return "ERROR  ";
+				default: return "UNKNOWN";
+			}
 		}
 
-		public void Warning(int eventId, string message)
+		protected override void TraceInternal(LogLevel level, int eventId, string message, Exception exception)
 		{
-			Trace(eventId, "WARNING", message);
-		}
-
-		public void Error(int eventId, string message, Exception exception)
-		{
-			Trace(eventId, "ERROR  ", message);
-		}
-
-		public void Dispose()
-		{
-			// No op for console
-		}
-
-		private static void Trace(int eventId, string level, string message)
-		{
-			Console.WriteLine($"{DateTime.Now:s} {eventId:0000} {level} {message}");
+			Console.WriteLine($"{DateTime.Now:s} {eventId:0000} {GetStringFromLevel(level)} {message}");
 		}
 	}
 }

@@ -62,7 +62,7 @@ namespace Vaettir.Mail.Server.FileSystem
 			string passwordAlgorithm = _settings.PasswordAlgorithm;
 			byte[] hash = CalculateHash(salt, password, passwordAlgorithm);
 
-			string tempPasswordFile = Path.GetTempFileName();
+			string tempPasswordFile = _settings.UserPasswordFile + ".tmp";
 			using (FileStream tempStream = File.Open(tempPasswordFile, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
 			using (FileStream stream = File.Open(
 				_settings.UserPasswordFile,

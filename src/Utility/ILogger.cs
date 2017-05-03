@@ -2,12 +2,16 @@ using System;
 
 namespace Vaettir.Utility
 {
-	public interface ILogger : IDisposable
+	public interface ILogSync : IDisposable
 	{
 		void Verbose(int eventId, string message);
 		void Information(int eventId, string message);
 		void Warning(int eventId, string message);
 		void Error(int eventId, string message, Exception exception);
+	}
+
+	public interface ILogger : ILogSync
+	{
 	}
 
 	public static class LogExtentions

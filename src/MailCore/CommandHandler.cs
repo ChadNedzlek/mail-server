@@ -6,6 +6,6 @@ namespace MailCore
 {
 	internal abstract class CommandHandler
 	{
-		public abstract Task<int> RunAsync(IContainer container, Options options, List<string> remaining);
+		public abstract Task<int> RunAsync(List<string> remaining);
 	}
 }

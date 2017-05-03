@@ -6,16 +6,16 @@ namespace Vaettir.Utility
 {
 	public sealed class CompositeLogger : ILogger
 	{
-		private readonly IList<ILogger> _delegated;
+		private readonly IList<ILogSync> _delegated;
 
-		public CompositeLogger(IEnumerable<ILogger> loggers)
+		public CompositeLogger(IEnumerable<ILogSync> loggers)
 		{
 			_delegated = loggers.ToList();
 		}
 
 		public void Verbose(int eventId, string message)
 		{
-			foreach (ILogger l in _delegated)
+			foreach (ILogSync l in _delegated)
 			{
 				l.Verbose(eventId, message);
 			}
@@ -23,7 +23,7 @@ namespace Vaettir.Utility
 
 		public void Information(int eventId, string message)
 		{
-			foreach (ILogger l in _delegated)
+			foreach (ILogSync l in _delegated)
 			{
 				l.Information(eventId, message);
 			}
@@ -31,7 +31,7 @@ namespace Vaettir.Utility
 
 		public void Warning(int eventId, string message)
 		{
-			foreach (ILogger l in _delegated)
+			foreach (ILogSync l in _delegated)
 			{
 				l.Warning(eventId, message);
 			}
@@ -39,7 +39,7 @@ namespace Vaettir.Utility
 
 		public void Error(int eventId, string message, Exception exception)
 		{
-			foreach (ILogger l in _delegated)
+			foreach (ILogSync l in _delegated)
 			{
 				l.Error(eventId, message, exception);
 			}
@@ -47,7 +47,7 @@ namespace Vaettir.Utility
 
 		public void Dispose()
 		{
-			foreach (ILogger l in _delegated)
+			foreach (ILogSync l in _delegated)
 			{
 				l.Dispose();
 			}

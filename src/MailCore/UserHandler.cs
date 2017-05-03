@@ -4,14 +4,23 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Autofac;
+using JetBrains.Annotations;
 using Mono.Options;
 using Vaettir.Mail.Server;
 
 namespace MailCore
 {
+	[UsedImplicitly(ImplicitUseKindFlags.InstantiatedWithFixedConstructorSignature)]
 	internal class UserHandler : CommandHandler
 	{
-		public override async Task<int> RunAsync(IContainer container, Options options, List<string> remaining)
+		private readonly IUserStore _userStore;
+
+		public UserHandler(IUserStore userStore)
+		{
+			_userStore = userStore;
+		}
+
+		public override async Task<int> RunAsync(List<string> remaining)
 		{
 			if (remaining.Count < 1)
 			{
@@ -30,7 +39,7 @@ namespace MailCore
 					string password = null;
 					OptionSet p = new OptionSet()
 						.Add("user|username|u=", "User name", u => username = u)
-						.Add("password|pwd|p", "password", v => password = v);
+						.Add("password|pwd|p=", "password", v => password = v);
 
 					remaining = p.Parse(remaining);
 
@@ -40,7 +49,7 @@ namespace MailCore
 						return 1;
 					}
 
-					await container.Resolve<IUserStore>().AddUserAsync(username, password, CancellationToken.None);
+					await _userStore.AddUserAsync(username, password, CancellationToken.None);
 					return 0;
 				}
 
