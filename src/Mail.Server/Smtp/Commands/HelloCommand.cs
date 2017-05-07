@@ -4,8 +4,8 @@ using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server.Smtp.Commands
 {
-	[Command("HELO")]
-	public class HelloCommand : BaseCommand
+	[SmtpCommand("HELO")]
+	public class HelloCommand : BaseSmtpCommand
 	{
 		private readonly IMessageChannel _channel;
 		private readonly ILogger _log;

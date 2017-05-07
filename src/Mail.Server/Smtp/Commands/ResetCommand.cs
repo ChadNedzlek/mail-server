@@ -3,8 +3,8 @@ using System.Threading.Tasks;
 
 namespace Vaettir.Mail.Server.Smtp.Commands
 {
-	[Command("RSET")]
-	public class ResetCommand : BaseCommand
+	[SmtpCommand("RSET")]
+	public class ResetCommand : BaseSmtpCommand
 	{
 		private readonly IMailBuilder _builder;
 		private readonly IMessageChannel _channel;

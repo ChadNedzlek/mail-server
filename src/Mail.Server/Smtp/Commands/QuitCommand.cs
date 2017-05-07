@@ -3,8 +3,8 @@ using System.Threading.Tasks;
 
 namespace Vaettir.Mail.Server.Smtp.Commands
 {
-	[Command("QUIT")]
-	public class QuitCommand : BaseCommand
+	[SmtpCommand("QUIT")]
+	public class QuitCommand : BaseSmtpCommand
 	{
 		private readonly IMessageChannel _channel;
 

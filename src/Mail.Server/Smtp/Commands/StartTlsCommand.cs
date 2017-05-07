@@ -3,8 +3,8 @@ using System.Threading.Tasks;
 
 namespace Vaettir.Mail.Server.Smtp.Commands
 {
-	[Command("STARTTLS")]
-	public class StartTlsCommand : BaseCommand
+	[SmtpCommand("STARTTLS")]
+	public class StartTlsCommand : BaseSmtpCommand
 	{
 		private readonly IMessageChannel _channel;
 		private readonly SecurableConnection _connection;

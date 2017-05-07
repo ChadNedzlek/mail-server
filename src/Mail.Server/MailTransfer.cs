@@ -13,7 +13,7 @@ using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server
 {
-	[UsedImplicitly(ImplicitUseKindFlags.InstantiatedWithFixedConstructorSignature)]
+	[UsedImplicitly(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature)]
 	public class MailTransfer
 	{
 		private static readonly ImmutableArray<TimeSpan> s_retryDelays = ImmutableArray.Create(

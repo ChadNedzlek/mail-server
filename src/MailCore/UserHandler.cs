@@ -10,7 +10,7 @@ using Vaettir.Mail.Server;
 
 namespace MailCore
 {
-	[UsedImplicitly(ImplicitUseKindFlags.InstantiatedWithFixedConstructorSignature)]
+	[UsedImplicitly(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature)]
 	internal class UserHandler : CommandHandler
 	{
 		private readonly IUserStore _userStore;

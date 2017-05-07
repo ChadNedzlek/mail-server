@@ -6,8 +6,8 @@ using Vaettir.Mail.Server.Authentication;
 
 namespace Vaettir.Mail.Server.Smtp.Commands
 {
-	[Command("AUTH")]
-	public class AuthenticateCommand : BaseCommand
+	[SmtpCommand("AUTH")]
+	public class AuthenticateCommand : BaseSmtpCommand
 	{
 		private readonly IIndex<string, IAuthenticationSession> _authentication;
 		private readonly IMessageChannel _channel;

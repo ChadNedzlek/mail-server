@@ -7,8 +7,8 @@ using System.Threading.Tasks;
 
 namespace Vaettir.Mail.Server.Smtp.Commands
 {
-	[Command("DATA")]
-	public class DataCommand : BaseCommand
+	[SmtpCommand("DATA")]
+	public class DataCommand : BaseSmtpCommand
 	{
 		private readonly IMailBuilder _builder;
 		private readonly IMessageChannel _channel;

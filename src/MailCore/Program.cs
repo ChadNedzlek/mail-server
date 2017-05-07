@@ -165,8 +165,8 @@ namespace MailCore
 				.As<IVolatile<ProtocolSettings>>();
 
 			builder.RegisterAssemblyTypes(typeof(SmtpSession).GetTypeInfo().Assembly)
-				.Where(t => t.GetTypeInfo().GetCustomAttribute<CommandAttribute>() != null)
-				.Keyed<ICommand>(t => t.GetTypeInfo().GetCustomAttribute<CommandAttribute>().Name);
+				.Where(t => t.GetTypeInfo().GetCustomAttribute<SmtpCommandAttribute>() != null)
+				.Keyed<ISmtpCommand>(t => t.GetTypeInfo().GetCustomAttribute<SmtpCommandAttribute>().Name);
 
 			builder.RegisterAssemblyTypes(typeof(IAuthenticationSession).GetTypeInfo().Assembly)
 				.Where(t => t.GetTypeInfo().GetCustomAttribute<AuthenticationMechanismAttribute>() != null)

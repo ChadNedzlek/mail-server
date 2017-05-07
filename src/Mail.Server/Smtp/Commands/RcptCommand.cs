@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace Vaettir.Mail.Server.Smtp.Commands
 {
-	[Command("RCPT")]
-	public class RecipientCommand : BaseCommand
+	[SmtpCommand("RCPT")]
+	public class RecipientCommand : BaseSmtpCommand
 	{
 		private static readonly Regex s_fromExpression = new Regex(@"^TO:<([^:+]:)?(\S*)(?: (.*))?>$");
 

@@ -10,7 +10,7 @@ using Vaettir.Mail.Server.Smtp;
 
 namespace Vaettir.Mail.Server.FileSystem
 {
-	[UsedImplicitly(ImplicitUseKindFlags.InstantiatedWithFixedConstructorSignature)]
+	[UsedImplicitly(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature)]
 	public class FileSystemMailTransferQueue : FileSystemMailQueueBase, IMailTransferQueue
 	{
 		public FileSystemMailTransferQueue(SmtpSettings settings) : base(settings)

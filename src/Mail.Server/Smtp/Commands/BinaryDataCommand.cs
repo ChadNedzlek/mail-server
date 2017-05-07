@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace Vaettir.Mail.Server.Smtp.Commands
 {
-	[Command("BDAT")]
-	public class BinaryDataCommand : BaseCommand
+	[SmtpCommand("BDAT")]
+	public class BinaryDataCommand : BaseSmtpCommand
 	{
 		private readonly IMailBuilder _builder;
 		private readonly SecurableConnection _connection;

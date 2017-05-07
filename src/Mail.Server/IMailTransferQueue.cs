@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Vaettir.Mail.Server
 {
-	public interface IMailTransferQueue : IMailStore, IWriter
+	public interface IMailTransferQueue : IMailStore
 	{
 		Task<IMailWriteReference> NewMailAsync(
 			string id,

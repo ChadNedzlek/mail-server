@@ -7,8 +7,8 @@ using System.Threading.Tasks;
 
 namespace Vaettir.Mail.Server.Smtp.Commands
 {
-	[Command("MAIL")]
-	public class MailCommand : BaseCommand
+	[SmtpCommand("MAIL")]
+	public class MailCommand : BaseSmtpCommand
 	{
 		private static readonly Regex s_fromExpression = new Regex(@"^FROM:<([^:+]:)?(\S*)>(?: (.+))?$");
 		private readonly IMailBuilder _builder;

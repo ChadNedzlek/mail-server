@@ -51,8 +51,8 @@ namespace Vaettir.Mail.Smtp.Test
 
 				var builder = new ContainerBuilder();
 				builder.RegisterAssemblyTypes(typeof(SmtpSession).GetTypeInfo().Assembly)
-					.Where(t => t.GetTypeInfo().GetCustomAttribute<CommandAttribute>() != null)
-					.Keyed<ICommand>(t => t.GetTypeInfo().GetCustomAttribute<CommandAttribute>().Name);
+					.Where(t => t.GetTypeInfo().GetCustomAttribute<SmtpCommandAttribute>() != null)
+					.Keyed<ISmtpCommand>(t => t.GetTypeInfo().GetCustomAttribute<SmtpCommandAttribute>().Name);
 				builder.RegisterInstance(TestHelpers.MakeSettings(domainName: "test.vaettir.net"))
 					.As<SmtpSettings>()
 					.As<ProtocolSettings>();

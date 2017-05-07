@@ -3,7 +3,7 @@ using JetBrains.Annotations;
 
 namespace Vaettir.Mail.Server.Authentication.Mechanism
 {
-	[MeansImplicitUse(ImplicitUseKindFlags.InstantiatedWithFixedConstructorSignature)]
+	[MeansImplicitUse(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature)]
 	[AttributeUsage(AttributeTargets.Class)]
 	public class AuthenticationMechanismAttribute : Attribute, IAuthencticationMechanismMetadata
 	{

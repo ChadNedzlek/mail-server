@@ -3,8 +3,8 @@ using System.Threading.Tasks;
 
 namespace Vaettir.Mail.Server.Smtp.Commands
 {
-	[Command("NOOP")]
-	public class NoopCommand : BaseCommand
+	[SmtpCommand("NOOP")]
+	public class NoopCommand : BaseSmtpCommand
 	{
 		private readonly IMessageChannel _channel;
 

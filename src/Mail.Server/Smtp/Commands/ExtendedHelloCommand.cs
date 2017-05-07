@@ -9,8 +9,8 @@ using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server.Smtp.Commands
 {
-	[Command("EHLO")]
-	public class ExtendedHelloCommand : BaseCommand
+	[SmtpCommand("EHLO")]
+	public class ExtendedHelloCommand : BaseSmtpCommand
 	{
 		private static readonly string[] s_generalExtensions =
 		{

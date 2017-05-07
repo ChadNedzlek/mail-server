@@ -3,8 +3,8 @@ using System.Threading.Tasks;
 
 namespace Vaettir.Mail.Server.Smtp.Commands
 {
-	[Command("VRFY")]
-	public class VerifyCommand : BaseCommand
+	[SmtpCommand("VRFY")]
+	public class VerifyCommand : BaseSmtpCommand
 	{
 		private readonly IMessageChannel _channel;
 

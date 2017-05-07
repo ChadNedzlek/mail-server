@@ -122,7 +122,7 @@ namespace Vaettir.Mail.Server.Smtp
 			await this.SendReplyAsync(ReplyCode.Greeting, $"{_settings.DomainName} Service ready", token);
 			while (!token.IsCancellationRequested && !_closeRequested)
 			{
-				ICommand command = await GetCommandAsync(token);
+				ISmtpCommand command = await GetCommandAsync(token);
 				if (command != null)
 				{
 					await command.ExecuteAsync(token);
@@ -130,7 +130,7 @@ namespace Vaettir.Mail.Server.Smtp
 			}
 		}
 
-		private async Task<ICommand> GetCommandAsync(CancellationToken token)
+		private async Task<ISmtpCommand> GetCommandAsync(CancellationToken token)
 		{
 			string line = await _connection.ReadLineAsync(Encoding.UTF8, token);
 			if (line.Length < 4)
@@ -153,7 +153,7 @@ namespace Vaettir.Mail.Server.Smtp
 				arguments = line.Substring(spaceIndex + 1);
 			}
 
-			var commandExecutor = _context.ResolveOptionalKeyed<ICommand>(command);
+			var commandExecutor = _context.ResolveOptionalKeyed<ISmtpCommand>(command);
 			if (commandExecutor == null)
 			{
 				await this.SendReplyAsync(ReplyCode.SyntaxError, "Command not implemented", token);

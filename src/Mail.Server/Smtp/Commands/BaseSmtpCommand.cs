@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace Vaettir.Mail.Server.Smtp.Commands
 {
-	public abstract class BaseCommand : ICommand
+	public abstract class BaseSmtpCommand : ISmtpCommand
 	{
 		protected string Arguments { get; private set; }
 
