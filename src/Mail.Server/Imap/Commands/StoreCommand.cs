@@ -23,11 +23,13 @@ namespace Vaettir.Mail.Server.Imap.Commands
 		private ListMessageData _valueList;
 		private readonly IImapMailStore _mailstore;
 		private readonly IImapMessageChannel _channel;
+		private readonly IImapMailboxPointer _mailboxPointer;
 
-		public StoreCommand(IImapMailStore mailstore, IImapMessageChannel channel)
+		public StoreCommand(IImapMailStore mailstore, IImapMessageChannel channel, IImapMailboxPointer mailboxPointer)
 		{
 			_mailstore = mailstore;
 			_channel = channel;
+			_mailboxPointer = mailboxPointer;
 		}
 
 		protected override bool TryParseArguments(ImmutableList<IMessageData> arguments)
@@ -89,7 +91,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			var changedMessage = new List<MailMessage>();
 			for (int i = _messageRange.Min; i <= _messageRange.Max; i++)
 			{
-				MailMessage message = await session.SelectedMailbox.GetItemBySequenceAsync(i);
+				MailMessage message = await _mailboxPointer.SelectedMailbox.GetItemBySequenceAsync(i);
 				ImmutableList<string> existing = ImmutableList.CreateRange(message.Flags);
 
 				if (_silent || !message.Flags.SequenceEqual(existing, StringComparer.OrdinalIgnoreCase))

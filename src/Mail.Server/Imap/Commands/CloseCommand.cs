@@ -10,10 +10,12 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	public class CloseCommand : BaseImapCommand
 	{
 		private readonly IImapMessageChannel _channel;
+		private readonly IImapMailboxPointer _mailboxPointer;
 
-		public CloseCommand(IImapMessageChannel channel)
+		public CloseCommand(IImapMessageChannel channel, IImapMailboxPointer mailboxPointer)
 		{
 			_channel = channel;
+			_mailboxPointer = mailboxPointer;
 		}
 
 		protected override bool TryParseArguments(ImmutableList<IMessageData> arguments)
@@ -41,15 +43,15 @@ namespace Vaettir.Mail.Server.Imap.Commands
 
 		public override async Task ExecuteAsync(CancellationToken cancellationToken)
 		{
-			ExpungeAllDeletedMessages(_channel);
-			session.DiscardPendingExpungeResponses();
-			await session.UnselectMailboxAsync(cancellationToken);
+			ExpungeAllDeletedMessages();
+			_channel.DiscardPendingExpungeResponses();
+			await _mailboxPointer.UnselectMailboxAsync(cancellationToken);
 			await EndOkAsync(_channel, "CLOSE completed, now in authenticated state", cancellationToken);
 		}
 
-		private void ExpungeAllDeletedMessages(IImapMessageChannel session)
+		private void ExpungeAllDeletedMessages()
 		{
-			Mailbox mailbox = session.SelectedMailbox.Mailbox;
+			Mailbox mailbox = _mailboxPointer.SelectedMailbox.Mailbox;
 			foreach (MailMessage message in mailbox.Messages)
 			{
 				if (message.Flags.Contains(Tags.Deleted))

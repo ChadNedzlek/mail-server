@@ -14,6 +14,9 @@ namespace Vaettir.Mail.Server.Imap
 		Task SendMessageAsync(Message message, Encoding encoding, CancellationToken cancellationToken);
 		UserData AuthenticatedUser { get; set; }
 		SessionState State { get; set; }
+		void EndSession();
+		Task EndCommandWithoutResponseAsync(IImapCommand command, CancellationToken cancellationToken);
+		void DiscardPendingExpungeResponses();
 	}
 
 	public static class ImapMessageChannel

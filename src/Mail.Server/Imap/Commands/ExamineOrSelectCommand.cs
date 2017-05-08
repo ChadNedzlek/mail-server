@@ -15,11 +15,13 @@ namespace Vaettir.Mail.Server.Imap.Commands
 
 		private readonly IImapMailStore _mailstore;
 		private readonly IImapMessageChannel _channel;
+		private readonly IImapMailboxPointer _mailboxPointer;
 
-		protected ExamineOrSelectCommand(IImapMailStore mailstore, IImapMessageChannel channel)
+		protected ExamineOrSelectCommand(IImapMailStore mailstore, IImapMessageChannel channel, IImapMailboxPointer mailboxPointer)
 		{
 			_mailstore = mailstore;
 			_channel = channel;
+			_mailboxPointer = mailboxPointer;
 		}
 
 		public abstract bool IsExamine { get; }
@@ -52,7 +54,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 				return;
 			}
 
-			SelectedMailbox selected = await session.SelectMailboxAsync(mailbox, cancellationToken);
+			SelectedMailbox selected = await _mailboxPointer.SelectMailboxAsync(mailbox, cancellationToken);
 
 			await _channel.SendMessageAsync(
 				new Message(UntaggedTag, new NumberMessageData(mailbox.Messages.Count), new AtomMessageData("EXISTS")),

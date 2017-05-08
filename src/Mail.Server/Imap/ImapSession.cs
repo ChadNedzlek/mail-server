@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Autofac.Features.Indexed;
 using Autofac.Features.OwnedInstances;
+using JetBrains.Annotations;
 using Vaettir.Mail.Server.Authentication;
 using Vaettir.Mail.Server.Imap.Commands;
 using Vaettir.Mail.Server.Imap.Messages;
@@ -15,7 +16,8 @@ using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server.Imap
 {
-	public sealed class ImapSession : IDisposable, IProtocolSession, IAuthenticationTransport, IImapMessageChannel
+	[UsedImplicitly(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature)]
+	public sealed class ImapSession : IDisposable, IProtocolSession, IAuthenticationTransport, IImapMessageChannel, IImapMailboxPointer
 	{
 		private readonly IIndex<string, Lazy<Owned<IImapCommand>, IImapCommandMetadata>> _commands;
 		private readonly List<IImapCommand> _outstandingCommands = new List<IImapCommand>();
@@ -25,13 +27,10 @@ namespace Vaettir.Mail.Server.Imap
 		private readonly SemaphoreSlim _sendSemaphore = new SemaphoreSlim(1);
 
 		public ImapSession(
-			SecurableConnection connection,
-			IUserStore userStore,
-			IImapMailStore mailStore,
-			IIndex<string, Lazy<Owned<IImapCommand>, IImapCommandMetadata>> commands)
+			[NotNull] SecurableConnection connection,
+			[NotNull] IIndex<string, Lazy<Owned<IImapCommand>, IImapCommandMetadata>> commands)
 		{
-			_commands = commands;
-
+			_commands = commands ?? throw new ArgumentNullException(nameof(commands));
 			_connection = connection ?? throw new ArgumentNullException(nameof(connection));
 			State = SessionState.Open;
 		}
@@ -49,6 +48,7 @@ namespace Vaettir.Mail.Server.Imap
 		public void EndSession()
 		{
 			State = SessionState.Closed;
+			_connection.Close();
 		}
 
 		public async Task Start(CancellationToken cancellationToken)

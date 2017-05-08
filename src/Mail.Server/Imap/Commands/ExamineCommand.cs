@@ -5,7 +5,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	{
 		public override bool IsExamine => true;
 
-		public ExamineCommand(IImapMailStore mailstore, IImapMessageChannel channel) : base(mailstore, channel)
+		public ExamineCommand(IImapMailStore mailstore, IImapMessageChannel channel, IImapMailboxPointer mailboxPointer) : base(mailstore, channel, mailboxPointer)
 		{
 		}
 	}

@@ -10,10 +10,12 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	public class ExpungeCommand : BaseImapCommand
 	{
 		private readonly IImapMessageChannel _channel;
+		private readonly IImapMailboxPointer _mailboxPointer;
 
-		public ExpungeCommand(IImapMessageChannel channel)
+		public ExpungeCommand(IImapMessageChannel channel, IImapMailboxPointer mailboxPointer)
 		{
 			_channel = channel;
+			_mailboxPointer = mailboxPointer;
 		}
 
 		protected override bool TryParseArguments(ImmutableList<IMessageData> arguments)
@@ -41,11 +43,11 @@ namespace Vaettir.Mail.Server.Imap.Commands
 
 		public override Task ExecuteAsync(CancellationToken cancellationToken)
 		{
-			ExpungeAllDeletedMessages(session);
+			ExpungeAllDeletedMessages(_mailboxPointer);
 			return EndOkAsync(_channel, cancellationToken);
 		}
 
-		private void ExpungeAllDeletedMessages(ImapSession session)
+		private void ExpungeAllDeletedMessages(IImapMailboxPointer session)
 		{
 			Mailbox mailbox = session.SelectedMailbox.Mailbox;
 			foreach (MailMessage message in mailbox.Messages)

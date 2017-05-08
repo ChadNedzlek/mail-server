@@ -64,7 +64,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 					list = new ListMessageData(new AtomMessageData(Tags.NoSelect));
 				}
 
-				#error Presumably we should use the list...
+				#warning Presumably we should use the list...
 
 				await _channel.SendMessageAsync(
 					new Message(

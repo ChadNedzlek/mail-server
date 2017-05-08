@@ -7,5 +7,9 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	public class SubscribeCommand : SubscribeOrUnsubscribeCommand
 	{
 		public override bool IsSubscribe => true;
+
+		public SubscribeCommand(IImapMessageChannel channel, IImapMailStore mailstore) : base(channel, mailstore)
+		{
+		}
 	}
 }
