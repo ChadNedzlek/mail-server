@@ -12,7 +12,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 		string CommandName { get; }
 		ImmutableList<IMessageData> Arguments { get; }
 		bool HasValidArguments { get; }
-		Task ExecuteAsync(ImapSession session, CancellationToken cancellationToken);
+		Task ExecuteAsync(CancellationToken cancellationToken);
 		bool IsValidWith(IEnumerable<IImapCommand> commands);
 	}
 }

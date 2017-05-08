@@ -24,6 +24,14 @@ namespace Vaettir.Mail.Server.Imap.Commands
 
 		private ImmutableList<string> _items;
 		private string _mailbox;
+		private readonly IImapMessageChannel _channel;
+		private readonly IImapMailStore _mailstore;
+
+		public StatusCommand(IImapMessageChannel channel, IImapMailStore mailstore)
+		{
+			_channel = channel;
+			_mailstore = mailstore;
+		}
 
 		protected override bool TryParseArguments(ImmutableList<IMessageData> arguments)
 		{
@@ -49,14 +57,14 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			return true;
 		}
 
-		public override async Task ExecuteAsync(ImapSession session, CancellationToken cancellationToken)
+		public override async Task ExecuteAsync(CancellationToken cancellationToken)
 		{
 			Mailbox mailbox =
-				await session.MailStore.GetMailBoxAsync(session.AuthenticatedUser, _mailbox, true, cancellationToken);
+				await _mailstore.GetMailBoxAsync(_channel.AuthenticatedUser, _mailbox, true, cancellationToken);
 
 			if (mailbox == null)
 			{
-				await EndWithResultAsync(session, CommandResult.No, "no mailbox with that name", cancellationToken);
+				await EndWithResultAsync(_channel, CommandResult.No, "no mailbox with that name", cancellationToken);
 				return;
 			}
 
@@ -92,11 +100,11 @@ namespace Vaettir.Mail.Server.Imap.Commands
 				messageData.Add(new NumberMessageData(mailbox.Messages.Count(m => m.Flags.Contains(Tags.Seen))));
 			}
 
-			await session.SendMessageAsync(
+			await _channel.SendMessageAsync(
 				new Message(UntaggedTag, CommandName, new ListMessageData(messageData)),
 				cancellationToken);
 
-			await EndOkAsync(session, cancellationToken);
+			await EndOkAsync(_channel, cancellationToken);
 		}
 	}
 }

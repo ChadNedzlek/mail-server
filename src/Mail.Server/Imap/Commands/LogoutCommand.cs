@@ -10,12 +10,18 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	[ImapCommand("LOGOUT", SessionState.Open)]
 	public class LogoutCommand : BaseImapCommand
 	{
+		private readonly IImapMessageChannel _channel;
+
+		public LogoutCommand(IImapMessageChannel channel)
+		{
+			_channel = channel;
+		}
 
 		protected override bool TryParseArguments(ImmutableList<IMessageData> arguments) => arguments.Count == 0;
 
-		public override async Task ExecuteAsync(ImapSession session, CancellationToken cancellationToken)
+		public override async Task ExecuteAsync(CancellationToken cancellationToken)
 		{
-			await session.SendMessageAsync(
+			await _channel.SendMessageAsync(
 				new Message(
 					UntaggedTag,
 					"BYE",
@@ -23,8 +29,8 @@ namespace Vaettir.Mail.Server.Imap.Commands
 					new ServerMessageData("Server logging out")),
 				cancellationToken);
 
-			await EndOkAsync(session, cancellationToken);
-			session.EndSession();
+			await EndOkAsync(_channel, cancellationToken);
+			_channel.EndSession();
 		}
 
 		public override bool IsValidWith(IEnumerable<IImapCommand> commands)

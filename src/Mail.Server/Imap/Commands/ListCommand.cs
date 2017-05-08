@@ -4,5 +4,9 @@
 	public class ListCommand : ListOrLSubCommand
 	{
 		public override bool IsLSub => false;
+
+		public ListCommand(IImapMessageChannel channel, IImapMailStore mailstore) : base(channel, mailstore)
+		{
+		}
 	}
 }

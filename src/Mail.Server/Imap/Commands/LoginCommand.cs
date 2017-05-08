@@ -12,6 +12,14 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	{
 		private string _password;
 		private string _userName;
+		private readonly IImapMessageChannel _channel;
+		private readonly IUserStore _userstore;
+
+		public LoginCommand(IImapMessageChannel channel, IUserStore userstore)
+		{
+			_channel = channel;
+			_userstore = userstore;
+		}
 
 		protected override bool TryParseArguments(ImmutableList<IMessageData> arguments)
 		{
@@ -26,24 +34,24 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			return true;
 		}
 
-		public override async Task ExecuteAsync(ImapSession session, CancellationToken cancellationToken)
+		public override async Task ExecuteAsync(CancellationToken cancellationToken)
 		{
-			if (session.State != SessionState.NotAuthenticated)
+			if (_channel.State != SessionState.NotAuthenticated)
 			{
-				await EndWithResultAsync(session, CommandResult.Bad, "LOGIN not valid at this point", cancellationToken);
+				await EndWithResultAsync(_channel, CommandResult.Bad, "LOGIN not valid at this point", cancellationToken);
 				return;
 			}
 
-			UserData userData = await session.UserStore.GetUserWithPasswordAsync(_userName, _password, cancellationToken);
+			UserData userData = await _userstore.GetUserWithPasswordAsync(_userName, _password, cancellationToken);
 
 			if (userData == null)
 			{
-				await EndWithResultAsync(session, CommandResult.No, "credentials rejected", cancellationToken);
+				await EndWithResultAsync(_channel, CommandResult.No, "credentials rejected", cancellationToken);
 				return;
 			}
 
-			session.SetAuthenticatedUser(userData);
-			await EndWithResultAsync(session, CommandResult.Ok, "login comleted, now in authenticated state", cancellationToken);
+			_channel.AuthenticatedUser = userData;
+			await EndWithResultAsync(_channel, CommandResult.Ok, "login comleted, now in authenticated state", cancellationToken);
 		}
 
 		public override bool IsValidWith(IEnumerable<IImapCommand> commands)

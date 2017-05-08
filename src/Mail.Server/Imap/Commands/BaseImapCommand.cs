@@ -25,7 +25,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 		public string CommandName { get; private set; }
 
 		public abstract bool IsValidWith(IEnumerable<IImapCommand> commands);
-		public abstract Task ExecuteAsync(ImapSession session, CancellationToken cancellationToken);
+		public abstract Task ExecuteAsync(CancellationToken cancellationToken);
 		protected abstract bool TryParseArguments(ImmutableList<IMessageData> arguments);
 
 		protected Message GetResultMessage(CommandResult result, params IMessageData[] data)
@@ -53,26 +53,26 @@ namespace Vaettir.Mail.Server.Imap.Commands
 		}
 
 		protected Task EndWithResultAsync(
-			ImapSession session,
+			IImapMessageChannel channel,
 			CommandResult result,
 			string text,
 			CancellationToken cancellationToken)
 		{
-			return EndWithResultAsync(session, result, null, text, cancellationToken);
+			return EndWithResultAsync(channel, result, null, text, cancellationToken);
 		}
 
-		protected Task EndOkAsync(ImapSession session, CancellationToken cancellationToken)
+		protected Task EndOkAsync(IImapMessageChannel channel, CancellationToken cancellationToken)
 		{
-			return EndWithResultAsync(session, CommandResult.Ok, null, cancellationToken);
+			return EndWithResultAsync(channel, CommandResult.Ok, null, cancellationToken);
 		}
 
-		protected Task EndOkAsync(ImapSession session, string message, CancellationToken cancellationToken)
+		protected Task EndOkAsync(IImapMessageChannel channel, string message, CancellationToken cancellationToken)
 		{
-			return EndWithResultAsync(session, CommandResult.Ok, message, cancellationToken);
+			return EndWithResultAsync(channel, CommandResult.Ok, message, cancellationToken);
 		}
 
 		protected async Task EndWithResultAsync(
-			ImapSession session,
+			IImapMessageChannel channel,
 			CommandResult result,
 			TagMessageData tags,
 			string text,
@@ -85,12 +85,12 @@ namespace Vaettir.Mail.Server.Imap.Commands
 
 			if (tags == null)
 			{
-				await session.CommandCompletedAsync(GetResultMessage(result, new ServerMessageData(text)), this, cancellationToken);
+				await channel.CommandCompletedAsync(GetResultMessage(result, new ServerMessageData(text)), this, cancellationToken);
 			}
 			else
 			{
 				await
-					session.CommandCompletedAsync(GetResultMessage(result, tags, new ServerMessageData(text)), this, cancellationToken);
+					channel.CommandCompletedAsync(GetResultMessage(result, tags, new ServerMessageData(text)), this, cancellationToken);
 			}
 		}
 	}

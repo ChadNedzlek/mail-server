@@ -21,6 +21,14 @@ namespace Vaettir.Mail.Server.Imap.Commands
 		private StoreOperation _operation;
 		private bool _silent;
 		private ListMessageData _valueList;
+		private readonly IImapMailStore _mailstore;
+		private readonly IImapMessageChannel _channel;
+
+		public StoreCommand(IImapMailStore mailstore, IImapMessageChannel channel)
+		{
+			_mailstore = mailstore;
+			_channel = channel;
+		}
 
 		protected override bool TryParseArguments(ImmutableList<IMessageData> arguments)
 		{
@@ -76,7 +84,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			return false;
 		}
 
-		public override async Task ExecuteAsync(ImapSession session, CancellationToken cancellationToken)
+		public override async Task ExecuteAsync(CancellationToken cancellationToken)
 		{
 			var changedMessage = new List<MailMessage>();
 			for (int i = _messageRange.Min; i <= _messageRange.Max; i++)
@@ -89,7 +97,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 					changedMessage.Add(message);
 				}
 
-				await session.MailStore.RefreshAsync(message);
+				await _mailstore.RefreshAsync(message);
 				IEnumerable<string> flagValues = _valueList.Items.Select(flag => MessageData.GetString(flag, Encoding.UTF8));
 				switch (_operation)
 				{
@@ -107,13 +115,13 @@ namespace Vaettir.Mail.Server.Imap.Commands
 						break;
 				}
 
-				await session.MailStore.SaveAsync(message);
+				await _mailstore.SaveAsync(message);
 			}
 
 			foreach (MailMessage message in changedMessage)
 			{
 				await
-					session.SendMessageAsync(
+					_channel.SendMessageAsync(
 						new Message(
 							UntaggedTag,
 							CommandName,
@@ -123,7 +131,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 						cancellationToken);
 			}
 
-			await EndOkAsync(session, cancellationToken);
+			await EndOkAsync(_channel, cancellationToken);
 		}
 
 		private enum StoreOperation

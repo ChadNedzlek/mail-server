@@ -9,6 +9,13 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	[ImapCommand("CLOSE", SessionState.Selected)]
 	public class CloseCommand : BaseImapCommand
 	{
+		private readonly IImapMessageChannel _channel;
+
+		public CloseCommand(IImapMessageChannel channel)
+		{
+			_channel = channel;
+		}
+
 		protected override bool TryParseArguments(ImmutableList<IMessageData> arguments)
 		{
 			return arguments.Count == 0;
@@ -32,15 +39,15 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			return true;
 		}
 
-		public override async Task ExecuteAsync(ImapSession session, CancellationToken cancellationToken)
+		public override async Task ExecuteAsync(CancellationToken cancellationToken)
 		{
-			ExpungeAllDeletedMessages(session);
+			ExpungeAllDeletedMessages(_channel);
 			session.DiscardPendingExpungeResponses();
 			await session.UnselectMailboxAsync(cancellationToken);
-			await EndOkAsync(session, "CLOSE completed, now in authenticated state", cancellationToken);
+			await EndOkAsync(_channel, "CLOSE completed, now in authenticated state", cancellationToken);
 		}
 
-		private void ExpungeAllDeletedMessages(ImapSession session)
+		private void ExpungeAllDeletedMessages(IImapMessageChannel session)
 		{
 			Mailbox mailbox = session.SelectedMailbox.Mailbox;
 			foreach (MailMessage message in mailbox.Messages)

@@ -13,6 +13,15 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	{
 		private string _mailbox;
 
+		private readonly IImapMailStore _mailstore;
+		private readonly IImapMessageChannel _channel;
+
+		public DeleteCommand(IImapMailStore mailstore, IImapMessageChannel channel)
+		{
+			_mailstore = mailstore;
+			_channel = channel;
+		}
+
 		protected override bool TryParseArguments(ImmutableList<IMessageData> arguments)
 		{
 			if (arguments.Count != 1)
@@ -28,19 +37,19 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			return true;
 		}
 
-		public override async Task ExecuteAsync(ImapSession session, CancellationToken cancellationToken)
+		public override async Task ExecuteAsync(CancellationToken cancellationToken)
 		{
 			try
 			{
-				await session.MailStore.DeleteMailboxAsync(session.AuthenticatedUser, _mailbox, cancellationToken);
+				await _mailstore.DeleteMailboxAsync(_channel.AuthenticatedUser, _mailbox, cancellationToken);
 			}
 			catch (Exception)
 			{
-				await EndWithResultAsync(session, CommandResult.No, "failed to delete mailbox", cancellationToken);
+				await EndWithResultAsync(_channel, CommandResult.No, "failed to delete mailbox", cancellationToken);
 				return;
 			}
 
-			await EndOkAsync(session, cancellationToken);
+			await EndOkAsync(_channel, cancellationToken);
 		}
 
 		public override bool IsValidWith(IEnumerable<IImapCommand> commands)

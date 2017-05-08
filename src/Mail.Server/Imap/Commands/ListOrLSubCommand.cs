@@ -12,6 +12,14 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	{
 		private string _pattern;
 		private string _reference;
+		private readonly IImapMailStore _mailstore;
+		private readonly IImapMessageChannel _channel;
+
+		protected ListOrLSubCommand(IImapMessageChannel channel, IImapMailStore mailstore)
+		{
+			_channel = channel;
+			_mailstore = mailstore;
+		}
 
 		public abstract bool IsLSub { get; }
 
@@ -25,11 +33,11 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			return true;
 		}
 
-		public override async Task ExecuteAsync(ImapSession session, CancellationToken cancellationToken)
+		public override async Task ExecuteAsync(CancellationToken cancellationToken)
 		{
 			if (string.IsNullOrEmpty(_reference) && string.IsNullOrEmpty(_pattern))
 			{
-				await session.SendMessageAsync(
+				await _channel.SendMessageAsync(
 					new Message(
 						UntaggedTag,
 						CommandName,
@@ -38,12 +46,12 @@ namespace Vaettir.Mail.Server.Imap.Commands
 						new QuotedMessageData("")),
 					cancellationToken);
 
-				await EndOkAsync(session, cancellationToken);
+				await EndOkAsync(_channel, cancellationToken);
 				return;
 			}
 
 			IEnumerable<Mailbox> mailboxes =
-				await session.MailStore.ListMailboxesAsync(session.AuthenticatedUser, _reference + _pattern, cancellationToken);
+				await _mailstore.ListMailboxesAsync(_channel.AuthenticatedUser, _reference + _pattern, cancellationToken);
 			foreach (Mailbox mailbox in mailboxes)
 			{
 				ListMessageData list;
@@ -56,7 +64,9 @@ namespace Vaettir.Mail.Server.Imap.Commands
 					list = new ListMessageData(new AtomMessageData(Tags.NoSelect));
 				}
 
-				await session.SendMessageAsync(
+				#error Presumably we should use the list...
+
+				await _channel.SendMessageAsync(
 					new Message(
 						UntaggedTag,
 						CommandName,
@@ -66,7 +76,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 					cancellationToken);
 			}
 
-			await EndOkAsync(session, cancellationToken);
+			await EndOkAsync(_channel, cancellationToken);
 		}
 
 		public override bool IsValidWith(IEnumerable<IImapCommand> commands)

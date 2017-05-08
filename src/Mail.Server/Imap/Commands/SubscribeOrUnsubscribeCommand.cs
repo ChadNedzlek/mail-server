@@ -11,6 +11,14 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	public abstract class SubscribeOrUnsubscribeCommand : BaseImapCommand
 	{
 		private string _mailbox;
+		private readonly IImapMessageChannel _channel;
+		private readonly IImapMailStore _mailstore;
+
+		protected SubscribeOrUnsubscribeCommand(IImapMessageChannel channel, IImapMailStore mailstore)
+		{
+			_channel = channel;
+			_mailstore = mailstore;
+		}
 
 		public abstract bool IsSubscribe { get; }
 
@@ -25,20 +33,20 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			return true;
 		}
 
-		public override async Task ExecuteAsync(ImapSession session, CancellationToken cancellationToken)
+		public override async Task ExecuteAsync(CancellationToken cancellationToken)
 		{
 			try
 			{
 				await
-					session.MailStore.MarkMailboxSubscribedAsync(session.AuthenticatedUser, _mailbox, IsSubscribe, cancellationToken);
+					_mailstore.MarkMailboxSubscribedAsync(_channel.AuthenticatedUser, _mailbox, IsSubscribe, cancellationToken);
 			}
 			catch (Exception)
 			{
-				await EndWithResultAsync(session, CommandResult.No, "cannot subsribe to mailbox", cancellationToken);
+				await EndWithResultAsync(_channel, CommandResult.No, "cannot subsribe to mailbox", cancellationToken);
 				return;
 			}
 
-			await EndOkAsync(session, cancellationToken);
+			await EndOkAsync(_channel, cancellationToken);
 		}
 
 		public override bool IsValidWith(IEnumerable<IImapCommand> commands)

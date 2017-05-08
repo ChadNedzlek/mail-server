@@ -17,6 +17,14 @@ namespace Vaettir.Mail.Server.Imap.Commands
 		private string _mailbox;
 		private LiteralMessageData _messageBody;
 
+		private readonly IImapMessageChannel _channel;
+		private readonly IImapMailStore _mailstore;
+
+		public AppendCommand(IImapMailStore mailstore)
+		{
+			_mailstore = mailstore;
+		}
+
 		protected override bool TryParseArguments(ImmutableList<IMessageData> arguments)
 		{
 			switch (arguments.Count)
@@ -71,16 +79,16 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			return false;
 		}
 
-		public override async Task ExecuteAsync(ImapSession session, CancellationToken cancellationToken)
+		public override async Task ExecuteAsync(CancellationToken cancellationToken)
 		{
-			await session.MailStore.SaveBinaryAsync(
+			await _mailstore.SaveBinaryAsync(
 				_mailbox,
 				_date ?? DateTime.UtcNow,
 				_flags?.Items.Select(f => MessageData.GetString(f, Encoding.ASCII)),
 				_messageBody.Data,
 				cancellationToken);
 
-			await EndOkAsync(session, cancellationToken);
+			await EndOkAsync(_channel, cancellationToken);
 		}
 	}
 }

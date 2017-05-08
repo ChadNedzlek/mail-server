@@ -7,5 +7,9 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	public class SelectCommand : ExamineOrSelectCommand
 	{
 		public override bool IsExamine => false;
+
+		public SelectCommand(IImapMailStore mailstore, IImapMessageChannel channel) : base(mailstore, channel)
+		{
+		}
 	}
 }

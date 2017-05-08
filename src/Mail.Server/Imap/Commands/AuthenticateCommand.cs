@@ -15,35 +15,37 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	public class AuthenticateCommand : BaseImapCommand
 	{
 		private readonly IIndex<string, Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata>> _auth;
+		private readonly IImapMessageChannel _channel;
 
-		public AuthenticateCommand(IIndex<string, Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata>> auth)
+		public AuthenticateCommand(IIndex<string, Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata>> auth, IImapMessageChannel channel)
 		{
 			_auth = auth;
+			_channel = channel;
 		}
 
 		public string Mechanism { get; private set; }
 
-		public override async Task ExecuteAsync(ImapSession session, CancellationToken cancellationToken)
+		public override async Task ExecuteAsync(CancellationToken cancellationToken)
 		{
 			if (!_auth.TryGetValue(Mechanism, out var mechanism))
 			{
-				await EndWithResultAsync(session, CommandResult.No, "unknown mechanism", cancellationToken);
+				await EndWithResultAsync(_channel, CommandResult.No, "unknown mechanism", cancellationToken);
 				return;
 			}
 
 			if (mechanism.Metadata.RequiresEncryption)
 			{
-				if (session.State != SessionState.NotAuthenticated)
+				if (_channel.State != SessionState.NotAuthenticated)
 				{
-					await EndWithResultAsync(session, CommandResult.Bad, "AUTHENTCATE not valid at this time", cancellationToken);
+					await EndWithResultAsync(_channel, CommandResult.Bad, "AUTHENTCATE not valid at this time", cancellationToken);
 					return;
 				}
 			}
 			else
 			{
-				if (session.State != SessionState.Open && session.State != SessionState.NotAuthenticated)
+				if (_channel.State != SessionState.Open && _channel.State != SessionState.NotAuthenticated)
 				{
-					await EndWithResultAsync(session, CommandResult.Bad, "AUTHENTCATE not valid at this time", cancellationToken);
+					await EndWithResultAsync(_channel, CommandResult.Bad, "AUTHENTCATE not valid at this time", cancellationToken);
 					return;
 				}
 			}
@@ -57,20 +59,21 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			}
 			catch (ArgumentException)
 			{
-				await EndWithResultAsync(session, CommandResult.Bad, "invalid arguments", cancellationToken);
+				await EndWithResultAsync(_channel, CommandResult.Bad, "invalid arguments", cancellationToken);
 				return;
 			}
 
 			if (userData == null)
 			{
-				await EndWithResultAsync(session, CommandResult.No, "credentials rejected", cancellationToken);
+				await EndWithResultAsync(_channel, CommandResult.No, "credentials rejected", cancellationToken);
 				return;
 			}
 
-			session.SetAuthenticatedUser(userData);
+			_channel.AuthenticatedUser = userData;
+
 			await
 				EndWithResultAsync(
-					session,
+					_channel,
 					CommandResult.Ok,
 					$"{Mechanism} authenticate completed, now in authenticated state",
 					cancellationToken);

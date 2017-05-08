@@ -12,6 +12,15 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	public class CreateCommandFactory : BaseImapCommand
 	{
 		private string _mailbox;
+		private readonly IImapMessageChannel _channel;
+		private readonly IImapMailStore _mailstore;
+
+		public CreateCommandFactory(IImapMessageChannel channel,
+			IImapMailStore mailstore)
+		{
+			_channel = channel;
+			_mailstore = mailstore;
+		}
 
 		protected override bool TryParseArguments(ImmutableList<IMessageData> arguments)
 		{
@@ -28,18 +37,18 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			return true;
 		}
 
-		public override async Task ExecuteAsync(ImapSession session, CancellationToken cancellationToken)
+		public override async Task ExecuteAsync(CancellationToken cancellationToken)
 		{
 			try
 			{
-				await session.MailStore.CreateMailboxAsync(session.AuthenticatedUser, _mailbox, cancellationToken);
+				await _mailstore.CreateMailboxAsync(_channel.AuthenticatedUser, _mailbox, cancellationToken);
 			}
 			catch (Exception)
 			{
-				await EndWithResultAsync(session, CommandResult.No, "failed to create mailbox", cancellationToken);
+				await EndWithResultAsync(_channel, CommandResult.No, "failed to create mailbox", cancellationToken);
 				return;
 			}
-			await EndOkAsync(session, cancellationToken);
+			await EndOkAsync(_channel, cancellationToken);
 		}
 
 		public override bool IsValidWith(IEnumerable<IImapCommand> commands)

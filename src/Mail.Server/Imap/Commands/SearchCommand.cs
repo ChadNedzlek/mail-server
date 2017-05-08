@@ -11,7 +11,13 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	public class SearchCommand : BaseImapCommand
 	{
 		private Encoding _encoding;
-		
+		private readonly IImapMessageChannel _channel;
+
+		public SearchCommand(IImapMessageChannel channel)
+		{
+			_channel = channel;
+		}
+
 		protected override bool TryParseArguments(ImmutableList<IMessageData> arguments)
 		{
 			return true;
@@ -22,10 +28,10 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			return true;
 		}
 
-		public override Task ExecuteAsync(ImapSession session, CancellationToken cancellationToken)
+		public override Task ExecuteAsync(CancellationToken cancellationToken)
 		{
 			// TODO: Implement it
-			return EndWithResultAsync(session, CommandResult.No, "SEARCH not supported", cancellationToken);
+			return EndWithResultAsync(_channel, CommandResult.No, "SEARCH not supported", cancellationToken);
 		}
 	}
 }

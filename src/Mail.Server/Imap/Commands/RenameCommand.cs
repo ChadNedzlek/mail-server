@@ -13,6 +13,15 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	{
 		private string _newMailbox;
 		private string _oldMailbox;
+		private readonly IImapMessageChannel _channel;
+		private readonly IImapMailStore _mailstore;
+
+		public RenameCommand(IImapMessageChannel channel,
+			IImapMailStore mailstore)
+		{
+			_channel = channel;
+			_mailstore = mailstore;
+		}
 
 		protected override bool TryParseArguments(ImmutableList<IMessageData> arguments)
 		{
@@ -32,19 +41,19 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			return true;
 		}
 
-		public override async Task ExecuteAsync(ImapSession session, CancellationToken cancellationToken)
+		public override async Task ExecuteAsync(CancellationToken cancellationToken)
 		{
 			try
 			{
-				await session.MailStore.RenameMailboxAsync(session.AuthenticatedUser, _oldMailbox, _newMailbox, cancellationToken);
+				await _mailstore.RenameMailboxAsync(_channel.AuthenticatedUser, _oldMailbox, _newMailbox, cancellationToken);
 			}
 			catch (Exception)
 			{
-				await EndWithResultAsync(session, CommandResult.No, "can't rename mailbox", cancellationToken);
+				await EndWithResultAsync(_channel, CommandResult.No, "can't rename mailbox", cancellationToken);
 				return;
 			}
 
-			await EndOkAsync(session, cancellationToken);
+			await EndOkAsync(_channel, cancellationToken);
 		}
 
 		public override bool IsValidWith(IEnumerable<IImapCommand> commands)

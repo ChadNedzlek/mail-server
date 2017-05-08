@@ -11,19 +11,28 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	{
 		protected override bool TryParseArguments(ImmutableList<IMessageData> arguments) => arguments.Count == 0;
 
-		public override async Task ExecuteAsync(ImapSession session, CancellationToken cancellationToken)
+		private readonly SecurableConnection _connection;
+		private readonly IImapMessageChannel _channel;
+
+		public StartTlsCommand(SecurableConnection connection, IImapMessageChannel channel)
 		{
-			if (session.Connection.IsEncrypted)
+			_connection = connection;
+			_channel = channel;
+		}
+
+		public override async Task ExecuteAsync(CancellationToken cancellationToken)
+		{
+			if (_connection.IsEncrypted)
 			{
-				await session.SendMessageAsync(GetBadMessage("STARTTLS already complete"), cancellationToken);
+				await _channel.SendMessageAsync(GetBadMessage("STARTTLS already complete"), cancellationToken);
 				return;
 			}
 
-			await session.SendMessageAsync(GetOkMessage("STARTTLS completed, begin TLS negotiation"), cancellationToken);
+			await _channel.SendMessageAsync(GetOkMessage("STARTTLS completed, begin TLS negotiation"), cancellationToken);
 
-			await session.Connection.NegotiateTlsAsync();
+			await _connection.NegotiateTlsAsync();
 
-			await session.EndCommandWithoutResponseAsync(this, cancellationToken);
+			await _channel.EndCommandWithoutResponseAsync(this, cancellationToken);
 		}
 
 		public override bool IsValidWith(IEnumerable<IImapCommand> commands)

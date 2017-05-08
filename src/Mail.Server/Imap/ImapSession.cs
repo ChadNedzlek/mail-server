@@ -15,7 +15,7 @@ using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server.Imap
 {
-	public sealed class ImapSession : IDisposable, IProtocolSession, IAuthenticationTransport
+	public sealed class ImapSession : IDisposable, IProtocolSession, IAuthenticationTransport, IImapMessageChannel
 	{
 		private readonly IIndex<string, Lazy<Owned<IImapCommand>, IImapCommandMetadata>> _commands;
 		private readonly List<IImapCommand> _outstandingCommands = new List<IImapCommand>();
@@ -32,23 +32,18 @@ namespace Vaettir.Mail.Server.Imap
 		{
 			_commands = commands;
 
-			Connection = connection ?? throw new ArgumentNullException(nameof(connection));
-			UserStore = userStore;
-			MailStore = mailStore;
+			_connection = connection ?? throw new ArgumentNullException(nameof(connection));
 			State = SessionState.Open;
 		}
 
-		public SecurableConnection Connection { get; }
-		public IUserStore UserStore { get; }
-		public IImapMailStore MailStore { get; }
-		public SessionState State { get; private set; }
-		private Encoding DefaultEncoding { get; } = Encoding.ASCII;
-		public UserData AuthenticatedUser { get; private set; }
+		private readonly SecurableConnection _connection;
+		public SessionState State { get; set; }
+		public UserData AuthenticatedUser { get; set; }
 		public SelectedMailbox SelectedMailbox { get; private set; }
 
 		public void Dispose()
 		{
-			Connection.Dispose();
+			_connection.Dispose();
 		}
 
 		public void EndSession()
@@ -59,7 +54,7 @@ namespace Vaettir.Mail.Server.Imap
 		public async Task Start(CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
-			while (Connection.State != SecurableConnectionState.Closed)
+			while (_connection.State != SecurableConnectionState.Closed)
 			{
 				cancellationToken.ThrowIfCancellationRequested();
 				IImapCommand command;
@@ -69,13 +64,13 @@ namespace Vaettir.Mail.Server.Imap
 				}
 				catch (BadImapCommandFormatException e)
 				{
-					await ReportBadAsync(e.Tag, e.ErrorMessage ?? "Invalid command", cancellationToken);
+					await ImapMessageChannel.ReportBadAsync(this, e.Tag, e.ErrorMessage ?? "Invalid command", cancellationToken);
 					continue;
 				}
 
 				if (!command.HasValidArguments)
 				{
-					await ReportBadAsync(command.Tag, "Invalid command", cancellationToken);
+					await ImapMessageChannel.ReportBadAsync(this, command.Tag, "Invalid command", cancellationToken);
 					continue;
 				}
 
@@ -93,19 +88,13 @@ namespace Vaettir.Mail.Server.Imap
 
 				_outstandingCommands.Add(command);
 
-				await command.ExecuteAsync(this, cancellationToken);
+				await command.ExecuteAsync(cancellationToken);
 			}
 		}
 
 		public Task CloseAsync(CancellationToken cancellationToken)
 		{
 			throw new NotImplementedException();
-		}
-
-		private Task ReportBadAsync(string tag, string errorText, CancellationToken cancellationToken)
-		{
-			var message = new Message(tag, "BAD", new List<IMessageData> {new ServerMessageData(errorText)});
-			return SendMessageAsync(message, DefaultEncoding, cancellationToken);
 		}
 
 		private bool CanRunImmediately(IImapCommand command)
@@ -124,11 +113,10 @@ namespace Vaettir.Mail.Server.Imap
 			return true;
 		}
 
-		internal async Task CommandCompletedAsync(Message message, IImapCommand command, CancellationToken cancellationToken)
+		public async Task CommandCompletedAsync(Message message, IImapCommand command, CancellationToken cancellationToken)
 		{
 			await SendPendingResponsesAsync(cancellationToken);
-			await SendMessageAsync(message, cancellationToken);
-
+			await this.SendMessageAsync(message, cancellationToken);
 			await EndCommandWithoutResponseAsync(command, cancellationToken);
 		}
 
@@ -149,7 +137,7 @@ namespace Vaettir.Mail.Server.Imap
 			string tag = null;
 			while (true)
 			{
-				string line = await Connection.ReadLineAsync(Encoding.UTF8, cancellationToken);
+				string line = await _connection.ReadLineAsync(Encoding.UTF8, cancellationToken);
 				int literalLength;
 				ParseLine(ref tag, line, data, out literalLength);
 
@@ -169,8 +157,8 @@ namespace Vaettir.Mail.Server.Imap
 					var read = 0;
 					do
 					{
-						await Connection.WriteLineAsync("+ Ready for literal data", Encoding.ASCII, cancellationToken);
-						int newRead = await Connection.ReadBytesAsync(_readBuffer, read, literalLength, cancellationToken);
+						await _connection.WriteLineAsync("+ Ready for literal data", Encoding.ASCII, cancellationToken);
+						int newRead = await _connection.ReadBytesAsync(_readBuffer, read, literalLength, cancellationToken);
 						if (newRead == 0)
 						{
 							throw new BadImapCommandFormatException(tag);
@@ -222,19 +210,9 @@ namespace Vaettir.Mail.Server.Imap
 			return command.Value.Value;
 		}
 
-		public Task SendContinuationAsync(string text, CancellationToken cancellationToken)
-		{
-			return SendContinuationAsync(text, DefaultEncoding, cancellationToken);
-		}
-
 		public async Task SendContinuationAsync(string text, Encoding encoding, CancellationToken cancellationToken)
 		{
-			await Connection.WriteLineAsync("+ " + text, encoding, cancellationToken);
-		}
-
-		public Task SendMessageAsync(Message message, CancellationToken cancellationToken)
-		{
-			return SendMessageAsync(message, DefaultEncoding, cancellationToken);
+			await _connection.WriteLineAsync("+ " + text, encoding, cancellationToken);
 		}
 
 		public async Task SendMessageAsync(Message message, Encoding encoding, CancellationToken cancellationToken)
@@ -251,7 +229,7 @@ namespace Vaettir.Mail.Server.Imap
 						builder.Append("}");
 						builder.Append(literal.Data.Length);
 						builder.AppendLine("}");
-						await Connection.WriteAsync(builder.ToString(), encoding, cancellationToken);
+						await _connection.WriteAsync(builder.ToString(), encoding, cancellationToken);
 						builder.Clear();
 					}
 					else
@@ -267,7 +245,7 @@ namespace Vaettir.Mail.Server.Imap
 				if (builder.Length > 0)
 				{
 					builder.AppendLine();
-					await Connection.WriteAsync(builder.ToString(), encoding, cancellationToken);
+					await _connection.WriteAsync(builder.ToString(), encoding, cancellationToken);
 				}
 			}
 		}
@@ -514,7 +492,7 @@ namespace Vaettir.Mail.Server.Imap
 			{
 				IImapCommand newCommand = _pendingCommands.Dequeue();
 				_outstandingCommands.Add(newCommand);
-				await newCommand.ExecuteAsync(this, cancellationToken);
+				await newCommand.ExecuteAsync(cancellationToken);
 			}
 		}
 
@@ -530,7 +508,7 @@ namespace Vaettir.Mail.Server.Imap
 
 		public Task<byte[]> ReadAuthenticationFragmentAsync(CancellationToken cancellationToken)
 		{
-			return Connection.ReadLineAsync(Encoding.ASCII, cancellationToken)
+			return _connection.ReadLineAsync(Encoding.ASCII, cancellationToken)
 					.ContinueWith(t => Convert.FromBase64String(t.Result), cancellationToken);
 		}
 

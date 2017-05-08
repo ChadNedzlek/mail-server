@@ -7,5 +7,9 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	public class LSubCommand : ListOrLSubCommand
 	{
 		public override bool IsLSub => true;
+
+		public LSubCommand(IImapMessageChannel channel, IImapMailStore mailstore) : base(channel, mailstore)
+		{
+		}
 	}
 }

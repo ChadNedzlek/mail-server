@@ -9,11 +9,18 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	[ImapCommand("CHECK", SessionState.Selected)]
 	public class CheckCommand : BaseImapCommand
 	{
+		private readonly IImapMessageChannel _channel;
+
+		public CheckCommand(IImapMessageChannel channel)
+		{
+			_channel = channel;
+		}
+
 		protected override bool TryParseArguments(ImmutableList<IMessageData> arguments) => arguments.Count == 0;
 
-		public override Task ExecuteAsync(ImapSession session, CancellationToken cancellationToken)
+		public override Task ExecuteAsync(CancellationToken cancellationToken)
 		{
-			return EndOkAsync(session, cancellationToken);
+			return EndOkAsync(_channel, cancellationToken);
 		}
 
 		public override bool IsValidWith(IEnumerable<IImapCommand> commands)

@@ -13,19 +13,25 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	[ImapCommand("CAPABILITY", SessionState.Open)]
 	public class CapabilityCommand : BaseImapCommand
 	{
+		private readonly IConnectionSecurity _connection;
 		private readonly IEnumerable<Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata>> _auth;
+		private readonly IImapMessageChannel _channel;
 
 		public CapabilityCommand(
-			IEnumerable<Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata>> auth)
+			IConnectionSecurity connection,
+			IEnumerable<Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata>> auth,
+			IImapMessageChannel channel)
 		{
+			_connection = connection;
 			_auth = auth;
+			_channel = channel;
 		}
 
 		protected override bool TryParseArguments(ImmutableList<IMessageData> arguments) => arguments.Count == 0;
 
-		public override async Task ExecuteAsync(ImapSession session, CancellationToken cancellationToken)
+		public override async Task ExecuteAsync(CancellationToken cancellationToken)
 		{
-			if (session.Connection.IsEncrypted)
+			if (_connection.IsEncrypted)
 			{
 				var data = new List<IMessageData>
 				{
@@ -38,11 +44,11 @@ namespace Vaettir.Mail.Server.Imap.Commands
 					data.Add(new AtomMessageData($"AUTH=${mechanism.Metadata.Name}"));
 				}
 
-				await session.SendMessageAsync(new Message(UntaggedTag, CommandName, data), cancellationToken);
+				await _channel.SendMessageAsync(new Message(UntaggedTag, CommandName, data), cancellationToken);
 			}
 			else
 			{
-				await session.SendMessageAsync(
+				await _channel.SendMessageAsync(
 					new Message(
 						UntaggedTag,
 						CommandName,
@@ -53,7 +59,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 					cancellationToken);
 			}
 
-			await EndOkAsync(session, cancellationToken);
+			await EndOkAsync(_channel, cancellationToken);
 		}
 
 		public override bool IsValidWith(IEnumerable<IImapCommand> commands)

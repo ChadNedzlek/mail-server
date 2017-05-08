@@ -34,7 +34,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			return true;
 		}
 
-		public override Task ExecuteAsync(ImapSession session, CancellationToken cancellationToken)
+		public override Task ExecuteAsync(CancellationToken cancellationToken)
 		{
 			IEnumerable<string> items = ResolveAliases(_fetchItems);
 
