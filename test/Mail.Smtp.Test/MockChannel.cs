@@ -7,7 +7,7 @@ using Vaettir.Mail.Server.Smtp;
 
 namespace Vaettir.Mail.Smtp.Test
 {
-	public class MockChannel : IMessageChannel
+	public class MockChannel : ISmtpMessageChannel
 	{
 		public IList<Entry> Entries { get; } = new List<Entry>();
 		public bool IsClosed { get; set; }

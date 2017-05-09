@@ -6,10 +6,10 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 	[SmtpCommand("STARTTLS")]
 	public class StartTlsCommand : BaseSmtpCommand
 	{
-		private readonly IMessageChannel _channel;
+		private readonly ISmtpMessageChannel _channel;
 		private readonly SecurableConnection _connection;
 
-		public StartTlsCommand(IMessageChannel channel, SecurableConnection connection)
+		public StartTlsCommand(ISmtpMessageChannel channel, SecurableConnection connection)
 		{
 			_channel = channel;
 			_connection = connection;

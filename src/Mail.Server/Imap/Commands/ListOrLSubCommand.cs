@@ -38,7 +38,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			if (string.IsNullOrEmpty(_reference) && string.IsNullOrEmpty(_pattern))
 			{
 				await _channel.SendMessageAsync(
-					new Message(
+					new ImapMessage(
 						UntaggedTag,
 						CommandName,
 						new ListMessageData(new AtomMessageData(Tags.NoSelect)),
@@ -67,7 +67,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 				#warning Presumably we should use the list...
 
 				await _channel.SendMessageAsync(
-					new Message(
+					new ImapMessage(
 						UntaggedTag,
 						CommandName,
 						new ListMessageData(new AtomMessageData(Tags.NoSelect)),

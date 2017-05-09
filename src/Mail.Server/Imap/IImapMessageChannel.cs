@@ -10,8 +10,8 @@ namespace Vaettir.Mail.Server.Imap
 {
 	public interface IImapMessageChannel
 	{
-		Task CommandCompletedAsync(Message message, IImapCommand command, CancellationToken cancellationToken);
-		Task SendMessageAsync(Message message, Encoding encoding, CancellationToken cancellationToken);
+		Task CommandCompletedAsync(ImapMessage message, IImapCommand command, CancellationToken cancellationToken);
+		Task SendMessageAsync(ImapMessage message, Encoding encoding, CancellationToken cancellationToken);
 		UserData AuthenticatedUser { get; set; }
 		SessionState State { get; set; }
 		void EndSession();
@@ -23,14 +23,14 @@ namespace Vaettir.Mail.Server.Imap
 	{
 		private static Encoding DefaultEncoding { get; } = Encoding.ASCII;
 
-		public static Task SendMessageAsync(this IImapMessageChannel channel, Message message, CancellationToken cancellationToken)
+		public static Task SendMessageAsync(this IImapMessageChannel channel, ImapMessage message, CancellationToken cancellationToken)
 		{
 			return channel.SendMessageAsync(message, DefaultEncoding, cancellationToken);
 		}
 
 		public static Task ReportBadAsync(IImapMessageChannel imapSession, string tag, string errorText, CancellationToken cancellationToken)
 		{
-			var message = new Message(tag, "BAD", new List<IMessageData> {new ServerMessageData(errorText)});
+			var message = new ImapMessage(tag, "BAD", new List<IMessageData> {new ServerMessageData(errorText)});
 			return imapSession.SendMessageAsync(message, DefaultEncoding, cancellationToken);
 		}
 

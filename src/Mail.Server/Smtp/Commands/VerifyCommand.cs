@@ -6,9 +6,9 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 	[SmtpCommand("VRFY")]
 	public class VerifyCommand : BaseSmtpCommand
 	{
-		private readonly IMessageChannel _channel;
+		private readonly ISmtpMessageChannel _channel;
 
-		public VerifyCommand(IMessageChannel channel)
+		public VerifyCommand(ISmtpMessageChannel channel)
 		{
 			_channel = channel;
 		}

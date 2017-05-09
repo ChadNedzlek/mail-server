@@ -101,7 +101,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			}
 
 			await _channel.SendMessageAsync(
-				new Message(UntaggedTag, CommandName, new ListMessageData(messageData)),
+				new ImapMessage(UntaggedTag, CommandName, new ListMessageData(messageData)),
 				cancellationToken);
 
 			await EndOkAsync(_channel, cancellationToken);

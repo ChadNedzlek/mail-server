@@ -57,11 +57,11 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			SelectedMailbox selected = await _mailboxPointer.SelectMailboxAsync(mailbox, cancellationToken);
 
 			await _channel.SendMessageAsync(
-				new Message(UntaggedTag, new NumberMessageData(mailbox.Messages.Count), new AtomMessageData("EXISTS")),
+				new ImapMessage(UntaggedTag, new NumberMessageData(mailbox.Messages.Count), new AtomMessageData("EXISTS")),
 				CancellationToken.None);
 
 			await _channel.SendMessageAsync(
-				new Message(UntaggedTag, new NumberMessageData(mailbox.Recent.Count), new AtomMessageData("RECENT")),
+				new ImapMessage(UntaggedTag, new NumberMessageData(mailbox.Recent.Count), new AtomMessageData("RECENT")),
 				CancellationToken.None);
 
 			int unseenSequence = mailbox.FirstUnseen;
@@ -69,7 +69,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			int uidValidity = mailbox.UidValidity;
 
 			await _channel.SendMessageAsync(
-				new Message(
+				new ImapMessage(
 					UntaggedTag,
 					"OK",
 					new TagMessageData(
@@ -79,7 +79,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 				cancellationToken);
 
 			await _channel.SendMessageAsync(
-				new Message(
+				new ImapMessage(
 					UntaggedTag,
 					"OK",
 					new TagMessageData(
@@ -89,7 +89,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 				cancellationToken);
 
 			await _channel.SendMessageAsync(
-				new Message(
+				new ImapMessage(
 					UntaggedTag,
 					"OK",
 					new TagMessageData(
@@ -99,14 +99,14 @@ namespace Vaettir.Mail.Server.Imap.Commands
 				cancellationToken);
 
 			await _channel.SendMessageAsync(
-				new Message(
+				new ImapMessage(
 					UntaggedTag,
 					"FLAGS",
 					new ListMessageData(mailbox.Flags.Select(f => new AtomMessageData(f)))),
 				cancellationToken);
 
 			await _channel.SendMessageAsync(
-				new Message(
+				new ImapMessage(
 					UntaggedTag,
 					"OK",
 					new TagMessageData(

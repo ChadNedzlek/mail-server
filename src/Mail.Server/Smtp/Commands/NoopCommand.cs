@@ -6,9 +6,9 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 	[SmtpCommand("NOOP")]
 	public class NoopCommand : BaseSmtpCommand
 	{
-		private readonly IMessageChannel _channel;
+		private readonly ISmtpMessageChannel _channel;
 
-		public NoopCommand(IMessageChannel channel)
+		public NoopCommand(ISmtpMessageChannel channel)
 		{
 			_channel = channel;
 		}

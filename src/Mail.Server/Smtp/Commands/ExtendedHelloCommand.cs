@@ -22,7 +22,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 		};
 
 		private readonly IList<Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata>> _authentication;
-		private readonly IMessageChannel _channel;
+		private readonly ISmtpMessageChannel _channel;
 		private readonly IConnectionSecurity _connection;
 		private readonly ILogger _log;
 		private readonly SmtpSettings _settings;
@@ -30,7 +30,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 		public ExtendedHelloCommand(
 			IEnumerable<Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata>> authentication,
 			IConnectionSecurity connection,
-			IMessageChannel channel,
+			ISmtpMessageChannel channel,
 			SmtpSettings settings,
 			ILogger log)
 		{

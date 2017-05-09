@@ -9,7 +9,7 @@ namespace Vaettir.Mail.Server.Smtp
 		public SmtpSettings(
 			// Required settings for basic functionality
 			string domainName,
-			int[] ports,
+			ConnectionSetting[] connections,
 			string mailIncomingQueuePath,
 			string mailOutgoingQueuePath,
 			string workingDirectory,
@@ -25,8 +25,9 @@ namespace Vaettir.Mail.Server.Smtp
 			string passwordAlgorithm = null,
 			int? idleDelay = null,
 			MailDescriminator sendBounce = MailDescriminator.None,
-			IDictionary<string, LogSettings> logging = null)
-			: base(domainName, ports, domainAliases, userPasswordFile, passwordAlgorithm)
+			IDictionary<string, LogSettings> logging = null
+		)
+			: base(domainName, connections, domainAliases, userPasswordFile, passwordAlgorithm)
 		{
 			IncomingScan = incomingScan;
 			LocalDomains = localDomains;

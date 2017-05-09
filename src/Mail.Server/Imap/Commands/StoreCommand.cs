@@ -124,7 +124,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			{
 				await
 					_channel.SendMessageAsync(
-						new Message(
+						new ImapMessage(
 							UntaggedTag,
 							CommandName,
 							new ListMessageData(

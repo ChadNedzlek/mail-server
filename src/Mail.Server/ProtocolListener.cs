@@ -32,10 +32,10 @@ namespace Vaettir.Mail.Server
 
 		public async Task RunAsync(CancellationToken cancellationToken)
 		{
-			_log.Information($"Opening ports: {string.Join(",", _settings.Ports.Select(p => p.ToString()))}");
+			_log.Information($"Opening ports: {string.Join(",", _settings.Connections.Select(p => p.Port.ToString()))}");
 
-			TcpListener[] listeners = _settings.Ports
-				.Select(p => new TcpListener(IPAddress.Any, p))
+			TcpListener[] listeners = _settings.Connections
+				.Select(p => new TcpListener(IPAddress.Any, p.Port))
 				.ToArray();
 
 			foreach (TcpListener l in listeners)
@@ -61,7 +61,8 @@ namespace Vaettir.Mail.Server
 				{
 					// This is a new connection task
 					TcpClient client = tcpTask.Result;
-					await AcceptNewClientAsync(client, cancellationToken);
+					ConnectionSetting connectionSettings = _settings.Connections[completedIndex];
+					await AcceptNewClientAsync(client, connectionSettings, cancellationToken);
 
 					// Wait for another connection
 					listenerTasks[completedIndex] = listeners[completedIndex].AcceptTcpClientAsync();
@@ -86,24 +87,29 @@ namespace Vaettir.Mail.Server
 			}
 		}
 
-		private async Task AcceptNewClientAsync(TcpClient client, CancellationToken cancellationToken)
+		private async Task AcceptNewClientAsync(TcpClient client, ConnectionSetting connectionSettings, CancellationToken cancellationToken)
 		{
 			ILifetimeScope newScope = _scope.BeginLifetimeScope(
-				b =>
+				builder =>
 				{
-					b.RegisterInstance(
+					builder.RegisterInstance(
 						new ConnectionInformation(
 							client.Client.LocalEndPoint.ToString(),
 							client.Client.RemoteEndPoint.ToString()));
-					b.RegisterInstance(
-						new SecurableConnection(client.GetStream())
-						{
-							Certificate = ServerCertificate
-						});
+
+					builder.RegisterInstance(
+							new SecurableConnection(client.GetStream())
+							{
+								Certificate = ServerCertificate
+							})
+						.As<SecurableConnection>()
+						.As<IConnectionSecurity>();
+
+					builder.RegisterInstance(connectionSettings);
 				}
 			);
 
-			var newSession = newScope.Resolve<IProtocolSession>();
+			var newSession = newScope.ResolveKeyed<IProtocolSession>(connectionSettings.Protocol);
 
 			using (await SemaphoreLock.GetLockAsync(_sessionSemaphore, cancellationToken))
 			{

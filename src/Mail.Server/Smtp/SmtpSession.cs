@@ -9,7 +9,7 @@ using Vaettir.Mail.Server.Authentication;
 
 namespace Vaettir.Mail.Server.Smtp
 {
-	public class SmtpSession : IProtocolSession, IAuthenticationTransport, IDisposable, IMessageChannel, IMailBuilder
+	public class SmtpSession : IProtocolSession, IAuthenticationTransport, IDisposable, ISmtpMessageChannel, IMailBuilder
 	{
 		private readonly SecurableConnection _connection;
 		private readonly IComponentContext _context;
@@ -51,7 +51,7 @@ namespace Vaettir.Mail.Server.Smtp
 
 		public bool IsAuthenticated => AuthenticatedUser != null;
 
-		Task IMessageChannel.SendReplyAsync(
+		Task ISmtpMessageChannel.SendReplyAsync(
 			ReplyCode replyCode,
 			bool more,
 			string message,
@@ -67,7 +67,7 @@ namespace Vaettir.Mail.Server.Smtp
 			return _connection.WriteLineAsync(builder.ToString(), Encoding.ASCII, cancellationToken);
 		}
 
-		async Task IMessageChannel.SendReplyAsync(
+		async Task ISmtpMessageChannel.SendReplyAsync(
 			ReplyCode replyCode,
 			IEnumerable<string> messages,
 			CancellationToken cancellationToken)
@@ -109,7 +109,7 @@ namespace Vaettir.Mail.Server.Smtp
 			await _connection.WriteLineAsync(builder.ToString(), Encoding.ASCII, cancellationToken);
 		}
 
-		void IMessageChannel.Close()
+		void ISmtpMessageChannel.Close()
 		{
 			_closeRequested = true;
 			_connection.Close();

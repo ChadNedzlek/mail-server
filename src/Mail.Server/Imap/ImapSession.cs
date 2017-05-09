@@ -113,7 +113,7 @@ namespace Vaettir.Mail.Server.Imap
 			return true;
 		}
 
-		public async Task CommandCompletedAsync(Message message, IImapCommand command, CancellationToken cancellationToken)
+		public async Task CommandCompletedAsync(ImapMessage message, IImapCommand command, CancellationToken cancellationToken)
 		{
 			await SendPendingResponsesAsync(cancellationToken);
 			await this.SendMessageAsync(message, cancellationToken);
@@ -215,7 +215,7 @@ namespace Vaettir.Mail.Server.Imap
 			await _connection.WriteLineAsync("+ " + text, encoding, cancellationToken);
 		}
 
-		public async Task SendMessageAsync(Message message, Encoding encoding, CancellationToken cancellationToken)
+		public async Task SendMessageAsync(ImapMessage message, Encoding encoding, CancellationToken cancellationToken)
 		{
 			using (await SemaphoreLock.GetLockAsync(_sendSemaphore, cancellationToken))
 			{

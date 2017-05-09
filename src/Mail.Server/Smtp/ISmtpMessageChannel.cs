@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace Vaettir.Mail.Server.Smtp
 {
-	public interface IMessageChannel
+	public interface ISmtpMessageChannel
 	{
 		UserData AuthenticatedUser { get; set; }
 		string ConnectedHost { get; set; }
@@ -14,10 +14,10 @@ namespace Vaettir.Mail.Server.Smtp
 		void Close();
 	}
 
-	public static class MessageChannel
+	public static class SmtpMessageChannel
 	{
 		public static Task SendReplyAsync(
-			this IMessageChannel channel,
+			this ISmtpMessageChannel channel,
 			ReplyCode replyCode,
 			string message,
 			CancellationToken token)
@@ -26,7 +26,7 @@ namespace Vaettir.Mail.Server.Smtp
 		}
 
 		public static Task SendReplyAsync(
-			this IMessageChannel channel,
+			this ISmtpMessageChannel channel,
 			ReplyCode replyCode,
 			CancellationToken cancellationToken)
 		{

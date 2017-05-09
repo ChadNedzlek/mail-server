@@ -44,12 +44,12 @@ namespace Vaettir.Mail.Server.Imap.Commands
 					data.Add(new AtomMessageData($"AUTH=${mechanism.Metadata.Name}"));
 				}
 
-				await _channel.SendMessageAsync(new Message(UntaggedTag, CommandName, data), cancellationToken);
+				await _channel.SendMessageAsync(new ImapMessage(UntaggedTag, CommandName, data), cancellationToken);
 			}
 			else
 			{
 				await _channel.SendMessageAsync(
-					new Message(
+					new ImapMessage(
 						UntaggedTag,
 						CommandName,
 						new AtomMessageData("IMAP4rev1"),

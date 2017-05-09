@@ -22,7 +22,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 		public override async Task ExecuteAsync(CancellationToken cancellationToken)
 		{
 			await _channel.SendMessageAsync(
-				new Message(
+				new ImapMessage(
 					UntaggedTag,
 					"BYE",
 					new AtomMessageData("IMAP4rev1"),

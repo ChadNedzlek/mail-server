@@ -6,9 +6,9 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 	[SmtpCommand("QUIT")]
 	public class QuitCommand : BaseSmtpCommand
 	{
-		private readonly IMessageChannel _channel;
+		private readonly ISmtpMessageChannel _channel;
 
-		public QuitCommand(IMessageChannel channel)
+		public QuitCommand(ISmtpMessageChannel channel)
 		{
 			_channel = channel;
 		}

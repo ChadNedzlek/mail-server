@@ -59,7 +59,7 @@ namespace Vaettir.Mail.Smtp.Test
 
 				builder.RegisterType<SmtpSession>()
 					.As<SmtpSession>()
-					.As<IMessageChannel>()
+					.As<ISmtpMessageChannel>()
 					.As<IMailBuilder>()
 					.As<IAuthenticationTransport>()
 					.As<IProtocolSession>();

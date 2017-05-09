@@ -7,12 +7,12 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 	[SmtpCommand("HELO")]
 	public class HelloCommand : BaseSmtpCommand
 	{
-		private readonly IMessageChannel _channel;
+		private readonly ISmtpMessageChannel _channel;
 		private readonly ILogger _log;
 		private readonly SmtpSettings _settings;
 
 		public HelloCommand(
-			IMessageChannel channel,
+			ISmtpMessageChannel channel,
 			SmtpSettings settings,
 			ILogger log)
 		{

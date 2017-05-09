@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
+using Vaettir.Mail.Server;
 using Vaettir.Mail.Server.Authentication;
 using Vaettir.Mail.Server.Authentication.Mechanism;
 using Vaettir.Mail.Server.Smtp;
@@ -36,7 +37,7 @@ namespace Vaettir.Mail.Test.Utilities
 			string domainName = null,
 			SmtpAcceptDomain[] localDomains = null,
 			SmtpIncomingMailScan incomingScan = null,
-			int[] ports = null,
+			ConnectionSetting[] connections = null,
 			string[] domainAliases = null,
 			SmtpRelayDomain[] relayDomains = null,
 			string passwordAlgorithm = null,
@@ -49,10 +50,10 @@ namespace Vaettir.Mail.Test.Utilities
 				mailOutgoingQueuePath: null,
 				workingDirectory: null,
 				localDomains: localDomains,
+				connections: connections,
 				domainSettingsPath: null,
 				mailLocalPath: null,
 				incomingScan: incomingScan,
-				ports: ports,
 				domainAliases: domainAliases,
 				userPasswordFile: null,
 				relayDomains: relayDomains,

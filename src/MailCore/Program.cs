@@ -2,16 +2,14 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
 using Autofac;
-using Autofac.Builder;
 using JetBrains.Annotations;
 using Mono.Options;
 using Vaettir.Mail.Server;
 using Vaettir.Mail.Server.Authentication;
 using Vaettir.Mail.Server.Authentication.Mechanism;
 using Vaettir.Mail.Server.FileSystem;
+using Vaettir.Mail.Server.Imap;
 using Vaettir.Mail.Server.Smtp;
 using Vaettir.Mail.Server.Smtp.Commands;
 using Vaettir.Utility;
@@ -139,10 +137,17 @@ namespace MailCore
 			builder.Register(c => new CompositeLogger(c.Resolve<IEnumerable<ILogSync>>())).As<ILogger>();
 
 			builder.RegisterType<SmtpSession>()
-				.As<IProtocolSession>()
-				.As<IMessageChannel>()
+				.Keyed<IProtocolSession>("smtp")
+				.As<ISmtpMessageChannel>()
 				.As<IAuthenticationTransport>()
 				.As<IMailBuilder>()
+				.InstancePerLifetimeScope();
+
+			builder.RegisterType<ImapSession>()
+				.Keyed<IProtocolSession>("imap")
+				.As<IAuthenticationTransport>()
+				.As<IImapMessageChannel>()
+				.As<IImapMailboxPointer>()
 				.InstancePerLifetimeScope();
 
 			builder.RegisterType<MailTransfer>();

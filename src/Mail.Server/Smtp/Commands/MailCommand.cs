@@ -12,11 +12,11 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 	{
 		private static readonly Regex s_fromExpression = new Regex(@"^FROM:<([^:+]:)?(\S*)>(?: (.+))?$");
 		private readonly IMailBuilder _builder;
-		private readonly IMessageChannel _channel;
+		private readonly ISmtpMessageChannel _channel;
 		private readonly SmtpSettings _settings;
 		private readonly IUserStore _userStore;
 
-		public MailCommand(IMessageChannel channel, IMailBuilder builder, SmtpSettings settings, IUserStore userStore)
+		public MailCommand(ISmtpMessageChannel channel, IMailBuilder builder, SmtpSettings settings, IUserStore userStore)
 		{
 			_builder = builder;
 			_channel = channel;

@@ -10,11 +10,11 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 	public class AuthenticateCommand : BaseSmtpCommand
 	{
 		private readonly IIndex<string, IAuthenticationSession> _authentication;
-		private readonly IMessageChannel _channel;
+		private readonly ISmtpMessageChannel _channel;
 
 		public AuthenticateCommand(
 			IIndex<string, IAuthenticationSession> authentication,
-			IMessageChannel channel)
+			ISmtpMessageChannel channel)
 		{
 			_authentication = authentication;
 			_channel = channel;

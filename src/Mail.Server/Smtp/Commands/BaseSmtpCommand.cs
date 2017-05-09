@@ -21,7 +21,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 		}
 
 		protected bool TryProcessParameterValue(
-			IMessageChannel channel,
+			ISmtpMessageChannel channel,
 			string parameterString,
 			out Task errorReport,
 			CancellationToken cancellationToken)

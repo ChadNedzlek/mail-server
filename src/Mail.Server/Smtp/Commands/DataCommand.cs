@@ -11,7 +11,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 	public class DataCommand : BaseSmtpCommand
 	{
 		private readonly IMailBuilder _builder;
-		private readonly IMessageChannel _channel;
+		private readonly ISmtpMessageChannel _channel;
 		private readonly SecurableConnection _connection;
 		private readonly ConnectionInformation _connectionInformation;
 		private readonly IMailQueue _mailQueue;
@@ -23,7 +23,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 			SecurableConnection connection,
 			ConnectionInformation connectionInformation,
 			IMailBuilder builder,
-			IMessageChannel channel
+			ISmtpMessageChannel channel
 		)
 		{
 			_mailQueue = mailQueue;
