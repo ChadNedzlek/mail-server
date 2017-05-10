@@ -9,11 +9,11 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 	{
 		private readonly ISmtpMessageChannel _channel;
 		private readonly ILogger _log;
-		private readonly SmtpSettings _settings;
+		private readonly AgentSettings _settings;
 
 		public HelloCommand(
 			ISmtpMessageChannel channel,
-			SmtpSettings settings,
+			AgentSettings settings,
 			ILogger log)
 		{
 			_channel = channel;
@@ -27,7 +27,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 
 			_log.Information($"HELO from {Arguments}");
 			return _channel.SendReplyAsync(
-				ReplyCode.Okay,
+				SmtpReplyCode.Okay,
 				$"{_settings.DomainName} greets {Arguments}",
 				token);
 		}

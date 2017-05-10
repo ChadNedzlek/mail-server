@@ -26,7 +26,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 			if (parts == null || parts.Length == 0 || parts.Length > 2)
 			{
 				await _channel.SendReplyAsync(
-					ReplyCode.InvalidArguments,
+					SmtpReplyCode.InvalidArguments,
 					"Expected mechanism and optional initial response",
 					token);
 				return;
@@ -35,7 +35,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 
 			if (!_authentication.TryGetValue(mechanismName, out var mechanism))
 			{
-				await _channel.SendReplyAsync(ReplyCode.InvalidArguments, "Unknown mechanism", token);
+				await _channel.SendReplyAsync(SmtpReplyCode.InvalidArguments, "Unknown mechanism", token);
 				return;
 			}
 
@@ -47,12 +47,12 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 			}
 			catch (ArgumentException)
 			{
-				await _channel.SendReplyAsync(ReplyCode.InvalidArguments, "Invalid arguments", token);
+				await _channel.SendReplyAsync(SmtpReplyCode.InvalidArguments, "Invalid arguments", token);
 				return;
 			}
 
 			_channel.AuthenticatedUser = userData;
-			await _channel.SendReplyAsync(ReplyCode.AuthenticationComplete, "Authentication unsuccessful", token);
+			await _channel.SendReplyAsync(SmtpReplyCode.AuthenticationComplete, "Authentication unsuccessful", token);
 		}
 	}
 }

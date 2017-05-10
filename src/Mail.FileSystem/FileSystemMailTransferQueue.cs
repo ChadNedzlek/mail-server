@@ -13,7 +13,7 @@ namespace Vaettir.Mail.Server.FileSystem
 	[UsedImplicitly(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature)]
 	public class FileSystemMailTransferQueue : FileSystemMailQueueBase, IMailTransferQueue
 	{
-		public FileSystemMailTransferQueue(SmtpSettings settings) : base(settings)
+		public FileSystemMailTransferQueue(AgentSettings settings) : base(settings)
 		{
 			Directory.CreateDirectory(Settings.MailOutgoingQueuePath);
 		}

@@ -31,7 +31,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 				int sepIndex = parameter.IndexOf("=", StringComparison.Ordinal);
 				if (sepIndex == -1)
 				{
-					errorReport = channel.SendReplyAsync(ReplyCode.InvalidArguments, "Bad parameters", cancellationToken);
+					errorReport = channel.SendReplyAsync(SmtpReplyCode.InvalidArguments, "Bad parameters", cancellationToken);
 					return false;
 				}
 
@@ -40,7 +40,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 				if (!TryProcessParameter(paramKey, paramValue))
 				{
 					errorReport = channel.SendReplyAsync(
-						ReplyCode.ParameterNotImplemented,
+						SmtpReplyCode.ParameterNotImplemented,
 						"Parameter not implemented",
 						cancellationToken);
 					return false;

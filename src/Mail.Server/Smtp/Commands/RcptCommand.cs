@@ -13,9 +13,9 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 
 		private readonly IMailBuilder _builder;
 		private readonly ISmtpMessageChannel _channel;
-		private readonly SmtpSettings _settings;
+		private readonly AgentSettings _settings;
 
-		public RecipientCommand(IMailBuilder builder, ISmtpMessageChannel channel, SmtpSettings settings)
+		public RecipientCommand(IMailBuilder builder, ISmtpMessageChannel channel, AgentSettings settings)
 		{
 			_builder = builder;
 			_channel = channel;
@@ -26,13 +26,13 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 		{
 			if (_builder.PendingMail == null)
 			{
-				return _channel.SendReplyAsync(ReplyCode.BadSequence, "RCPT not valid now", token);
+				return _channel.SendReplyAsync(SmtpReplyCode.BadSequence, "RCPT not valid now", token);
 			}
 
 			Match toMatch = s_fromExpression.Match(Arguments);
 			if (!toMatch.Success)
 			{
-				return _channel.SendReplyAsync(ReplyCode.InvalidArguments, "Bad FROM address", token);
+				return _channel.SendReplyAsync(SmtpReplyCode.InvalidArguments, "Bad FROM address", token);
 			}
 
 			string sourceRoute = toMatch.Groups[1].Value;
@@ -40,7 +40,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 
 			if (!string.IsNullOrEmpty(sourceRoute))
 			{
-				return _channel.SendReplyAsync(ReplyCode.NameNotAllowed, "Forwarding not supported", token);
+				return _channel.SendReplyAsync(SmtpReplyCode.NameNotAllowed, "Forwarding not supported", token);
 			}
 
 			string parameterString = toMatch.Groups[3].Value;
@@ -54,7 +54,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 			string[] mailboxParts = mailbox.Split('@');
 			if (mailboxParts.Length != 2)
 			{
-				return _channel.SendReplyAsync(ReplyCode.InvalidArguments, "Invalid Mailbox name", token);
+				return _channel.SendReplyAsync(SmtpReplyCode.InvalidArguments, "Invalid Mailbox name", token);
 			}
 
 			string domain = mailboxParts[1];
@@ -63,12 +63,12 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 				_settings.RelayDomains?.Any(d => string.Equals(d.Name, domain, StringComparison.OrdinalIgnoreCase)) != true &&
 				_settings.LocalDomains?.Any(d => string.Equals(d.Name, domain, StringComparison.OrdinalIgnoreCase)) != true)
 			{
-				return _channel.SendReplyAsync(ReplyCode.MailboxUnavailable, "Invalid Mailbox", token);
+				return _channel.SendReplyAsync(SmtpReplyCode.MailboxUnavailable, "Invalid Mailbox", token);
 			}
 
 			_builder.PendingMail.Recipents.Add(mailbox);
 
-			return _channel.SendReplyAsync(ReplyCode.Okay, token);
+			return _channel.SendReplyAsync(SmtpReplyCode.Okay, token);
 		}
 	}
 }

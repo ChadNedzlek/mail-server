@@ -1,6 +1,6 @@
 namespace Vaettir.Mail.Server.Smtp
 {
-	public enum ReplyCode
+	public enum SmtpReplyCode
 	{
 		Status = 211,
 		Help = 214,

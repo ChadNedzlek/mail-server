@@ -13,13 +13,13 @@ namespace Vaettir.Mail.Server.Smtp
 	{
 		private readonly SecurableConnection _connection;
 		private readonly IComponentContext _context;
-		private readonly SmtpSettings _settings;
+		private readonly AgentSettings _settings;
 
 		private bool _closeRequested;
 
 		public SmtpSession(
 			SecurableConnection connection,
-			SmtpSettings settings,
+			AgentSettings settings,
 			ConnectionInformation connectionInfo,
 			IComponentContext context)
 		{
@@ -31,7 +31,7 @@ namespace Vaettir.Mail.Server.Smtp
 
 		public Task SendAuthenticationFragmentAsync(byte[] data, CancellationToken cancellationToken)
 		{
-			return this.SendReplyAsync(ReplyCode.AuthenticationFragment, Convert.ToBase64String(data), cancellationToken);
+			return this.SendReplyAsync(SmtpReplyCode.AuthenticationFragment, Convert.ToBase64String(data), cancellationToken);
 		}
 
 		public async Task<byte[]> ReadAuthenticationFragmentAsync(CancellationToken cancellationToken)
@@ -52,13 +52,13 @@ namespace Vaettir.Mail.Server.Smtp
 		public bool IsAuthenticated => AuthenticatedUser != null;
 
 		Task ISmtpMessageChannel.SendReplyAsync(
-			ReplyCode replyCode,
+			SmtpReplyCode smtpReplyCode,
 			bool more,
 			string message,
 			CancellationToken cancellationToken)
 		{
 			var builder = new StringBuilder();
-			builder.Append(((int) replyCode).ToString("D3"));
+			builder.Append(((int) smtpReplyCode).ToString("D3"));
 			builder.Append(more ? "-" : " ");
 			if (message != null)
 			{
@@ -68,7 +68,7 @@ namespace Vaettir.Mail.Server.Smtp
 		}
 
 		async Task ISmtpMessageChannel.SendReplyAsync(
-			ReplyCode replyCode,
+			SmtpReplyCode smtpReplyCode,
 			IEnumerable<string> messages,
 			CancellationToken cancellationToken)
 		{
@@ -87,7 +87,7 @@ namespace Vaettir.Mail.Server.Smtp
 				while (more)
 				{
 					builder.Clear();
-					builder.Append(((int) replyCode).ToString("D3"));
+					builder.Append(((int) smtpReplyCode).ToString("D3"));
 					builder.Append("-");
 					if (message != null)
 					{
@@ -100,7 +100,7 @@ namespace Vaettir.Mail.Server.Smtp
 			}
 
 			builder.Clear();
-			builder.Append(((int) replyCode).ToString("D3"));
+			builder.Append(((int) smtpReplyCode).ToString("D3"));
 			builder.Append(" ");
 			if (message != null)
 			{
@@ -119,7 +119,7 @@ namespace Vaettir.Mail.Server.Smtp
 
 		public async Task RunAsync(CancellationToken token)
 		{
-			await this.SendReplyAsync(ReplyCode.Greeting, $"{_settings.DomainName} Service ready", token);
+			await this.SendReplyAsync(SmtpReplyCode.Greeting, $"{_settings.DomainName} Service ready", token);
 			while (!token.IsCancellationRequested && !_closeRequested)
 			{
 				ISmtpCommand command = await GetCommandAsync(token);
@@ -135,7 +135,7 @@ namespace Vaettir.Mail.Server.Smtp
 			string line = await _connection.ReadLineAsync(Encoding.UTF8, token);
 			if (line.Length < 4)
 			{
-				await this.SendReplyAsync(ReplyCode.SyntaxError, "No command found", token);
+				await this.SendReplyAsync(SmtpReplyCode.SyntaxError, "No command found", token);
 				return null;
 			}
 
@@ -156,7 +156,7 @@ namespace Vaettir.Mail.Server.Smtp
 			var commandExecutor = _context.ResolveOptionalKeyed<ISmtpCommand>(command);
 			if (commandExecutor == null)
 			{
-				await this.SendReplyAsync(ReplyCode.SyntaxError, "Command not implemented", token);
+				await this.SendReplyAsync(SmtpReplyCode.SyntaxError, "Command not implemented", token);
 				return null;
 			}
 

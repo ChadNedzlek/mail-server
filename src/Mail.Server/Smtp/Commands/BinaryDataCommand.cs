@@ -32,21 +32,21 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 				_builder.PendingMail?.Recipents?.Count == 0 ||
 				_builder.PendingMail?.IsBinary != true)
 			{
-				await _session.SendReplyAsync(ReplyCode.BadSequence, "Bad sequence", token);
+				await _session.SendReplyAsync(SmtpReplyCode.BadSequence, "Bad sequence", token);
 				return;
 			}
 
 			string[] parts = Arguments?.Split(' ');
 			if (parts == null || parts.Length == 0 || parts.Length > 2)
 			{
-				await _session.SendReplyAsync(ReplyCode.InvalidArguments, "Length required, optional LAST", token);
+				await _session.SendReplyAsync(SmtpReplyCode.InvalidArguments, "Length required, optional LAST", token);
 				return;
 			}
 
 			int length;
 			if (!int.TryParse(parts[0], out length) || length < 1)
 			{
-				await _session.SendReplyAsync(ReplyCode.InvalidArguments, "Length must be positive integer", token);
+				await _session.SendReplyAsync(SmtpReplyCode.InvalidArguments, "Length must be positive integer", token);
 				return;
 			}
 
@@ -55,7 +55,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 			{
 				if (!string.Equals("LAST", parts[1]))
 				{
-					await _session.SendReplyAsync(ReplyCode.InvalidArguments, "LAST expected", token);
+					await _session.SendReplyAsync(SmtpReplyCode.InvalidArguments, "LAST expected", token);
 					return;
 				}
 				last = true;
@@ -82,12 +82,12 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 				await _mailQueue.SaveAsync(mailReference, token);
 			}
 
-			await _session.SendReplyAsync(ReplyCode.Okay, $"Recieved {length} octets", token);
+			await _session.SendReplyAsync(SmtpReplyCode.Okay, $"Recieved {length} octets", token);
 
 			if (last)
 			{
 				_builder.PendingMail = null;
-				await _session.SendReplyAsync(ReplyCode.Okay, "Message complete", token);
+				await _session.SendReplyAsync(SmtpReplyCode.Okay, "Message complete", token);
 			}
 		}
 	}

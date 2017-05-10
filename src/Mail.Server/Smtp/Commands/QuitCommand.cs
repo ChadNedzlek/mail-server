@@ -15,7 +15,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 
 		public override async Task ExecuteAsync(CancellationToken token)
 		{
-			await _channel.SendReplyAsync(ReplyCode.Closing, "Ok", token);
+			await _channel.SendReplyAsync(SmtpReplyCode.Closing, "Ok", token);
 			_channel.Close();
 		}
 	}

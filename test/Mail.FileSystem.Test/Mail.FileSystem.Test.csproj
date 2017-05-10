@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Mail.FileSystem\Mail.FileSystem.csproj" />
+    <ProjectReference Include="..\..\Test.Utilities\Test.Utilities.csproj" />
   </ItemGroup>
 
   <ItemGroup>

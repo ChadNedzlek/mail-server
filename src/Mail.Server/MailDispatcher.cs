@@ -18,7 +18,7 @@ namespace Vaettir.Mail.Server
 		private readonly IMailQueue _incoming;
 		private readonly ILogger _log;
 		private readonly IMailboxStore _mailbox;
-		private readonly IVolatile<SmtpSettings> _settings;
+		private readonly IVolatile<AgentSettings> _settings;
 		private readonly IMailTransferQueue _transfer;
 
 		private Dictionary<string, Lazy<IVolatile<DomainSettings>>> _domainSettings;
@@ -29,7 +29,7 @@ namespace Vaettir.Mail.Server
 			IMailTransferQueue transfer,
 			ILogger log,
 			IDomainSettingResolver domainResolver,
-			IVolatile<SmtpSettings> settings)
+			IVolatile<AgentSettings> settings)
 		{
 			_settings = settings;
 			_incoming = incoming;
@@ -53,7 +53,7 @@ namespace Vaettir.Mail.Server
 			}
 		}
 
-		private void UpdateDomains(object sender, SmtpSettings newvalue, SmtpSettings oldvalue)
+		private void UpdateDomains(object sender, AgentSettings newvalue, AgentSettings oldvalue)
 		{
 			try
 			{

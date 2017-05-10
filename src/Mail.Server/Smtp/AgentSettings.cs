@@ -4,9 +4,9 @@ using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server.Smtp
 {
-	public class SmtpSettings : ProtocolSettings
+	public class AgentSettings
 	{
-		public SmtpSettings(
+		public AgentSettings(
 			// Required settings for basic functionality
 			string domainName,
 			ConnectionSetting[] connections,
@@ -25,9 +25,9 @@ namespace Vaettir.Mail.Server.Smtp
 			string passwordAlgorithm = null,
 			int? idleDelay = null,
 			MailDescriminator sendBounce = MailDescriminator.None,
-			IDictionary<string, LogSettings> logging = null
+			IDictionary<string, LogSettings> logging = null,
+			int unauthenticatedMessageSizeLimit = 0
 		)
-			: base(domainName, connections, domainAliases, userPasswordFile, passwordAlgorithm)
 		{
 			IncomingScan = incomingScan;
 			LocalDomains = localDomains;
@@ -38,8 +38,14 @@ namespace Vaettir.Mail.Server.Smtp
 			RelayDomains = relayDomains;
 			IdleDelay = idleDelay;
 			DomainSettingsPath = domainSettingsPath;
+			UnauthenticatedMessageSizeLimit = unauthenticatedMessageSizeLimit;
 			SendBounce = sendBounce;
 			Logging = logging;
+			DomainName = domainName;
+			Connections = connections;
+			UserPasswordFile = userPasswordFile;
+			PasswordAlgorithm = passwordAlgorithm;
+			DomainAliases = domainAliases;
 		}
 
 		public SmtpAcceptDomain[] LocalDomains { get; }
@@ -53,6 +59,12 @@ namespace Vaettir.Mail.Server.Smtp
 		public MailDescriminator SendBounce { get; }
 		public string WorkingDirectory { get; }
 		public IDictionary<string, LogSettings> Logging { get; }
+		public ConnectionSetting[] Connections { get; }
+		public string DomainName { get; }
+		public string[] DomainAliases { get; }
+		public string UserPasswordFile { get; }
+		public string PasswordAlgorithm { get; }
+		public int UnauthenticatedMessageSizeLimit { get; }
 	}
 
 	[Flags]

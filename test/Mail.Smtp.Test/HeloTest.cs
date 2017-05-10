@@ -13,15 +13,15 @@ namespace Vaettir.Mail.Smtp.Test
 		[Fact]
 		public async Task HeloResponds()
 		{
-			var channel = new MockChannel();
+			var channel = new MockSmtpChannel();
 			var command = new HelloCommand(channel, TestHelpers.MakeSettings(domainName: "Testexample.com"), new MockLogger());
 			command.Initialize("Sender.net");
 			await command.ExecuteAsync(CancellationToken.None);
 
 			Assert.Equal(1, channel.Entries.Count);
-			Assert.True(channel.Entries.All(c => c.Code == ReplyCode.Okay));
+			Assert.True(channel.Entries.All(c => c.Code == SmtpReplyCode.Okay));
 
-			MockChannel.Entry entry = channel.Entries[0];
+			MockSmtpChannel.Entry entry = channel.Entries[0];
 			Assert.False(entry.More);
 			Assert.Contains("Testexample.com", entry.Message);
 			Assert.Contains("Sender.net", entry.Message);

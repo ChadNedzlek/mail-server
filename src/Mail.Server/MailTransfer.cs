@@ -36,12 +36,12 @@ namespace Vaettir.Mail.Server
 
 		private readonly ILogger _log;
 		private readonly IMailTransferQueue _queue;
-		private readonly IVolatile<SmtpSettings> _settings;
+		private readonly IVolatile<AgentSettings> _settings;
 		private readonly ITcpConnectionProvider _tcp;
 
 		public MailTransfer(
 			IMailTransferQueue queue,
-			IVolatile<SmtpSettings> settings,
+			IVolatile<AgentSettings> settings,
 			ILogger log,
 			IDnsResolve dns,
 			IMailSendFailureManager failures,
@@ -208,7 +208,7 @@ namespace Vaettir.Mail.Server
 				SmtpResponse response = await ExecuteRemoteCommandAsync(writer, reader, $"EHLO {_settings.Value.DomainName}");
 
 				var startTls = false;
-				if (response.Code == ReplyCode.Greeting)
+				if (response.Code == SmtpReplyCode.Greeting)
 				{
 					startTls = response.Lines.Contains("STARTTLS", StringComparer.OrdinalIgnoreCase);
 				}
@@ -217,7 +217,7 @@ namespace Vaettir.Mail.Server
 					response = await ExecuteRemoteCommandAsync(writer, reader, $"HELO {_settings.Value.DomainName}");
 				}
 
-				if (response.Code != ReplyCode.Greeting)
+				if (response.Code != SmtpReplyCode.Greeting)
 				{
 					_log.Warning("Failed to HELO/EHLO, aborting");
 					return mails;
@@ -226,7 +226,7 @@ namespace Vaettir.Mail.Server
 				if (startTls)
 				{
 					response = await ExecuteRemoteCommandAsync(writer, reader, "STARTTLS");
-					if (response.Code != ReplyCode.Okay)
+					if (response.Code != SmtpReplyCode.Okay)
 					{
 						_log.Warning("Failed to STARTTLS, aborting");
 						return mails;
@@ -328,7 +328,7 @@ namespace Vaettir.Mail.Server
 			IMailReadReference readMail = await _queue.OpenReadAsync(mail, token);
 			_log.Information($"Sender: {readMail.Sender}, Recipients: {string.Join(",", readMail.Recipients)}");
 			SmtpResponse response = await ExecuteRemoteCommandAsync(writer, reader, $"MAIL FROM:<{readMail.Sender}>");
-			if (response.Code != ReplyCode.Okay)
+			if (response.Code != SmtpReplyCode.Okay)
 			{
 				_log.Warning("Failed MAIL FROM, aborting");
 				return false;
@@ -337,7 +337,7 @@ namespace Vaettir.Mail.Server
 			foreach (string recipient in readMail.Recipients)
 			{
 				response = await ExecuteRemoteCommandAsync(writer, reader, $"RCPT TO:<{recipient}>");
-				if (response.Code != ReplyCode.Okay)
+				if (response.Code != SmtpReplyCode.Okay)
 				{
 					_log.Warning("Failed RCPT TO, aborting");
 					return false;
@@ -345,7 +345,7 @@ namespace Vaettir.Mail.Server
 			}
 
 			response = await ExecuteRemoteCommandAsync(writer, reader, "DATA");
-			if (response.Code != ReplyCode.StartMail)
+			if (response.Code != SmtpReplyCode.StartMail)
 			{
 				_log.Warning("Failed DATA, aborting");
 				return false;
@@ -362,7 +362,7 @@ namespace Vaettir.Mail.Server
 
 			await writer.WriteLineAsync(".");
 			response = await ReadResponseAsync(reader);
-			if (response.Code != ReplyCode.Okay)
+			if (response.Code != SmtpReplyCode.Okay)
 			{
 				_log.Warning("Failed RCPT TO, aborting");
 				return false;
@@ -377,7 +377,7 @@ namespace Vaettir.Mail.Server
 		{
 			var lines = new List<string>();
 			var more = true;
-			ReplyCode? currentReply = null;
+			SmtpReplyCode? currentSmtpReply = null;
 			while (more)
 			{
 				string line = await reader.ReadLineAsync();
@@ -393,18 +393,18 @@ namespace Vaettir.Mail.Server
 					_log.Warning($"Illegal response: {line}");
 					return null;
 				}
-				var newReply = (ReplyCode) reponseCode;
-				if (currentReply.HasValue && newReply != currentReply.Value)
+				var newReply = (SmtpReplyCode) reponseCode;
+				if (currentSmtpReply.HasValue && newReply != currentSmtpReply.Value)
 				{
-					_log.Warning($"Illegal contiuation: Previous reply {currentReply}, new line: {line}");
+					_log.Warning($"Illegal contiuation: Previous reply {currentSmtpReply}, new line: {line}");
 					return null;
 				}
-				currentReply = newReply;
+				currentSmtpReply = newReply;
 				more = line.Length >= 4 && line[3] == '-';
 				lines.Add(line.Substring(Math.Min(line.Length, 4)));
 			}
 
-			return new SmtpResponse(currentReply.Value, lines);
+			return new SmtpResponse(currentSmtpReply.Value, lines);
 		}
 
 		private async Task SendCommandAsync(TextWriter writer, string command)

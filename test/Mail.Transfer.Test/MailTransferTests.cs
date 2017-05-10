@@ -21,7 +21,7 @@ namespace Mail.Transfer.Test
 		public MailTransferTests()
 		{
 			_queue = new MockMailTransferQueue();
-			_settings = new MockVolatile<SmtpSettings>(TestHelpers.MakeSettings(
+			_settings = new MockVolatile<AgentSettings>(TestHelpers.MakeSettings(
 				relayDomains: new[] {new SmtpRelayDomain("relay.example.com", "relaytarget.example.com", 99)}
 				));
 			_dns = new MockDnsResolve();
@@ -43,7 +43,7 @@ namespace Mail.Transfer.Test
 		}
 
 		private readonly MockMailTransferQueue _queue;
-		private readonly MockVolatile<SmtpSettings> _settings;
+		private readonly MockVolatile<AgentSettings> _settings;
 		private readonly MockDnsResolve _dns;
 		private readonly MockMailSendFailureManager _failures;
 		private readonly MockTcpConnectionProvider _tcp;
@@ -444,7 +444,7 @@ namespace Mail.Transfer.Test
 			{
 				SmtpResponse response = await _transfer.ExecuteRemoteCommandAsync(writer, reader, "EHLO test.example.com");
 				Assert.Equal("EHLO test.example.com" + Environment.NewLine, Encoding.ASCII.GetString(outStream.ToArray()));
-				Assert.Equal(ReplyCode.Okay, response.Code);
+				Assert.Equal(SmtpReplyCode.Okay, response.Code);
 				Assert.Equal(new[] {"STARTTLS", "example.com greets test.example.com"}, response.Lines);
 			}
 		}
@@ -461,7 +461,7 @@ namespace Mail.Transfer.Test
 			{
 				SmtpResponse response = await _transfer.ExecuteRemoteCommandAsync(writer, reader, "HELO test.example.com");
 				Assert.Equal("HELO test.example.com" + Environment.NewLine, Encoding.ASCII.GetString(outStream.ToArray()));
-				Assert.Equal(ReplyCode.Okay, response.Code);
+				Assert.Equal(SmtpReplyCode.Okay, response.Code);
 				Assert.Equal(new[] {"example.com greets test.example.com"}, response.Lines);
 			}
 		}

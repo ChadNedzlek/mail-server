@@ -17,7 +17,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 
 		public override async Task ExecuteAsync(CancellationToken token)
 		{
-			await _channel.SendReplyAsync(ReplyCode.Greeting, "Ready to start TLS", token);
+			await _channel.SendReplyAsync(SmtpReplyCode.Greeting, "Ready to start TLS", token);
 			await _connection.NegotiateTlsAsync();
 		}
 	}

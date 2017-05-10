@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Autofac;
 using JetBrains.Annotations;
+using Vaettir.Mail.Server.Smtp;
 using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server
@@ -18,10 +19,10 @@ namespace Vaettir.Mail.Server
 		private readonly ILogger _log;
 		private readonly ILifetimeScope _scope;
 		private readonly SemaphoreSlim _sessionSemaphore = new SemaphoreSlim(1);
-		private readonly ProtocolSettings _settings;
+		private readonly AgentSettings _settings;
 		private List<SessionHolder> _sessions = new List<SessionHolder>();
 
-		public ProtocolListener(ProtocolSettings settings, ILifetimeScope scope, ILogger log)
+		public ProtocolListener(AgentSettings settings, ILifetimeScope scope, ILogger log)
 		{
 			_settings = settings;
 			_scope = scope;

@@ -25,13 +25,13 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 		private readonly ISmtpMessageChannel _channel;
 		private readonly IConnectionSecurity _connection;
 		private readonly ILogger _log;
-		private readonly SmtpSettings _settings;
+		private readonly AgentSettings _settings;
 
 		public ExtendedHelloCommand(
 			IEnumerable<Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata>> authentication,
 			IConnectionSecurity connection,
 			ISmtpMessageChannel channel,
-			SmtpSettings settings,
+			AgentSettings settings,
 			ILogger log)
 		{
 			_authentication = authentication.ToList();
@@ -76,16 +76,16 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 			if (extentionList.Any())
 			{
 				await _channel.SendReplyAsync(
-					ReplyCode.Okay,
+					SmtpReplyCode.Okay,
 					true,
 					$"{_settings.DomainName} greets {Arguments}",
 					token);
-				await _channel.SendReplyAsync(ReplyCode.Okay, extentionList, token);
+				await _channel.SendReplyAsync(SmtpReplyCode.Okay, extentionList, token);
 			}
 			else
 			{
 				await _channel.SendReplyAsync(
-					ReplyCode.Okay,
+					SmtpReplyCode.Okay,
 					false,
 					$"{_settings.DomainName} greets {Arguments}",
 					token);

@@ -33,18 +33,19 @@ namespace Vaettir.Mail.Test.Utilities
 					string.Empty);
 		}
 
-		public static SmtpSettings MakeSettings(
+		public static AgentSettings MakeSettings(
 			string domainName = null,
 			SmtpAcceptDomain[] localDomains = null,
 			SmtpIncomingMailScan incomingScan = null,
 			ConnectionSetting[] connections = null,
 			string[] domainAliases = null,
+			string userPasswordFile = null,
 			SmtpRelayDomain[] relayDomains = null,
 			string passwordAlgorithm = null,
 			int? idleDelay = null,
 			MailDescriminator sendBounce = MailDescriminator.None)
 		{
-			return new SmtpSettings(
+			return new AgentSettings(
 				domainName: domainName,
 				mailIncomingQueuePath: null,
 				mailOutgoingQueuePath: null,
@@ -55,7 +56,7 @@ namespace Vaettir.Mail.Test.Utilities
 				mailLocalPath: null,
 				incomingScan: incomingScan,
 				domainAliases: domainAliases,
-				userPasswordFile: null,
+				userPasswordFile: userPasswordFile,
 				relayDomains: relayDomains,
 				passwordAlgorithm: passwordAlgorithm,
 				idleDelay: idleDelay,

@@ -101,7 +101,7 @@ namespace MailCore
 			builder.RegisterType<UserHandler>().Keyed<CommandHandler>("user");
 			builder.RegisterType<AgentHandler>().Keyed<CommandHandler>("agent");
 
-			FileWatcherSettings<SmtpSettings> settings = FileWatcherSettings<SmtpSettings>.Load(options.SettingsPath);
+			FileWatcherSettings<AgentSettings> settings = FileWatcherSettings<AgentSettings>.Load(options.SettingsPath);
 
 			IDictionary<string, LogSettings> logSettings = settings.Value.Logging;
 			if (logSettings != null)
@@ -161,13 +161,13 @@ namespace MailCore
 			builder.RegisterType<FileSystemMailTransferQueue>().As<IMailTransferQueue>();
 			builder.RegisterType<FileSystemMailboxStore>().As<IMailboxStore>();
 			builder.RegisterType<FileSystemMailSendFailureManager>().As<IMailSendFailureManager>();
-			SmtpSettings initialValue = settings.Value;
+			AgentSettings initialValue = settings.Value;
 			builder.RegisterInstance(initialValue)
-				.As<SmtpSettings>()
-				.As<ProtocolSettings>();
+				.As<AgentSettings>()
+				.As<AgentSettings>();
 			builder.RegisterInstance(settings)
-				.As<IVolatile<SmtpSettings>>()
-				.As<IVolatile<ProtocolSettings>>();
+				.As<IVolatile<AgentSettings>>()
+				.As<IVolatile<AgentSettings>>();
 
 			builder.RegisterAssemblyTypes(typeof(SmtpSession).GetTypeInfo().Assembly)
 				.Where(t => t.GetTypeInfo().GetCustomAttribute<SmtpCommandAttribute>() != null)

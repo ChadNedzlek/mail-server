@@ -17,10 +17,10 @@ namespace Vaettir.Mail.Server.FileSystem
 
 		private static readonly Regex s_maildirPattern = new Regex(@"^(.*);2,(.*)$");
 
-		private readonly SmtpSettings _settings;
+		private readonly AgentSettings _settings;
 
 		[UsedImplicitly]
-		public FileSystemMailboxStore(SmtpSettings settings)
+		public FileSystemMailboxStore(AgentSettings settings)
 		{
 			_settings = settings;
 		}

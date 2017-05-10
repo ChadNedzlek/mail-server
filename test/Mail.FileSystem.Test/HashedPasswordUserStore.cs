@@ -3,6 +3,8 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Vaettir.Mail.Server;
+using Vaettir.Mail.Server.Smtp;
+using Vaettir.Mail.Test.Utilities;
 using Xunit;
 
 namespace Mail.FileSystem.Test
@@ -12,7 +14,7 @@ namespace Mail.FileSystem.Test
 		public HashedPasswordUserStore()
 		{
 			string storePath = Path.GetTempFileName();
-			_settings = new ProtocolSettings("test.vaettir.net", null, null, storePath, "db:sha1:98374");
+			_settings = TestHelpers.MakeSettings(domainName: "test.vaettir.net", userPasswordFile:storePath, passwordAlgorithm: "db:sha1:98374");
 			_store = new Vaettir.Mail.Server.FileSystem.HashedPasswordUserStore(_settings);
 		}
 
@@ -21,7 +23,7 @@ namespace Mail.FileSystem.Test
 			File.Delete(_settings.UserPasswordFile);
 		}
 
-		private readonly ProtocolSettings _settings;
+		private readonly AgentSettings _settings;
 		private readonly Vaettir.Mail.Server.FileSystem.HashedPasswordUserStore _store;
 
 		[Fact]

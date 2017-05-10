@@ -11,9 +11,9 @@ namespace Vaettir.Mail.Server.FileSystem
 	{
 		private readonly Lazy<Dictionary<string, SmtpFailureData>> _failures;
 		private readonly ILogger _log;
-		private readonly SmtpSettings _settings;
+		private readonly AgentSettings _settings;
 
-		public FileSystemMailSendFailureManager(SmtpSettings settings, ILogger log)
+		public FileSystemMailSendFailureManager(AgentSettings settings, ILogger log)
 		{
 			_settings = settings;
 			_log = log;

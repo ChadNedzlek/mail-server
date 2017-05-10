@@ -59,8 +59,8 @@ namespace Mail.Dispatcher.Test
 				});
 			_settings = TestHelpers.MakeSettings(
 				domainName: "example.com",
-				relayDomains: new[] {new SmtpRelayDomain("relay.example.com", "relay.example.com")},
 				localDomains: new[] {new SmtpAcceptDomain("example.com")},
+				relayDomains: new[] {new SmtpRelayDomain("relay.example.com", "relay.example.com")},
 				idleDelay: 1);
 			_dispatcher = new MailDispatcher(
 				_queue,
@@ -68,13 +68,13 @@ namespace Mail.Dispatcher.Test
 				_transfer,
 				new TestOutputLogger(output),
 				new MockDomainResolver(_domainSettings),
-				new MockVolatile<SmtpSettings>(_settings));
+				new MockVolatile<AgentSettings>(_settings));
 		}
 
 		private readonly MailDispatcher _dispatcher;
 		private readonly DomainSettings _domainSettings;
 		private readonly MockMailQueue _queue;
-		private readonly SmtpSettings _settings;
+		private readonly AgentSettings _settings;
 		private readonly MockMailTransferQueue _transfer;
 		private readonly MockMailboxStore _mailbox;
 

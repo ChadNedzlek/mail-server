@@ -8,9 +8,9 @@ namespace Vaettir.Mail.Server.FileSystem
 	[UsedImplicitly(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature)]
 	public class FileSystemDomainResolver : IDomainSettingResolver
 	{
-		private readonly IVolatile<SmtpSettings> _settings;
+		private readonly IVolatile<AgentSettings> _settings;
 
-		public FileSystemDomainResolver(IVolatile<SmtpSettings> settings)
+		public FileSystemDomainResolver(IVolatile<AgentSettings> settings)
 		{
 			_settings = settings;
 		}

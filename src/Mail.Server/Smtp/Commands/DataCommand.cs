@@ -15,11 +15,11 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 		private readonly SecurableConnection _connection;
 		private readonly ConnectionInformation _connectionInformation;
 		private readonly IMailQueue _mailQueue;
-		private readonly SmtpSettings _settings;
+		private readonly AgentSettings _settings;
 
 		public DataCommand(
 			IMailQueue mailQueue,
-			SmtpSettings settings,
+			AgentSettings settings,
 			SecurableConnection connection,
 			ConnectionInformation connectionInformation,
 			IMailBuilder builder,
@@ -40,11 +40,13 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 				_builder.PendingMail?.Recipents?.Count == 0 ||
 				_builder.PendingMail?.IsBinary == true)
 			{
-				await _channel.SendReplyAsync(ReplyCode.BadSequence, "Bad sequence", token);
+				await _channel.SendReplyAsync(SmtpReplyCode.BadSequence, "Bad sequence", token);
 				return;
 			}
 
-			await _channel.SendReplyAsync(ReplyCode.StartMail, "Send data, end with .<CR><LF>", token);
+			await _channel.SendReplyAsync(SmtpReplyCode.StartMail, "Send data, end with .<CR><LF>", token);
+
+			bool rejected = false;
 
 			using (IMailWriteReference reference = await _mailQueue.NewMailAsync(
 				_builder.PendingMail.FromPath.Mailbox,
@@ -59,16 +61,36 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 					string line;
 					while ((line = await _connection.ReadLineAsync(Encoding.UTF8, token)) != ".")
 					{
+						if (!_channel.IsAuthenticated &&
+							_settings.UnauthenticatedMessageSizeLimit != 0 &&
+							_settings.UnauthenticatedMessageSizeLimit <= mailWriter.BaseStream.Length)
+						{
+							if (!rejected)
+							{
+								await _channel.SendReplyAsync(SmtpReplyCode.ExceededQuota, "Message rejected, too large", token);
+								mailWriter.Dispose();
+								reference.Dispose();
+								rejected = true;
+							}
+
+							continue;
+						}
+
 						await mailWriter.WriteLineAsync(line);
 					}
 				}
 
-				await _mailQueue.SaveAsync(reference, token);
+				if (!rejected)
+				{
+					await _mailQueue.SaveAsync(reference, token);
+				}
 			}
 
-
 			_builder.PendingMail = null;
-			await _channel.SendReplyAsync(ReplyCode.Okay, "OK", token);
+			if (!rejected)
+			{
+				await _channel.SendReplyAsync(SmtpReplyCode.Okay, "OK", token);
+			}
 		}
 	}
 }

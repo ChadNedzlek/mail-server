@@ -16,7 +16,7 @@ namespace Vaettir.Mail.Smtp.Test
 		[Fact]
 		public async Task Secured_ExtendedHelloResponds()
 		{
-			var channel = new MockChannel();
+			var channel = new MockSmtpChannel();
 			var conn = new MockConnectionSecurity
 			{
 				Certificate = TestHelpers.GetSelfSigned(),
@@ -33,17 +33,17 @@ namespace Vaettir.Mail.Smtp.Test
 
 			await command.ExecuteAsync(CancellationToken.None);
 
-			Assert.True(channel.Entries.All(c => c.Code == ReplyCode.Okay));
+			Assert.True(channel.Entries.All(c => c.Code == SmtpReplyCode.Okay));
 			Assert.True(channel.Entries.Take(channel.Entries.Count - 1).All(e => e.More));
 			Assert.False(channel.Entries.Last().More);
 
 			Assert.DoesNotContain(channel.Entries, e => e.Message == "STARTTLS");
-			List<MockChannel.Entry> authReplies = channel.Entries.Where(e => e.Message.StartsWith("AUTH")).ToList();
+			List<MockSmtpChannel.Entry> authReplies = channel.Entries.Where(e => e.Message.StartsWith("AUTH")).ToList();
 			Assert.Equal(1, authReplies.Count);
 			List<string> authParts = authReplies[0].Message.Split(' ').Skip(1).ToList();
 			SequenceAssert.SameSet(new[] {"PLN", "ENC"}, authParts);
 
-			MockChannel.Entry signoff = channel.Entries.First();
+			MockSmtpChannel.Entry signoff = channel.Entries.First();
 			Assert.Contains("test.vaettir.net", signoff.Message);
 			Assert.Contains("Sender.net", signoff.Message);
 		}
@@ -51,7 +51,7 @@ namespace Vaettir.Mail.Smtp.Test
 		[Fact]
 		public async Task Unsecured_Certificate_ExtendedHelloResponds()
 		{
-			var channel = new MockChannel();
+			var channel = new MockSmtpChannel();
 			var conn = new MockConnectionSecurity();
 			conn.Certificate = TestHelpers.GetSelfSigned();
 
@@ -65,17 +65,17 @@ namespace Vaettir.Mail.Smtp.Test
 
 			await command.ExecuteAsync(CancellationToken.None);
 
-			Assert.True(channel.Entries.All(c => c.Code == ReplyCode.Okay));
+			Assert.True(channel.Entries.All(c => c.Code == SmtpReplyCode.Okay));
 			Assert.True(channel.Entries.Take(channel.Entries.Count - 1).All(e => e.More));
 			Assert.False(channel.Entries.Last().More);
 
 			Assert.Contains(channel.Entries, e => e.Message == "STARTTLS");
-			List<MockChannel.Entry> authReplies = channel.Entries.Where(e => e.Message.StartsWith("AUTH")).ToList();
+			List<MockSmtpChannel.Entry> authReplies = channel.Entries.Where(e => e.Message.StartsWith("AUTH")).ToList();
 			Assert.Equal(1, authReplies.Count);
 			List<string> authParts = authReplies[0].Message.Split(' ').Skip(1).ToList();
 			SequenceAssert.SameSet(new[] {"PLN"}, authParts);
 
-			MockChannel.Entry signoff = channel.Entries.First();
+			MockSmtpChannel.Entry signoff = channel.Entries.First();
 			Assert.Contains("test.vaettir.net", signoff.Message);
 			Assert.Contains("Sender.net", signoff.Message);
 		}
@@ -83,7 +83,7 @@ namespace Vaettir.Mail.Smtp.Test
 		[Fact]
 		public async Task Unsecured_NoCertificate_ExtendedHelloResponds()
 		{
-			var channel = new MockChannel();
+			var channel = new MockSmtpChannel();
 			var conn = new MockConnectionSecurity();
 
 			var command = new ExtendedHelloCommand(
@@ -96,7 +96,7 @@ namespace Vaettir.Mail.Smtp.Test
 
 			await command.ExecuteAsync(CancellationToken.None);
 
-			Assert.True(channel.Entries.All(c => c.Code == ReplyCode.Okay));
+			Assert.True(channel.Entries.All(c => c.Code == SmtpReplyCode.Okay));
 			Assert.True(channel.Entries.Take(channel.Entries.Count - 1).All(e => e.More));
 			Assert.False(channel.Entries.Last().More);
 
@@ -104,7 +104,7 @@ namespace Vaettir.Mail.Smtp.Test
 			Assert.DoesNotContain(channel.Entries, e => e.Message == "AUTH ENC");
 			Assert.Contains(channel.Entries, e => e.Message == "AUTH PLN");
 
-			MockChannel.Entry signoff = channel.Entries.First();
+			MockSmtpChannel.Entry signoff = channel.Entries.First();
 			Assert.Contains("test.vaettir.net", signoff.Message);
 			Assert.Contains("Sender.net", signoff.Message);
 		}

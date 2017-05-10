@@ -9,8 +9,8 @@ namespace Vaettir.Mail.Server.Smtp
 		UserData AuthenticatedUser { get; set; }
 		string ConnectedHost { get; set; }
 		bool IsAuthenticated { get; }
-		Task SendReplyAsync(ReplyCode replyCode, bool more, string message, CancellationToken token);
-		Task SendReplyAsync(ReplyCode replyCode, IEnumerable<string> messages, CancellationToken cancellationToken);
+		Task SendReplyAsync(SmtpReplyCode smtpReplyCode, bool more, string message, CancellationToken token);
+		Task SendReplyAsync(SmtpReplyCode smtpReplyCode, IEnumerable<string> messages, CancellationToken cancellationToken);
 		void Close();
 	}
 
@@ -18,19 +18,19 @@ namespace Vaettir.Mail.Server.Smtp
 	{
 		public static Task SendReplyAsync(
 			this ISmtpMessageChannel channel,
-			ReplyCode replyCode,
+			SmtpReplyCode smtpReplyCode,
 			string message,
 			CancellationToken token)
 		{
-			return channel.SendReplyAsync(replyCode, false, message, token);
+			return channel.SendReplyAsync(smtpReplyCode, false, message, token);
 		}
 
 		public static Task SendReplyAsync(
 			this ISmtpMessageChannel channel,
-			ReplyCode replyCode,
+			SmtpReplyCode smtpReplyCode,
 			CancellationToken cancellationToken)
 		{
-			return channel.SendReplyAsync(replyCode, false, null, cancellationToken);
+			return channel.SendReplyAsync(smtpReplyCode, false, null, cancellationToken);
 		}
 	}
 }

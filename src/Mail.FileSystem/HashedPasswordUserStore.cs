@@ -3,15 +3,16 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
+using Vaettir.Mail.Server.Smtp;
 using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server.FileSystem
 {
 	public class HashedPasswordUserStore : IUserStore
 	{
-		private readonly ProtocolSettings _settings;
+		private readonly AgentSettings _settings;
 
-		public HashedPasswordUserStore(ProtocolSettings settings)
+		public HashedPasswordUserStore(AgentSettings settings)
 		{
 			_settings = settings;
 		}

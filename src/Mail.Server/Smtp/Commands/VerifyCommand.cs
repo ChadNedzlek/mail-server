@@ -15,7 +15,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 
 		public override Task ExecuteAsync(CancellationToken token)
 		{
-			return _channel.SendReplyAsync(ReplyCode.CannotVerify, "Cannot verify", token);
+			return _channel.SendReplyAsync(SmtpReplyCode.CannotVerify, "Cannot verify", token);
 		}
 	}
 }

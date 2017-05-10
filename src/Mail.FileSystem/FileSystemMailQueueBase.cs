@@ -14,9 +14,9 @@ namespace Vaettir.Mail.Server.FileSystem
 	public abstract class FileSystemMailQueueBase : IMailStore
 	{
 		private const string HeaderLengthHeader = "Header-Length:";
-		protected readonly SmtpSettings Settings;
+		protected readonly AgentSettings Settings;
 
-		protected FileSystemMailQueueBase(SmtpSettings settings)
+		protected FileSystemMailQueueBase(AgentSettings settings)
 		{
 			Settings = settings;
 		}

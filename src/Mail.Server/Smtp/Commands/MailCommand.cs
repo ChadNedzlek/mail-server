@@ -10,13 +10,13 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 	[SmtpCommand("MAIL")]
 	public class MailCommand : BaseSmtpCommand
 	{
-		private static readonly Regex s_fromExpression = new Regex(@"^FROM:<([^:+]:)?(\S*)>(?: (.+))?$");
+		private static readonly Regex s_fromExpression = new Regex(@"^FROM:<([^:]+:)?(\S*)>(?: (.+))?$");
 		private readonly IMailBuilder _builder;
 		private readonly ISmtpMessageChannel _channel;
-		private readonly SmtpSettings _settings;
+		private readonly AgentSettings _settings;
 		private readonly IUserStore _userStore;
 
-		public MailCommand(ISmtpMessageChannel channel, IMailBuilder builder, SmtpSettings settings, IUserStore userStore)
+		public MailCommand(ISmtpMessageChannel channel, IMailBuilder builder, AgentSettings settings, IUserStore userStore)
 		{
 			_builder = builder;
 			_channel = channel;
@@ -28,14 +28,14 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 		{
 			if (_builder.PendingMail != null)
 			{
-				return _channel.SendReplyAsync(ReplyCode.BadSequence, "MAIL not allowed now", CancellationToken.None);
+				return _channel.SendReplyAsync(SmtpReplyCode.BadSequence, "MAIL not allowed now", CancellationToken.None);
 			}
 
 			Match fromMatch = s_fromExpression.Match(Arguments);
 			if (!fromMatch.Success)
 			{
 				return _channel.SendReplyAsync(
-					ReplyCode.InvalidArguments,
+					SmtpReplyCode.InvalidArguments,
 					"Bad FROM address",
 					CancellationToken.None);
 			}
@@ -47,7 +47,11 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 			ImmutableList<string> sourceRouteList = null;
 			if (!string.IsNullOrEmpty(sourceRoute))
 			{
-				sourceRouteList = ImmutableList.CreateRange(sourceRoute.Split(','));
+				return _channel.SendReplyAsync(
+					SmtpReplyCode.InvalidArguments,
+					"Return path not supported",
+					CancellationToken.None);
+
 			}
 
 			Task errorReport;
@@ -59,7 +63,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 			if (_channel.IsAuthenticated &&
 				!_userStore.CanUserSendAs(_channel.AuthenticatedUser, mailbox))
 			{
-				return _channel.SendReplyAsync(ReplyCode.MailboxUnavailable, "Invalid Mailbox", token);
+				return _channel.SendReplyAsync(SmtpReplyCode.MailboxUnavailable, "Invalid Mailbox", token);
 			}
 
 			if (!_channel.IsAuthenticated &&
@@ -72,7 +76,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 				)
 			{
 				return _channel.SendReplyAsync(
-					ReplyCode.InvalidArguments,
+					SmtpReplyCode.InvalidArguments,
 					"Must be signed in to send from domain",
 					token);
 			}
@@ -82,7 +86,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 					sourceRouteList,
 					mailbox));
 
-			return _channel.SendReplyAsync(ReplyCode.Okay, token);
+			return _channel.SendReplyAsync(SmtpReplyCode.Okay, token);
 		}
 
 		protected override bool TryProcessParameter(string key, string value)
