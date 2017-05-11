@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Vaettir.Mail.Server
 {
-	public sealed class VariableStreamReader : IDisposable
+	public sealed class VariableStreamReader : IVariableStreamReader
 	{
 		private readonly Stream _stream;
 		private char[] _charBuffer = new char[10000];

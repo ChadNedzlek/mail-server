@@ -12,7 +12,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 	{
 		private readonly IMailBuilder _builder;
 		private readonly ISmtpMessageChannel _channel;
-		private readonly SecurableConnection _connection;
+		private readonly IVariableStreamReader _reader;
 		private readonly ConnectionInformation _connectionInformation;
 		private readonly IMailQueue _mailQueue;
 		private readonly AgentSettings _settings;
@@ -20,7 +20,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 		public DataCommand(
 			IMailQueue mailQueue,
 			AgentSettings settings,
-			SecurableConnection connection,
+			IVariableStreamReader reader,
 			ConnectionInformation connectionInformation,
 			IMailBuilder builder,
 			ISmtpMessageChannel channel
@@ -28,7 +28,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 		{
 			_mailQueue = mailQueue;
 			_settings = settings;
-			_connection = connection;
+			_reader = reader;
 			_connectionInformation = connectionInformation;
 			_builder = builder;
 			_channel = channel;
@@ -59,7 +59,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 						$"Received: FROM {_channel.ConnectedHost} ({_connectionInformation.RemoteAddress}) BY {_settings.DomainName} ({_connectionInformation.LocalAddress}); {DateTime.UtcNow:ddd, dd MMM yyy HH:mm:ss zzzz}");
 
 					string line;
-					while ((line = await _connection.ReadLineAsync(Encoding.UTF8, token)) != ".")
+					while ((line = await _reader.ReadLineAsync(Encoding.UTF8, token)) != ".")
 					{
 						if (!_channel.IsAuthenticated &&
 							_settings.UnauthenticatedMessageSizeLimit != 0 &&

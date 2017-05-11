@@ -104,7 +104,8 @@ namespace Vaettir.Mail.Server
 								Certificate = ServerCertificate
 							})
 						.As<SecurableConnection>()
-						.As<IConnectionSecurity>();
+						.As<IConnectionSecurity>()
+						.As<IVariableStreamReader>();
 
 					builder.RegisterInstance(connectionSettings);
 				}

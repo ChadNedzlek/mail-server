@@ -11,7 +11,7 @@ using JetBrains.Annotations;
 
 namespace Vaettir.Mail.Server
 {
-	public sealed class SecurableConnection : IDisposable, IConnectionSecurity
+	public sealed class SecurableConnection : IConnectionSecurity, IVariableStreamReader
 	{
 		private RedirectableStream _current;
 		private SslStream _encrypted;

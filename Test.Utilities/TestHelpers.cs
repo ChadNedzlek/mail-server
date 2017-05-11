@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using Vaettir.Mail.Server;
 using Vaettir.Mail.Server.Authentication;
 using Vaettir.Mail.Server.Authentication.Mechanism;
@@ -21,6 +23,13 @@ namespace Vaettir.Mail.Test.Utilities
 					() => new MockPlainTextAuth(MockPlainTextAuth.Action.Null),
 					new AuthenticationMechanismAttribute("PLN", false))
 			};
+		}
+
+		public static IVariableStreamReader GetReader(params string[] lines)
+		{
+			return new VariableStreamReader(
+				new MemoryStream(
+					Encoding.UTF8.GetBytes(String.Join("\r\n", lines) + "\r\n")));
 		}
 
 		public static X509Certificate2 GetSelfSigned()
