@@ -18,7 +18,7 @@ namespace Vaettir.Mail.Test.Utilities
 					() => new MockEncryptedAuth(),
 					new AuthenticationMechanismAttribute("ENC", true)),
 				new Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata>(
-					() => new MockPlainTextAuth(),
+					() => new MockPlainTextAuth(MockPlainTextAuth.Action.Null),
 					new AuthenticationMechanismAttribute("PLN", false))
 			};
 		}

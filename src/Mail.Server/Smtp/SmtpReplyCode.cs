@@ -21,6 +21,7 @@ namespace Vaettir.Mail.Server.Smtp
 		CommandNotImplemented = 502,
 		BadSequence = 503,
 		ParameterNotImplemented = 504,
+		AuthencticationCredentialsInvalid = 535,
 		MailboxUnavailable = 550,
 		UserNotLocal = 551,
 		ExceededQuota = 552,

@@ -11,19 +11,34 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 	{
 		private readonly IIndex<string, IAuthenticationSession> _authentication;
 		private readonly ISmtpMessageChannel _channel;
+		private readonly IMailBuilder _builder;
 
 		public AuthenticateCommand(
 			IIndex<string, IAuthenticationSession> authentication,
-			ISmtpMessageChannel channel)
+			ISmtpMessageChannel channel,
+			IMailBuilder builder)
 		{
 			_authentication = authentication;
 			_channel = channel;
+			_builder = builder;
 		}
 
 		public override async Task ExecuteAsync(CancellationToken token)
 		{
+			if (_channel.IsAuthenticated)
+			{
+				await _channel.SendReplyAsync(SmtpReplyCode.BadSequence, "AUTH already recieved", token);
+				return;
+			}
+
+			if (_builder.PendingMail != null)
+			{
+				await _channel.SendReplyAsync(SmtpReplyCode.BadSequence, "AUTH not allowed during MAIL transaction", token);
+				return;
+			}
+
 			string[] parts = Arguments.Split(new[] {' '}, 2);
-			if (parts == null || parts.Length == 0 || parts.Length > 2)
+			if (parts == null || parts.Length == 0 || parts.Length > 1)
 			{
 				await _channel.SendReplyAsync(
 					SmtpReplyCode.InvalidArguments,
@@ -51,8 +66,14 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 				return;
 			}
 
+			if (userData == null)
+			{
+				await _channel.SendReplyAsync(SmtpReplyCode.AuthencticationCredentialsInvalid, "Authentication failed", token);
+				return;
+			}
+
 			_channel.AuthenticatedUser = userData;
-			await _channel.SendReplyAsync(SmtpReplyCode.AuthenticationComplete, "Authentication unsuccessful", token);
+			await _channel.SendReplyAsync(SmtpReplyCode.AuthenticationComplete, "Authentication successful", token);
 		}
 	}
 }
