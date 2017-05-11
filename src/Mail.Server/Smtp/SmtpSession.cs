@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -168,13 +167,10 @@ namespace Vaettir.Mail.Server.Smtp
 
 	public class SmtpPath
 	{
-		public SmtpPath(ImmutableList<string> sourceRoute, string mailbox)
+		public SmtpPath(string mailbox)
 		{
-			SourceRoute = sourceRoute;
 			Mailbox = mailbox;
 		}
-
-		public ImmutableList<string> SourceRoute { get; }
 		public string Mailbox { get; }
 	}
 

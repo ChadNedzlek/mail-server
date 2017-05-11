@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
 using Vaettir.Mail.Server;
@@ -81,7 +80,7 @@ namespace Vaettir.Mail.Smtp.Test
 		public async Task MailInProgressRejected()
 		{
 			var channel = new MockSmtpChannel();
-			var message = new SmtpMailMessage(new SmtpPath(ImmutableList<string>.Empty, null));
+			var message = new SmtpMailMessage(new SmtpPath(null));
 			var builder = new MockMailBuilder
 			{
 				PendingMail = message
@@ -123,7 +122,6 @@ namespace Vaettir.Mail.Smtp.Test
 			var entry = channel.Entries[0];
 			Assert.Equal(SmtpReplyCode.Okay, entry.Code);
 			Assert.NotNull(builder.PendingMail);
-			Assert.Null(builder.PendingMail.FromPath.SourceRoute);
 			Assert.Equal("good@test.vaettir.net", builder.PendingMail.FromPath.Mailbox);
 		}
 
@@ -169,7 +167,6 @@ namespace Vaettir.Mail.Smtp.Test
 			var entry = channel.Entries[0];
 			Assert.Equal(SmtpReplyCode.Okay, entry.Code);
 			Assert.NotNull(builder.PendingMail);
-			Assert.Null(builder.PendingMail.FromPath.SourceRoute);
 			Assert.Equal("", builder.PendingMail.FromPath.Mailbox);
 		}
 	}

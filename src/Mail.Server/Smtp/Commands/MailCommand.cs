@@ -83,7 +83,6 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 
 			_builder.PendingMail = new SmtpMailMessage(
 				new SmtpPath(
-					sourceRouteList,
 					mailbox));
 
 			return _channel.SendReplyAsync(SmtpReplyCode.Okay, token);
