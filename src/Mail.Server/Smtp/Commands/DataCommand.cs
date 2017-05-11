@@ -61,22 +61,22 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 					string line;
 					while ((line = await _reader.ReadLineAsync(Encoding.UTF8, token)) != ".")
 					{
-						if (!_channel.IsAuthenticated &&
+						if (!rejected &&
+							!_channel.IsAuthenticated &&
 							_settings.UnauthenticatedMessageSizeLimit != 0 &&
 							_settings.UnauthenticatedMessageSizeLimit <= mailWriter.BaseStream.Length)
 						{
-							if (!rejected)
-							{
-								await _channel.SendReplyAsync(SmtpReplyCode.ExceededQuota, "Message rejected, too large", token);
-								mailWriter.Dispose();
-								reference.Dispose();
-								rejected = true;
-							}
-
-							continue;
+							await _channel.SendReplyAsync(SmtpReplyCode.ExceededQuota, "Message rejected, too large", token);
+							mailWriter.Dispose();
+							reference.Dispose();
+							rejected = true;
 						}
 
+						if (rejected)
+							continue;
+
 						await mailWriter.WriteLineAsync(line);
+						await mailWriter.FlushAsync();
 					}
 				}
 

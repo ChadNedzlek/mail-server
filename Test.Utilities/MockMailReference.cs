@@ -45,7 +45,7 @@ namespace Vaettir.Mail.Test.Utilities
 
 		public bool IsSaved { get; set; }
 
-		public Stream BackupBodyStream { get; }
+		public MemoryStream BackupBodyStream { get; }
 		public string Sender { get; }
 		public IImmutableList<string> Recipients { get; }
 		public IMailStore Store { get; }

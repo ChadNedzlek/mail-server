@@ -1,3 +1,5 @@
+using System;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Vaettir.Mail.Server;
@@ -13,7 +15,7 @@ namespace Vaettir.Mail.Smtp.Test
 		[Fact]
 		public async Task NoMailCommand()
 		{
-			var (_, _, _, channel, command) = Prepare();
+			var (_, _, channel, command) = Prepare();
 			await command.ExecuteAsync(CancellationToken.None);
 			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.BadSequence);
 		}
@@ -21,28 +23,99 @@ namespace Vaettir.Mail.Smtp.Test
 		[Fact]
 		public async Task NoRecipients()
 		{
-			var (_, _, builder, channel, command) = Prepare();
+			var (_, builder, channel, command) = Prepare();
 			builder.PendingMail = new SmtpMailMessage(new SmtpPath("box@example.com"));
 			await command.ExecuteAsync(CancellationToken.None);
 			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.BadSequence);
 		}
 
-		private (MockMailQueue, AgentSettings, MockMailBuilder, MockSmtpChannel, DataCommand) Prepare(params string [] dataLines)
+		[Fact]
+		public async Task ValidMailSaved()
+		{
+			string expectedBody = "From:box@example.com\r\n\r\nFirst Line\r\nSecond Line\r\n";
+			var (queue, builder, channel, command) = Prepare(expectedBody + ".\r\n");
+			builder.PendingMail = new SmtpMailMessage(new SmtpPath("box@example.com")) { Recipents = { "box@test.vaettir.net" } };
+			await command.ExecuteAsync(CancellationToken.None);
+			Assert.Equal(2, channel.Entries.Count);
+			SmtpTestHelper.AssertResponse(channel.Entries[0], SmtpReplyCode.StartMail);
+			SmtpTestHelper.AssertResponse(channel.Entries[1], SmtpReplyCode.Okay);
+			Assert.Equal(1, queue.References.Count);
+			MockMailReference mailReference = queue.References[0];
+			Assert.True(mailReference.IsSaved);
+			Assert.Equal("box@example.com", mailReference.Sender);
+			SequenceAssert.SameSet(new[] { "box@test.vaettir.net" }, mailReference.Recipients);
+			Assert.Throws<ObjectDisposedException>(() => mailReference.BodyStream.WriteByte(1));
+			string mailBody = Encoding.UTF8.GetString(mailReference.BackupBodyStream.ToArray());
+			Assert.EndsWith(expectedBody, mailBody);
+			Assert.StartsWith("Received:", mailBody);
+			Assert.Null(builder.PendingMail);
+		}
+
+		[Fact]
+		public async Task TooLargeMailRejected()
+		{
+			string expectedBody = "From:box@example.com\r\n\r\nFirst Line\r\nSecond Line\r\n";
+
+			var (queue, builder, channel, command) = Prepare(
+				expectedBody + ".\r\n",
+				TestHelpers.MakeSettings(unauthenticatedMessageSizeLimit: 1));
+
+			builder.PendingMail = new SmtpMailMessage(new SmtpPath("box@example.com")) { Recipents = { "box@test.vaettir.net" } };
+			await command.ExecuteAsync(CancellationToken.None);
+			Assert.Equal(2, channel.Entries.Count);
+			SmtpTestHelper.AssertResponse(channel.Entries[0], SmtpReplyCode.StartMail);
+			SmtpTestHelper.AssertResponse(channel.Entries[1], SmtpReplyCode.ExceededQuota);
+			Assert.Equal(1, queue.References.Count);
+			MockMailReference mailReference = queue.References[0];
+			Assert.False(mailReference.IsSaved);
+			Assert.Throws<ObjectDisposedException>(() => mailReference.BodyStream.WriteByte(1));
+			Assert.Null(builder.PendingMail);
+		}
+
+		[Fact]
+		public async Task AuthenticatedLargeMessageAccepted()
+		{
+			string expectedBody = "From:box@example.com\r\n\r\nFirst Line\r\nSecond Line\r\n";
+
+			var (queue, builder, channel, command) = Prepare(
+				expectedBody + ".\r\n",
+				TestHelpers.MakeSettings(unauthenticatedMessageSizeLimit: 1));
+
+			channel.AuthenticatedUser = new UserData("admin@test.vaettir.net");
+
+			builder.PendingMail = new SmtpMailMessage(new SmtpPath("box@example.com")) { Recipents = { "box@test.vaettir.net" } };
+			await command.ExecuteAsync(CancellationToken.None);
+			Assert.Equal(2, channel.Entries.Count);
+			SmtpTestHelper.AssertResponse(channel.Entries[0], SmtpReplyCode.StartMail);
+			SmtpTestHelper.AssertResponse(channel.Entries[1], SmtpReplyCode.Okay);
+			Assert.Equal(1, queue.References.Count);
+			MockMailReference mailReference = queue.References[0];
+			Assert.True(mailReference.IsSaved);
+			Assert.Equal("box@example.com", mailReference.Sender);
+			SequenceAssert.SameSet(new[] { "box@test.vaettir.net" }, mailReference.Recipients);
+			Assert.Throws<ObjectDisposedException>(() => mailReference.BodyStream.WriteByte(1));
+			string mailBody = Encoding.UTF8.GetString(mailReference.BackupBodyStream.ToArray());
+			Assert.EndsWith(expectedBody, mailBody);
+			Assert.StartsWith("Received:", mailBody);
+			Assert.Null(builder.PendingMail);
+		}
+
+		private static (MockMailQueue, MockMailBuilder, MockSmtpChannel, DataCommand) Prepare(string content = "", AgentSettings settings = null)
 		{
 			var queue = new MockMailQueue();
-			AgentSettings settings = TestHelpers.MakeSettings();
+			settings = settings ?? TestHelpers.MakeSettings();
 			var builder = new MockMailBuilder();
 			var channel = new MockSmtpChannel();
 			var command = new DataCommand(
 				queue,
 				settings,
-				TestHelpers.GetReader(dataLines),
+				TestHelpers.GetReader(content),
 				new ConnectionInformation("local", "remote"),
 				builder,
 				channel
 			);
 
-			return (queue, settings, builder, channel, command);
+			return (queue, builder, channel, command);
 		}
 	}
 }

@@ -10,6 +10,7 @@ namespace Vaettir.Utility
 {
 	public class MultiStream : Stream
 	{
+		private bool _isDisposed = false;
 		private readonly bool _leaveOpen;
 		private readonly ImmutableList<Stream> _streams;
 
@@ -41,12 +42,7 @@ namespace Vaettir.Utility
 
 		public MultiStream(ImmutableList<Stream> streams, bool leaveOpen)
 		{
-			if (streams == null)
-			{
-				throw new ArgumentNullException(nameof(streams));
-			}
-
-			_streams = streams;
+			_streams = streams ?? throw new ArgumentNullException(nameof(streams));
 			_leaveOpen = leaveOpen;
 		}
 
@@ -160,6 +156,7 @@ namespace Vaettir.Utility
 
 		protected override void Dispose(bool disposing)
 		{
+			_isDisposed = true;
 			if (disposing && !_leaveOpen)
 			{
 				Do(s => s.Dispose());

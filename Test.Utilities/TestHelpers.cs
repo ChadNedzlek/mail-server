@@ -25,11 +25,9 @@ namespace Vaettir.Mail.Test.Utilities
 			};
 		}
 
-		public static IVariableStreamReader GetReader(params string[] lines)
+		public static IVariableStreamReader GetReader(string content)
 		{
-			return new VariableStreamReader(
-				new MemoryStream(
-					Encoding.UTF8.GetBytes(String.Join("\r\n", lines) + "\r\n")));
+			return new VariableStreamReader(new MemoryStream(Encoding.UTF8.GetBytes(content)));
 		}
 
 		public static X509Certificate2 GetSelfSigned()
@@ -52,7 +50,8 @@ namespace Vaettir.Mail.Test.Utilities
 			SmtpRelayDomain[] relayDomains = null,
 			string passwordAlgorithm = null,
 			int? idleDelay = null,
-			MailDescriminator sendBounce = MailDescriminator.None)
+			MailDescriminator sendBounce = MailDescriminator.None,
+			int unauthenticatedMessageSizeLimit = 0)
 		{
 			return new AgentSettings(
 				domainName: domainName,
@@ -69,7 +68,8 @@ namespace Vaettir.Mail.Test.Utilities
 				relayDomains: relayDomains,
 				passwordAlgorithm: passwordAlgorithm,
 				idleDelay: idleDelay,
-				sendBounce: sendBounce);
+				sendBounce: sendBounce,
+				unauthenticatedMessageSizeLimit: unauthenticatedMessageSizeLimit);
 		}
 	}
 }
