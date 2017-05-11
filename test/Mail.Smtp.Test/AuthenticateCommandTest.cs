@@ -23,9 +23,7 @@ namespace Vaettir.Mail.Smtp.Test
 			var command = new AuthenticateCommand(auth, channel, mockMailBuilder);
 			command.Initialize("");
 			await command.ExecuteAsync(CancellationToken.None);
-			Assert.Equal(1, channel.Entries.Count);
-			Assert.False(channel.Entries[0].More);
-			Assert.Equal(SmtpReplyCode.InvalidArguments, channel.Entries[0].Code);
+			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.InvalidArguments);
 			Assert.Null(channel.AuthenticatedUser);
 		}
 
@@ -41,9 +39,7 @@ namespace Vaettir.Mail.Smtp.Test
 			var command = new AuthenticateCommand(auth, channel, mockMailBuilder);
 			command.Initialize("MECH INITIAL");
 			await command.ExecuteAsync(CancellationToken.None);
-			Assert.Equal(1, channel.Entries.Count);
-			Assert.False(channel.Entries[0].More);
-			Assert.Equal(SmtpReplyCode.InvalidArguments, channel.Entries[0].Code);
+			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.InvalidArguments);
 			Assert.Null(channel.AuthenticatedUser);
 		}
 
@@ -60,9 +56,7 @@ namespace Vaettir.Mail.Smtp.Test
 			var command = new AuthenticateCommand(auth, channel, mockMailBuilder);
 			command.Initialize("MISSING");
 			await command.ExecuteAsync(CancellationToken.None);
-			Assert.Equal(1, channel.Entries.Count);
-			Assert.False(channel.Entries[0].More);
-			Assert.Equal(SmtpReplyCode.InvalidArguments, channel.Entries[0].Code);
+			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.InvalidArguments);
 			Assert.Null(channel.AuthenticatedUser);
 		}
 
@@ -80,9 +74,7 @@ namespace Vaettir.Mail.Smtp.Test
 			var command = new AuthenticateCommand(auth, channel, mockMailBuilder);
 			command.Initialize("PLAIN");
 			await command.ExecuteAsync(CancellationToken.None);
-			Assert.Equal(1, channel.Entries.Count);
-			Assert.False(channel.Entries[0].More);
-			Assert.Equal(SmtpReplyCode.BadSequence, channel.Entries[0].Code);
+			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.BadSequence);
 			Assert.Same(user, channel.AuthenticatedUser);
 		}
 
@@ -99,9 +91,7 @@ namespace Vaettir.Mail.Smtp.Test
 			var command = new AuthenticateCommand(auth, channel, mockMailBuilder);
 			command.Initialize("PLAIN");
 			await command.ExecuteAsync(CancellationToken.None);
-			Assert.Equal(1, channel.Entries.Count);
-			Assert.False(channel.Entries[0].More);
-			Assert.Equal(SmtpReplyCode.BadSequence, channel.Entries[0].Code);
+			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.BadSequence);
 			Assert.Null(channel.AuthenticatedUser);
 		}
 
@@ -118,9 +108,7 @@ namespace Vaettir.Mail.Smtp.Test
 			var command = new AuthenticateCommand(auth, channel, mockMailBuilder);
 			command.Initialize("PLAIN");
 			await command.ExecuteAsync(CancellationToken.None);
-			Assert.Equal(1, channel.Entries.Count);
-			Assert.False(channel.Entries[0].More);
-			Assert.Equal(SmtpReplyCode.AuthencticationCredentialsInvalid, channel.Entries[0].Code);
+			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.AuthencticationCredentialsInvalid);
 			Assert.Null(channel.AuthenticatedUser);
 		}
 
@@ -137,9 +125,7 @@ namespace Vaettir.Mail.Smtp.Test
 			var command = new AuthenticateCommand(auth, channel, mockMailBuilder);
 			command.Initialize("PLAIN");
 			await command.ExecuteAsync(CancellationToken.None);
-			Assert.Equal(1, channel.Entries.Count);
-			Assert.False(channel.Entries[0].More);
-			Assert.Equal(SmtpReplyCode.InvalidArguments, channel.Entries[0].Code);
+			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.InvalidArguments);
 			Assert.Null(channel.AuthenticatedUser);
 		}
 
@@ -156,9 +142,7 @@ namespace Vaettir.Mail.Smtp.Test
 			var command = new AuthenticateCommand(auth, channel, mockMailBuilder);
 			command.Initialize("PLAIN");
 			await command.ExecuteAsync(CancellationToken.None);
-			Assert.Equal(1, channel.Entries.Count);
-			Assert.False(channel.Entries[0].More);
-			Assert.Equal(SmtpReplyCode.AuthenticationComplete, channel.Entries[0].Code);
+			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.AuthenticationComplete);
 			Assert.NotNull(channel.AuthenticatedUser);
 			Assert.Equal(MockPlainTextAuth.UserMailbox, channel.AuthenticatedUser.Mailbox);
 		}

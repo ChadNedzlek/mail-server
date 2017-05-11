@@ -25,10 +25,7 @@ namespace Vaettir.Mail.Smtp.Test
 
 			command.Initialize("TO:!!!!");
 			await command.ExecuteAsync(CancellationToken.None);
-			Assert.Equal(1, channel.Entries.Count);
-			var entry = channel.Entries[0];
-			Assert.Equal(SmtpReplyCode.InvalidArguments, entry.Code);
-			Assert.False(entry.More);
+			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.InvalidArguments);
 			Assert.Same(mail, builder.PendingMail);
 		}
 
@@ -47,10 +44,7 @@ namespace Vaettir.Mail.Smtp.Test
 
 			command.Initialize("TO:<test@test.vaettir.net>");
 			await command.ExecuteAsync(CancellationToken.None);
-			Assert.Equal(1, channel.Entries.Count);
-			var entry = channel.Entries[0];
-			Assert.Equal(SmtpReplyCode.BadSequence, entry.Code);
-			Assert.False(entry.More);
+			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.BadSequence);
 			Assert.Null(builder.PendingMail);
 		}
 
@@ -70,10 +64,7 @@ namespace Vaettir.Mail.Smtp.Test
 
 			command.Initialize("TO:<@other:test@test.vaettir.net>");
 			await command.ExecuteAsync(CancellationToken.None);
-			Assert.Equal(1, channel.Entries.Count);
-			var entry = channel.Entries[0];
-			Assert.Equal(SmtpReplyCode.NameNotAllowed, entry.Code);
-			Assert.False(entry.More);
+			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.NameNotAllowed);
 			Assert.Same(mail, builder.PendingMail);
 		}
 
@@ -93,10 +84,7 @@ namespace Vaettir.Mail.Smtp.Test
 
 			command.Initialize("TO:<no-at>");
 			await command.ExecuteAsync(CancellationToken.None);
-			Assert.Equal(1, channel.Entries.Count);
-			var entry = channel.Entries[0];
-			Assert.Equal(SmtpReplyCode.InvalidArguments, entry.Code);
-			Assert.False(entry.More);
+			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.InvalidArguments);
 			Assert.Same(mail, builder.PendingMail);
 		}
 
@@ -116,10 +104,7 @@ namespace Vaettir.Mail.Smtp.Test
 
 			command.Initialize("TO:<test@other.vaettir.net>");
 			await command.ExecuteAsync(CancellationToken.None);
-			Assert.Equal(1, channel.Entries.Count);
-			var entry = channel.Entries[0];
-			Assert.Equal(SmtpReplyCode.MailboxUnavailable, entry.Code);
-			Assert.False(entry.More);
+			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.MailboxUnavailable);
 			Assert.Same(mail, builder.PendingMail);
 		}
 
@@ -139,10 +124,7 @@ namespace Vaettir.Mail.Smtp.Test
 
 			command.Initialize("TO:<test@test.vaettir.net>");
 			await command.ExecuteAsync(CancellationToken.None);
-			Assert.Equal(1, channel.Entries.Count);
-			var entry = channel.Entries[0];
-			Assert.Equal(SmtpReplyCode.Okay, entry.Code);
-			Assert.False(entry.More);
+			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.Okay);
 			Assert.Same(mail, builder.PendingMail);
 			Assert.Equal(1, mail.Recipents.Count);
 			Assert.Equal("test@test.vaettir.net", mail.Recipents[0]);
@@ -164,10 +146,7 @@ namespace Vaettir.Mail.Smtp.Test
 
 			command.Initialize("TO:<test@test.vaettir.net>");
 			await command.ExecuteAsync(CancellationToken.None);
-			Assert.Equal(1, channel.Entries.Count);
-			var entry = channel.Entries[0];
-			Assert.Equal(SmtpReplyCode.Okay, entry.Code);
-			Assert.False(entry.More);
+			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.Okay);
 			Assert.Same(mail, builder.PendingMail);
 			Assert.Equal(1, mail.Recipents.Count);
 			Assert.Equal("test@test.vaettir.net", mail.Recipents[0]);
@@ -190,10 +169,7 @@ namespace Vaettir.Mail.Smtp.Test
 
 			command.Initialize("TO:<test@test.vaettir.net>");
 			await command.ExecuteAsync(CancellationToken.None);
-			Assert.Equal(1, channel.Entries.Count);
-			var entry = channel.Entries[0];
-			Assert.Equal(SmtpReplyCode.Okay, entry.Code);
-			Assert.False(entry.More);
+			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.Okay);
 			Assert.Same(mail, builder.PendingMail);
 			SequenceAssert.SameSet(new[] {"first@test.vaettir.net", "test@test.vaettir.net"}, mail.Recipents);
 		}

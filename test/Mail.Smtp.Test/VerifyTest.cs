@@ -14,10 +14,7 @@ namespace Vaettir.Mail.Smtp.Test
 			MockSmtpChannel channel = new MockSmtpChannel();
 			var command = new VerifyCommand(channel);
 			await command.ExecuteAsync(CancellationToken.None);
-			Assert.Equal(1, channel.Entries.Count);
-			MockSmtpChannel.Entry entry = channel.Entries[0];
-			Assert.Equal(SmtpReplyCode.CannotVerify, entry.Code);
-			Assert.False(entry.More);
+			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.CannotVerify);
 		}
 	}
 }

@@ -15,9 +15,7 @@ namespace Vaettir.Mail.Smtp.Test
 			var command = new QuitCommand(channel);
 			command.Initialize("");
 			await command.ExecuteAsync(CancellationToken.None);
-			Assert.Equal(1, channel.Entries.Count);
-			Assert.Equal(SmtpReplyCode.Closing, channel.Entries[0].Code);
-			Assert.False(channel.Entries[0].More);
+			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.Closing);
 			Assert.True(channel.IsClosed);
 		}
 	}

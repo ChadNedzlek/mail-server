@@ -18,11 +18,10 @@ namespace Vaettir.Mail.Smtp.Test
 			command.Initialize("Sender.net");
 			await command.ExecuteAsync(CancellationToken.None);
 
-			Assert.Equal(1, channel.Entries.Count);
-			Assert.True(channel.Entries.All(c => c.Code == SmtpReplyCode.Okay));
+			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.Okay);
 
 			MockSmtpChannel.Entry entry = channel.Entries[0];
-			Assert.False(entry.More);
+
 			Assert.Contains("Testexample.com", entry.Message);
 			Assert.Contains("Sender.net", entry.Message);
 		}
