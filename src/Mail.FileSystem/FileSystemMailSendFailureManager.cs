@@ -28,7 +28,10 @@ namespace Vaettir.Mail.Server.FileSystem
 			{
 				try
 				{
-					File.Delete(serializedPath);
+					if (File.Exists(serializedPath))
+					{
+						File.Delete(serializedPath);
+					}
 				}
 				catch (Exception)
 				{
@@ -38,6 +41,7 @@ namespace Vaettir.Mail.Server.FileSystem
 				return;
 			}
 
+			Directory.CreateDirectory(Path.GetDirectoryName(serializedPath));
 			using (FileStream stream = File.Open(serializedPath, FileMode.Create, FileAccess.Write, FileShare.None))
 			using (var reader = new StreamWriter(stream))
 			using (var jsonReader = new JsonTextWriter(reader))
@@ -53,11 +57,6 @@ namespace Vaettir.Mail.Server.FileSystem
 
 		public SmtpFailureData GetFailure(string mailId, bool createIfMissing)
 		{
-			if (!createIfMissing && !_failures.IsValueCreated)
-			{
-				return null;
-			}
-
 			SmtpFailureData failure;
 			if (!_failures.Value.TryGetValue(mailId, out failure))
 			{

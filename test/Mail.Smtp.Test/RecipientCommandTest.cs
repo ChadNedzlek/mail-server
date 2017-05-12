@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Vaettir.Mail.Server;
 using Vaettir.Mail.Server.Smtp;
 using Vaettir.Mail.Server.Smtp.Commands;
 using Vaettir.Mail.Test.Utilities;

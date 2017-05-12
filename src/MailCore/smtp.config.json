@@ -1,6 +1,11 @@
 ﻿{
 	"domainName": "testing.vaettir.net",
-	"ports": [9025],
+	"connections": [
+		{
+			"protocol": "smtp",
+			"port": 9025
+		}
+	],
 	"mailIncomingQueuePath": "C:\\temp\\mail\\in",
 	"mailOutgoingQueuePath": "C:\\temp\\mail\\out",
 	"mailLocalPath": "C:\\temp\\mail\\local",
@@ -8,11 +13,18 @@
 	"localDomains": [
 		{ "name": "testing.vaettir.net" }
 	],
+	"relayDomains": [
+		{
+			"name": "vaettir.net",
+			"relay": "vaettir.net",
+			"port": 9025
+		}
+	],
 	"domainSettingsPath": "C:\\temp\\mail\\domains",
 	"userPasswordFile": "C:\\temp\\mail\\mail-user.pwd",
 	"passwordAlgorithm": "db:sha1:94857",
 	"logging": {
-		"default": { "LevelFilter": "error" },
+		"default": {},
 		"console": {}
 	}
 }

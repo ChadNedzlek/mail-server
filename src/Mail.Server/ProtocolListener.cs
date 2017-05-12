@@ -110,7 +110,7 @@ namespace Vaettir.Mail.Server
 
 					builder.RegisterInstance(connectionSettings);
 
-					builder.RegisterInstance(_scope.ResolveKeyed<IAuthenticationTransport>(connectionSettings.Protocol))
+					builder.Register(c => c.ResolveKeyed<IAuthenticationTransport>(connectionSettings.Protocol))
 						.As<IAuthenticationTransport>();
 				}
 			);

@@ -136,6 +136,14 @@ namespace MailCore
 
 			builder.Register(c => new CompositeLogger(c.Resolve<IEnumerable<ILogSync>>())).As<ILogger>();
 
+			builder.RegisterType<DnsClientResolver>()
+				.As<IDnsResolve>()
+				.SingleInstance();
+
+			builder.RegisterType<WrappedTcpClientProvider>()
+				.As<ITcpConnectionProvider>()
+				.SingleInstance();
+
 			builder.RegisterType<SmtpSession>()
 				.Keyed<IProtocolSession>("smtp")
 				.As<ISmtpMessageChannel>()

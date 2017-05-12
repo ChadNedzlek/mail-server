@@ -53,7 +53,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 				_builder.PendingMail.Recipents.ToImmutableList(),
 				token))
 			{
-				using (var mailWriter = new StreamWriter(reference.BodyStream, Encoding.UTF8))
+				using (var mailWriter = new StreamWriter(reference.BodyStream, new UTF8Encoding(false)))
 				{
 					await mailWriter.WriteLineAsync(
 						$"Received: FROM {_channel.ConnectedHost} ({_connectionInformation.RemoteAddress}) BY {_settings.DomainName} ({_connectionInformation.LocalAddress}); {DateTime.UtcNow:ddd, dd MMM yyy HH:mm:ss zzzz}");

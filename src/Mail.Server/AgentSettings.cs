@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Vaettir.Utility;
 
-namespace Vaettir.Mail.Server.Smtp
+namespace Vaettir.Mail.Server
 {
 	public class AgentSettings
 	{

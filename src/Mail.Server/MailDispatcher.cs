@@ -111,7 +111,6 @@ namespace Vaettir.Mail.Server
 			if (mailReferences.Count == 0)
 			{
 				int msSleep = _settings.Value.IdleDelay ?? 5000;
-				_log.Verbose($"No mail found, sleeping for {msSleep}ms");
 				await Task.Delay(msSleep, token);
 			}
 			token.ThrowIfCancellationRequested();
@@ -148,12 +147,23 @@ namespace Vaettir.Mail.Server
 					{
 						IDictionary<string, IEnumerable<string>> headers = await MailUtilities.ParseHeadersAsync(bodyStream, token);
 						ISet<string> recipients = AugmentRecipients(readReference.Sender, readReference.Recipients, headers);
+
+						if (!recipients.Any())
+						{
+							_log.Warning($"{readReference.Id} had no recipients");
+						}
+
 						bodyStream.Seek(0, SeekOrigin.Begin);
 						IWritable[] dispatchReferenecs = await CreateDispatchesAsync(
 							readReference.Id,
 							recipients,
 							readReference.Sender,
 							token);
+
+						if (!dispatchReferenecs.Any())
+						{
+							_log.Warning("Failed to locate any processor for {mailId}");
+						}
 
 						using (var targetStream = new MultiStream(dispatchReferenecs.Select(r => r.BodyStream)))
 						{
@@ -163,7 +173,7 @@ namespace Vaettir.Mail.Server
 						await Task.WhenAll(dispatchReferenecs.Select(r => r.Store.SaveAsync(r, token)));
 					}
 
-					_log.Verbose($"Processing mamil {readReference.Id} complete. Deleting incoming item...");
+					_log.Verbose($"Processing mail {readReference.Id} complete. Deleting incoming item...");
 
 					await _incoming.DeleteAsync(reference);
 				}
@@ -193,12 +203,14 @@ namespace Vaettir.Mail.Server
 						{
 							if (_settings.Value.DomainName == g.Key)
 							{
+								_log.Information($"{mailId} is local mail found");
 								return g.Select(r => _mailbox.NewMailAsync(mailId, r, token).Cast<IMailboxItemWriteReference, IWritable>());
 							}
 
 							if (_settings.Value.RelayDomains.Any(d => string.Equals(d.Name, g.Key, StringComparison.OrdinalIgnoreCase)) ||
 								_settings.Value.DomainName == senderDomain)
 							{
+								_log.Information($"{mailId} is related to {g.Key}");
 								return _transfer.NewMailAsync(mailId, sender, g.ToImmutableList(), token)
 									.Cast<IMailWriteReference, IWritable>()
 									.ToEnumerable();
@@ -220,9 +232,6 @@ namespace Vaettir.Mail.Server
 			string[] alreadOnThreadHeaders =
 			{
 				"To",
-				"From",
-				"Sender",
-				"Reply-To",
 				"Cc",
 				"Bcc"
 			};
@@ -240,7 +249,6 @@ namespace Vaettir.Mail.Server
 
 			excludedFromExpansion.Add(from);
 			ISet<string> expandedRecipients = ExpandDistributionLists(from, originalRecipients, excludedFromExpansion);
-			expandedRecipients.Remove(from);
 			return expandedRecipients;
 		}
 

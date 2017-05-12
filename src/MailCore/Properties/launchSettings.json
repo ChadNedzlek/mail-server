@@ -2,7 +2,7 @@
   "profiles": {
     "MailCore": {
       "commandName": "Project",
-      "commandLineArgs": "user add -u chadnedz -p pizza"
+      "commandLineArgs": "agent"
     }
   }
 }

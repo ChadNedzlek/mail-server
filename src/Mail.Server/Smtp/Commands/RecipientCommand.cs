@@ -9,7 +9,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 	[SmtpCommand("RCPT")]
 	public class RecipientCommand : BaseSmtpCommand
 	{
-		private static readonly Regex s_fromExpression = new Regex(@"^TO:<([^:]+:)?(\S*)(?: (.*))?>$");
+		private static readonly Regex s_fromExpression = new Regex(@"^TO:\s*<([^:]+:)?(\S*)(?: (.*))?>$");
 
 		private readonly IMailBuilder _builder;
 		private readonly ISmtpMessageChannel _channel;

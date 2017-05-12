@@ -8,16 +8,18 @@ namespace MailCore
 {
 	internal class AgentHandler : CommandHandler
 	{
-		private readonly ProtocolListener _smtp;
+		private readonly ProtocolListener _protocol;
 		private readonly MailDispatcher _dispatcher;
+		private readonly MailTransfer _transfer;
 
 		public AgentHandler(
-			ProtocolListener smtp,
-			MailDispatcher dispatcher)
+			ProtocolListener protocol,
+			MailDispatcher dispatcher,
+			MailTransfer transfer)
 		{
-			_smtp = smtp;
+			_protocol = protocol;
 			_dispatcher = dispatcher;
-			// var imap
+			_transfer = transfer;
 		}
 
 		public override async Task<int> RunAsync(List<string> remaining)
@@ -25,8 +27,9 @@ namespace MailCore
 			var cts = new CancellationTokenSource();
 
 			await Task.WhenAll(
-				Task.Run(() => _smtp.RunAsync(cts.Token), cts.Token),
-				Task.Run(() => _dispatcher.RunAsync(cts.Token), cts.Token)
+				Task.Run(() => _protocol.RunAsync(cts.Token), cts.Token),
+				Task.Run(() => _dispatcher.RunAsync(cts.Token), cts.Token),
+				Task.Run(() => _transfer.RunAsync(cts.Token), cts.Token)
 			);
 
 			return 0;

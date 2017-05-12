@@ -5,7 +5,7 @@ namespace Vaettir.Mail.Server
 	[UsedImplicitly(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature)]
 	public class ConnectionSetting
 	{
-		public ConnectionSetting(string protocol, int port, string certificatePath, bool ssl)
+		public ConnectionSetting(string protocol, int port, string certificatePath = null, bool ssl = false)
 		{
 			Port = port;
 			CertificatePath = certificatePath;

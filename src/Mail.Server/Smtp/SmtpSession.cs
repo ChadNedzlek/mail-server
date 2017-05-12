@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Autofac;
+using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server.Smtp
 {
@@ -11,6 +12,7 @@ namespace Vaettir.Mail.Server.Smtp
 	{
 		private readonly SecurableConnection _connection;
 		private readonly IComponentContext _context;
+		private readonly ILogger _log;
 		private readonly AgentSettings _settings;
 
 		private bool _closeRequested;
@@ -19,9 +21,11 @@ namespace Vaettir.Mail.Server.Smtp
 			SecurableConnection connection,
 			AgentSettings settings,
 			ConnectionInformation connectionInfo,
-			IComponentContext context)
+			IComponentContext context,
+			ILogger log)
 		{
 			_context = context;
+			_log = log;
 			_connection = connection;
 			_settings = settings;
 			Id = $"SMTP {connectionInfo.RemoteAddress}";
@@ -121,6 +125,7 @@ namespace Vaettir.Mail.Server.Smtp
 		private async Task<ISmtpCommand> GetCommandAsync(CancellationToken token)
 		{
 			string line = await _connection.ReadLineAsync(Encoding.UTF8, token);
+			_log.Verbose(line);
 			if (line.Length < 4)
 			{
 				await this.SendReplyAsync(SmtpReplyCode.SyntaxError, "No command found", token);

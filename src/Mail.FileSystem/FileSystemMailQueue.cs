@@ -15,7 +15,8 @@ namespace Vaettir.Mail.Server.FileSystem
 	{
 		public FileSystemMailQueue(AgentSettings settings) : base(settings)
 		{
-			Directory.CreateDirectory(Settings.MailIncomingQueuePath);
+			Directory.CreateDirectory(Path.Combine(Settings.MailIncomingQueuePath, "cur"));
+			Directory.CreateDirectory(Path.Combine(Settings.MailIncomingQueuePath, "tmp"));
 		}
 
 		public Task<IMailWriteReference> NewMailAsync(

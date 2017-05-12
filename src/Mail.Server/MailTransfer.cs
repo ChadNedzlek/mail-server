@@ -71,6 +71,7 @@ namespace Vaettir.Mail.Server
 						{
 							continue;
 						}
+						_log.Information($"Forwarding {mails.Count} mails to {domain}");
 						sent = true;
 						await SendMailsToDomain(domain, mails, token);
 					}
@@ -79,7 +80,6 @@ namespace Vaettir.Mail.Server
 
 					if (!sent)
 					{
-						_log.Verbose("No mails to send, sleeping");
 						await Task.Delay(_settings.Value.IdleDelay ?? 30000, token);
 					}
 				}
