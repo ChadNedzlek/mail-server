@@ -98,9 +98,6 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 						case "7BIT":
 						case "8BITMIME":
 							return true;
-						case "BINARYMIME":
-							_builder.PendingMail.IsBinary = true;
-							return true;
 					}
 					return false;
 				default:

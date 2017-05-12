@@ -1,7 +1,7 @@
 using Vaettir.Mail.Server;
 using Xunit;
 
-namespace Utility.Test
+namespace Vaettir.Utility.Test
 {
 	public class MailUtilitiesTests
 	{

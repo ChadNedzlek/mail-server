@@ -2,10 +2,9 @@
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
-using Vaettir.Utility;
 using Xunit;
 
-namespace Utility.Test
+namespace Vaettir.Utility.Test
 {
 	public class MutexThreadTests
 	{
@@ -98,12 +97,12 @@ namespace Utility.Test
 			try
 			{
 				await waiter.WaitAsync(m);
-				Task<WaitResult> childTask = Task.Run(() => Wait(m, 5));
-				await Task.Delay(MultTime(_step, 2));
+				Task<WaitResult> childTask = Task.Run(() => Wait(m, 10));
+				await Task.Delay(MultTime(_step, 4));
 				waiter.Release(m);
 				WaitResult result = await childTask;
 				Assert.True(result.Waited, "Other thread should have waited");
-				Assert.InRange(result.TimeTaken, _step, MultTime(_step, 5));
+				Assert.InRange(result.TimeTaken, _step, MultTime(_step, 10));
 			}
 			finally
 			{

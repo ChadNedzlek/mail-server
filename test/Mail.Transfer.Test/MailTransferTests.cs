@@ -14,7 +14,7 @@ using Vaettir.Mail.Test.Utilities;
 using Vaettir.Utility;
 using Xunit;
 
-namespace Mail.Transfer.Test
+namespace Vaettir.Mail.Transfer.Test
 {
 	public class MailTransferTests : IDisposable
 	{

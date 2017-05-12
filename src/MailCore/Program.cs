@@ -139,13 +139,16 @@ namespace MailCore
 			builder.RegisterType<SmtpSession>()
 				.Keyed<IProtocolSession>("smtp")
 				.As<ISmtpMessageChannel>()
-				.As<IAuthenticationTransport>()
 				.As<IMailBuilder>()
+				.InstancePerLifetimeScope();
+
+			builder.RegisterType<SmtpAuthenticationTransport>()
+				.Keyed<IAuthenticationTransport>("smtp")
 				.InstancePerLifetimeScope();
 
 			builder.RegisterType<ImapSession>()
 				.Keyed<IProtocolSession>("imap")
-				.As<IAuthenticationTransport>()
+				.Keyed<IAuthenticationTransport>("imap")
 				.As<IImapMessageChannel>()
 				.As<IImapMailboxPointer>()
 				.InstancePerLifetimeScope();

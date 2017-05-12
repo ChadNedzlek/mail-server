@@ -4,11 +4,10 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Autofac;
-using Vaettir.Mail.Server.Authentication;
 
 namespace Vaettir.Mail.Server.Smtp
 {
-	public class SmtpSession : IProtocolSession, IAuthenticationTransport, IDisposable, ISmtpMessageChannel, IMailBuilder
+	public class SmtpSession : IProtocolSession, IDisposable, ISmtpMessageChannel, IMailBuilder
 	{
 		private readonly SecurableConnection _connection;
 		private readonly IComponentContext _context;
@@ -26,16 +25,6 @@ namespace Vaettir.Mail.Server.Smtp
 			_connection = connection;
 			_settings = settings;
 			Id = $"SMTP {connectionInfo.RemoteAddress}";
-		}
-
-		public Task SendAuthenticationFragmentAsync(byte[] data, CancellationToken cancellationToken)
-		{
-			return this.SendReplyAsync(SmtpReplyCode.AuthenticationFragment, Convert.ToBase64String(data), cancellationToken);
-		}
-
-		public async Task<byte[]> ReadAuthenticationFragmentAsync(CancellationToken cancellationToken)
-		{
-			return Convert.FromBase64String(await _connection.ReadLineAsync(Encoding.ASCII, cancellationToken));
 		}
 
 		public void Dispose()
@@ -184,12 +173,5 @@ namespace Vaettir.Mail.Server.Smtp
 		public SmtpPath FromPath { get; }
 		public List<string> Recipents { get; } = new List<string>();
 		public bool IsBinary { get; set; }
-
-		public bool IsInvalid { get; private set; }
-
-		public void Invalidate()
-		{
-			IsInvalid = true;
-		}
 	}
 }

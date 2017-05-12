@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
-using Vaettir.Utility;
 using Xunit;
 
-namespace Utility.Test
+namespace Vaettir.Utility.Test
 {
 	public class StringUtilTests
 	{

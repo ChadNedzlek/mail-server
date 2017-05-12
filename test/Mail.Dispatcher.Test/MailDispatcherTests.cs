@@ -10,7 +10,7 @@ using Vaettir.Utility;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Mail.Dispatcher.Test
+namespace Vaettir.Mail.Dispatcher.Test
 {
 	public class MailDispatcherTests
 	{

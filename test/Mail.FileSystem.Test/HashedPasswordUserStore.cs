@@ -7,7 +7,7 @@ using Vaettir.Mail.Server.Smtp;
 using Vaettir.Mail.Test.Utilities;
 using Xunit;
 
-namespace Mail.FileSystem.Test
+namespace Vaettir.Mail.FileSystem.Test
 {
 	public class HashedPasswordUserStore : IDisposable
 	{

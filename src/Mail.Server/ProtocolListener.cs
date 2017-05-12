@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Autofac;
 using JetBrains.Annotations;
+using Vaettir.Mail.Server.Authentication;
 using Vaettir.Mail.Server.Smtp;
 using Vaettir.Utility;
 
@@ -108,6 +109,9 @@ namespace Vaettir.Mail.Server
 						.As<IVariableStreamReader>();
 
 					builder.RegisterInstance(connectionSettings);
+
+					builder.RegisterInstance(_scope.ResolveKeyed<IAuthenticationTransport>(connectionSettings.Protocol))
+						.As<IAuthenticationTransport>();
 				}
 			);
 

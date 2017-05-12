@@ -2,10 +2,9 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Vaettir.Mail.Test.Utilities;
-using Vaettir.Utility;
 using Xunit;
 
-namespace Utility.Test
+namespace Vaettir.Utility.Test
 {
 	public class AutoResetEventAsyncTests
 	{

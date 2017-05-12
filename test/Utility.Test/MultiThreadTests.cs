@@ -2,10 +2,9 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
-using Vaettir.Utility;
 using Xunit;
 
-namespace Utility.Test
+namespace Vaettir.Utility.Test
 {
 	public class MultiThreadTests
 	{

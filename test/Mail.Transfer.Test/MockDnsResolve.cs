@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Vaettir.Mail.Server;
 
-namespace Mail.Transfer.Test
+namespace Vaettir.Mail.Transfer.Test
 {
 	internal class MockDnsResolve : IDnsResolve
 	{

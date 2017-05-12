@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Vaettir.Mail.Server;
 using Vaettir.Utility;
 
-namespace Mail.Transfer.Test
+namespace Vaettir.Mail.Transfer.Test
 {
 	internal sealed class MockTcpConnectionProvider : ITcpConnectionProvider, IDisposable
 	{
