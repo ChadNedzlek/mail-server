@@ -2,9 +2,11 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server
 {
+	[Injected]
 	public class WrappedTcpClientProvider : ITcpConnectionProvider
 	{
 		public ITcpClient GetClient()

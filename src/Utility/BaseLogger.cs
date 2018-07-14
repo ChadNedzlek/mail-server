@@ -4,31 +4,15 @@ namespace Vaettir.Utility
 {
 	public abstract class BaseLogger : ILogger
 	{
-		private readonly IVolatile<LogSettings> _specificSettings;
 		private readonly IVolatile<LogSettings> _baseSettings;
+		private readonly IVolatile<LogSettings> _specificSettings;
 
-		public BaseLogger(IVolatile<LogSettings> specificSettings,
+		public BaseLogger(
+			IVolatile<LogSettings> specificSettings,
 			IVolatile<LogSettings> baseSettings)
 		{
 			_specificSettings = specificSettings;
 			_baseSettings = baseSettings;
-		}
-
-		protected virtual bool ShouldTrace(int eventId, LogLevel level)
-		{
-			LogLevel? specificFilter = _specificSettings?.Value?.LevelFilter;
-			if (specificFilter.HasValue)
-			{
-				return level >= specificFilter.Value;
-			}
-
-			LogLevel? baseFilter = _baseSettings?.Value?.LevelFilter;
-			if (baseFilter.HasValue)
-			{
-				return level >= baseFilter.Value;
-			}
-
-			return true;
 		}
 
 		public virtual void Verbose(int eventId, string message)
@@ -51,10 +35,35 @@ namespace Vaettir.Utility
 			Trace(LogLevel.Error, eventId, message, exception);
 		}
 
+		public void Dispose()
+		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
+
+		protected virtual bool ShouldTrace(int eventId, LogLevel level)
+		{
+			LogLevel? specificFilter = _specificSettings?.Value?.LevelFilter;
+			if (specificFilter.HasValue)
+			{
+				return level >= specificFilter.Value;
+			}
+
+			LogLevel? baseFilter = _baseSettings?.Value?.LevelFilter;
+			if (baseFilter.HasValue)
+			{
+				return level >= baseFilter.Value;
+			}
+
+			return true;
+		}
+
 		public virtual void Trace(LogLevel level, int eventId, string message, Exception exception)
 		{
 			if (!ShouldTrace(eventId, level))
+			{
 				return;
+			}
 
 			TraceInternal(level, eventId, message, exception);
 		}
@@ -63,12 +72,6 @@ namespace Vaettir.Utility
 
 		protected virtual void Dispose(bool disposing)
 		{
-		}
-
-		public void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
 		}
 	}
 }

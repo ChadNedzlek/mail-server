@@ -6,7 +6,6 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Vaettir.Mail.Server.Smtp;
 using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server.FileSystem
@@ -36,14 +35,14 @@ namespace Vaettir.Mail.Server.FileSystem
 				FileStream streamImpl = stream.Peek();
 				// 23 ASCII characters, up to 1 GB in size, should be sufficient
 				// Header-Legnth:000000000
-				var headerSizeHeader = Encoding.ASCII.GetString(await streamImpl.ReadExactlyAsync(23, token));
+				string headerSizeHeader = Encoding.ASCII.GetString(await streamImpl.ReadExactlyAsync(23, token));
 
 				if (!headerSizeHeader.StartsWith(HeaderLengthHeader))
 				{
 					throw new FormatException($"Invalid mail file format, expected {HeaderLengthHeader} line");
 				}
 
-				if (!Int32.TryParse(headerSizeHeader.Substring(HeaderLengthHeader.Length), out var headerSize) || headerSize <= 0)
+				if (!int.TryParse(headerSizeHeader.Substring(HeaderLengthHeader.Length), out int headerSize) || headerSize <= 0)
 				{
 					throw new FormatException($"Invalid mail file format, {HeaderLengthHeader} is not a valid number");
 				}
@@ -54,7 +53,7 @@ namespace Vaettir.Mail.Server.FileSystem
 					// so all that is left is the rest of the line (which is empty).
 					// If it's not, then we didn't read what we thought we read, bail
 					string blankLine = await reader.ReadLineAsync();
-					if (!String.IsNullOrEmpty(blankLine))
+					if (!string.IsNullOrEmpty(blankLine))
 					{
 						throw new FormatException($"Invalid mail file format, {HeaderLengthHeader} is improperly formatted");
 					}
@@ -80,14 +79,19 @@ namespace Vaettir.Mail.Server.FileSystem
 					}
 				}
 
-				return new ReadReference(mailReference.Id, sender, recipients, mailReference.Path, new StreamSpan(stream.TakeValue()), this);
+				return new ReadReference(
+					mailReference.Id,
+					sender,
+					recipients,
+					mailReference.Path,
+					new StreamSpan(stream.TakeValue()),
+					this);
 			}
 		}
 
 		public virtual Task DeleteAsync(IMailReference reference)
 		{
-			var mailReference = reference as IReference;
-			if (mailReference != null)
+			if (reference is IReference mailReference)
 			{
 				if (File.Exists(mailReference.Path))
 				{
@@ -114,10 +118,13 @@ namespace Vaettir.Mail.Server.FileSystem
 			string tempPath = getTempPathFromName(mailName);
 			string targetPath = getPathFromName(mailName);
 
+			// ReSharper disable AssignNullToNotNullAttribute
 			Directory.CreateDirectory(Path.GetDirectoryName(targetPath));
 			Directory.CreateDirectory(Path.GetDirectoryName(tempPath));
+			// ReSharper restore AssignNullToNotNullAttribute
 
-			using (Sharable<FileStream> shared = Sharable.Create(File.Open(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read)))
+			using (Sharable<FileStream> shared =
+				Sharable.Create(File.Open(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read)))
 			{
 				FileStream stream = shared.Peek();
 				IEnumerable<string> enumerable = targetRecipients.ToList();
@@ -131,8 +138,9 @@ namespace Vaettir.Mail.Server.FileSystem
 						token.ThrowIfCancellationRequested();
 						await writer.WriteLineAsync($"TO:{recipient}");
 					}
+
 					await writer.FlushAsync();
-					int location = (int)stream.Position;
+					var location = (int) stream.Position;
 					stream.Seek(0, SeekOrigin.Begin);
 					await writer.FlushAsync();
 					await writer.WriteLineAsync($"{HeaderLengthHeader}{location:D9}");
@@ -168,7 +176,7 @@ namespace Vaettir.Mail.Server.FileSystem
 			public string Path { get; }
 		}
 
-		protected class ReadReference : IMailReadReference, IReference
+		private class ReadReference : IMailReadReference, IReference
 		{
 			public ReadReference(
 				string id,

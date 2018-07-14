@@ -5,12 +5,11 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
-using Vaettir.Mail.Server.Smtp;
+using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server.FileSystem
 {
-	[UsedImplicitly(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature)]
+	[Injected]
 	public class FileSystemMailTransferQueue : FileSystemMailQueueBase, IMailTransferQueue
 	{
 		public FileSystemMailTransferQueue(AgentSettings settings) : base(settings)
@@ -52,11 +51,6 @@ namespace Vaettir.Mail.Server.FileSystem
 			);
 		}
 
-		private string GetRootPath(string domain, string type)
-		{
-			return Path.Combine(Settings.MailOutgoingQueuePath, domain, type);
-		}
-
 		public IEnumerable<string> GetAllPendingDomains()
 		{
 			return Directory.GetDirectories(Settings.MailOutgoingQueuePath).Select(Path.GetFileName);
@@ -90,10 +84,10 @@ namespace Vaettir.Mail.Server.FileSystem
 		public override async Task DeleteAsync(IMailReference reference)
 		{
 			await base.DeleteAsync(reference);
-			
+
 			try
 			{
-				var mailReference = (Reference)reference;
+				// var mailReference = (Reference) reference;
 				// root/in/domain.name/cur/mail-id-path.mbx
 				// we want to remove the domain.name directory if this is the last mail going into it
 				// Directory.Delete(Path.GetDirectoryName(Path.GetDirectoryName(mailReference.Path)));
@@ -102,6 +96,11 @@ namespace Vaettir.Mail.Server.FileSystem
 			{
 				// Don't care, we were just cleaning up after ourselves, after all
 			}
+		}
+
+		private string GetRootPath(string domain, string type)
+		{
+			return Path.Combine(Settings.MailOutgoingQueuePath, domain, type);
 		}
 	}
 }

@@ -41,6 +41,7 @@ namespace Vaettir.Mail.Server.FileSystem
 				return;
 			}
 
+			// ReSharper disable once AssignNullToNotNullAttribute
 			Directory.CreateDirectory(Path.GetDirectoryName(serializedPath));
 			using (FileStream stream = File.Open(serializedPath, FileMode.Create, FileAccess.Write, FileShare.None))
 			using (var reader = new StreamWriter(stream))
@@ -57,8 +58,7 @@ namespace Vaettir.Mail.Server.FileSystem
 
 		public SmtpFailureData GetFailure(string mailId, bool createIfMissing)
 		{
-			SmtpFailureData failure;
-			if (!_failures.Value.TryGetValue(mailId, out failure))
+			if (!_failures.Value.TryGetValue(mailId, out SmtpFailureData failure))
 			{
 				if (!createIfMissing)
 				{

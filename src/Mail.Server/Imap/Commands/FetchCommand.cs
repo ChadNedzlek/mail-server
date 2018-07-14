@@ -17,13 +17,22 @@ namespace Vaettir.Mail.Server.Imap.Commands
 
 		protected override bool TryParseArguments(ImmutableList<IMessageData> arguments)
 		{
-			if (arguments.Count != 2) return false;
+			if (arguments.Count != 2)
+			{
+				return false;
+			}
 
 			_messageSet = arguments[0] as NumberRangeMessageData;
-			if (_messageSet == null) return false;
+			if (_messageSet == null)
+			{
+				return false;
+			}
 
 			var list = arguments[1] as ListMessageData;
-			if (list == null || list.Items.Count == 0) return false;
+			if (list == null || list.Items.Count == 0)
+			{
+				return false;
+			}
 
 			_fetchItems = ResolveAliases(list.Items.Select(i => MessageData.GetString(i, Encoding.UTF8)));
 			return true;

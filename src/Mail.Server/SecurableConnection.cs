@@ -25,6 +25,7 @@ namespace Vaettir.Mail.Server
 			{
 				throw new ArgumentNullException(nameof(source));
 			}
+
 			Init(source);
 		}
 
@@ -54,12 +55,33 @@ namespace Vaettir.Mail.Server
 			_tcp = null;
 		}
 
+		public async Task<string> ReadLineAsync(Encoding encoding, CancellationToken cancellationToken)
+		{
+			if (State == SecurableConnectionState.Closed)
+			{
+				throw new ObjectDisposedException(nameof(SecurableConnection));
+			}
+
+			return await _variableReader.ReadLineAsync(encoding, cancellationToken);
+		}
+
+		public Task<int> ReadBytesAsync(byte[] read, int offset, int count, CancellationToken cancellationToken)
+		{
+			if (State == SecurableConnectionState.Closed)
+			{
+				throw new ObjectDisposedException(nameof(SecurableConnection));
+			}
+
+			return _variableReader.ReadBytesAsync(read, offset, count, cancellationToken);
+		}
+
 		private void Init(Stream source)
 		{
 			if (source == null)
 			{
 				throw new ArgumentNullException(nameof(source));
 			}
+
 			_current = new RedirectableStream(_source = source);
 			_variableReader = new VariableStreamReader(_current);
 			State = SecurableConnectionState.Open;
@@ -116,6 +138,7 @@ namespace Vaettir.Mail.Server
 			{
 				throw new ObjectDisposedException(nameof(SecurableConnection));
 			}
+
 			return _current.WriteAsync(buffer, offset, count, cancellationToken);
 		}
 
@@ -125,6 +148,7 @@ namespace Vaettir.Mail.Server
 			{
 				throw new ObjectDisposedException(nameof(SecurableConnection));
 			}
+
 			byte[] buffer = encoding.GetBytes(text);
 			return _current.WriteAsync(buffer, 0, buffer.Length, cancellationToken);
 		}
@@ -135,26 +159,9 @@ namespace Vaettir.Mail.Server
 			{
 				throw new ObjectDisposedException(nameof(SecurableConnection));
 			}
+
 			byte[] buffer = encoding.GetBytes(text + "\r\n");
 			return _current.WriteAsync(buffer, 0, buffer.Length, cancellationToken);
-		}
-
-		public async Task<string> ReadLineAsync(Encoding encoding, CancellationToken cancellationToken)
-		{
-			if (State == SecurableConnectionState.Closed)
-			{
-				throw new ObjectDisposedException(nameof(SecurableConnection));
-			}
-			return await _variableReader.ReadLineAsync(encoding, cancellationToken);
-		}
-
-		public Task<int> ReadBytesAsync(byte[] read, int offset, int count, CancellationToken cancellationToken)
-		{
-			if (State == SecurableConnectionState.Closed)
-			{
-				throw new ObjectDisposedException(nameof(SecurableConnection));
-			}
-			return _variableReader.ReadBytesAsync(read, offset, count, cancellationToken);
 		}
 	}
 }

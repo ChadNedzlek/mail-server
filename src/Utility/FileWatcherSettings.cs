@@ -15,6 +15,7 @@ namespace Vaettir.Utility
 			_settingsFileName = Path.GetFullPath(settingsFileName);
 			_settings = initial;
 			_watcher = new FileSystemWatcher(
+				// ReSharper disable once AssignNullToNotNullAttribute
 				Path.GetDirectoryName(_settingsFileName),
 				Path.GetFileName(_settingsFileName))
 			{

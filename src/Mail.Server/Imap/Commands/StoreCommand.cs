@@ -16,14 +16,14 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	{
 		private static readonly Regex ArgumentPattern = new Regex(@"^([+-]?)([A-Z]+)(.SILENT)?$", RegexOptions.IgnoreCase);
 		private static readonly ImmutableList<string> KnownCommands = ImmutableList.CreateRange(new[] {"FLAGS"});
+		private readonly IImapMessageChannel _channel;
+		private readonly IImapMailboxPointer _mailboxPointer;
+		private readonly IImapMailStore _mailstore;
 		private string _command;
 		private NumberRangeMessageData _messageRange;
 		private StoreOperation _operation;
 		private bool _silent;
 		private ListMessageData _valueList;
-		private readonly IImapMailStore _mailstore;
-		private readonly IImapMessageChannel _channel;
-		private readonly IImapMailboxPointer _mailboxPointer;
 
 		public StoreCommand(IImapMailStore mailstore, IImapMessageChannel channel, IImapMailboxPointer mailboxPointer)
 		{
@@ -34,7 +34,10 @@ namespace Vaettir.Mail.Server.Imap.Commands
 
 		protected override bool TryParseArguments(ImmutableList<IMessageData> arguments)
 		{
-			if (arguments.Count != 3) return false;
+			if (arguments.Count != 3)
+			{
+				return false;
+			}
 
 			string storeType = MessageData.GetString(arguments[0], Encoding.ASCII);
 			_messageRange = arguments[1] as NumberRangeMessageData;
@@ -114,6 +117,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 						{
 							message.Flags.Remove(flags);
 						}
+
 						break;
 				}
 

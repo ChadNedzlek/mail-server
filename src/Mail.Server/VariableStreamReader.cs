@@ -26,14 +26,42 @@ namespace Vaettir.Mail.Server
 			_charBuffer = null;
 		}
 
+		public async Task<string> ReadLineAsync(Encoding encoding, CancellationToken cancellationToken)
+		{
+			var builder = new StringBuilder();
+			string chunk;
+			var lastChar = '\0';
+			Decoder decoder = encoding.GetDecoder();
+			while (!TryFinishLine(decoder, ref lastChar, out chunk))
+			{
+				builder.Append(chunk);
+				_readBufferFilled = await ReadBytesAsync(_readBuffer, 0, _readBuffer.Length, cancellationToken);
+				_readBufferUsed = 0;
+			}
+
+			builder.Append(chunk);
+			builder.Length = builder.Length - 2; // Remove the CR LF
+			return builder.ToString();
+		}
+
+		public Task<int> ReadBytesAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+		{
+			if (_readBufferFilled > _readBufferUsed)
+			{
+				int toCopy = Math.Min(_readBufferFilled - _readBufferUsed, count);
+				Array.Copy(_readBuffer, _readBufferUsed, buffer, offset, toCopy);
+				_readBufferUsed += toCopy;
+				return Task.FromResult(toCopy);
+			}
+
+			return _stream.ReadAsync(buffer, offset, count, cancellationToken);
+		}
+
 		private bool TryFinishLine(Decoder decoder, ref char lastChar, out string chunk)
 		{
 			var charIndex = 0;
 			while (true)
 			{
-				int bytesUsed;
-				int charsUsed;
-				bool complete;
 				decoder.Convert(
 					_readBuffer,
 					_readBufferUsed,
@@ -42,9 +70,9 @@ namespace Vaettir.Mail.Server
 					charIndex,
 					1,
 					false,
-					out bytesUsed,
-					out charsUsed,
-					out complete);
+					out int bytesUsed,
+					out int charsUsed,
+					out bool _);
 
 				_readBufferUsed += bytesUsed;
 
@@ -64,36 +92,6 @@ namespace Vaettir.Mail.Server
 				lastChar = _charBuffer[charIndex];
 				charIndex++;
 			}
-		}
-
-		public async Task<string> ReadLineAsync(Encoding encoding, CancellationToken cancellationToken)
-		{
-			var builder = new StringBuilder();
-			string chunk;
-			var lastChar = '\0';
-			Decoder decoder = encoding.GetDecoder();
-			while (!TryFinishLine(decoder, ref lastChar, out chunk))
-			{
-				builder.Append(chunk);
-				_readBufferFilled = await ReadBytesAsync(_readBuffer, 0, _readBuffer.Length, cancellationToken);
-				_readBufferUsed = 0;
-			}
-			builder.Append(chunk);
-			builder.Length = builder.Length - 2; // Remove the CR LF
-			return builder.ToString();
-		}
-
-		public Task<int> ReadBytesAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
-		{
-			if (_readBufferFilled > _readBufferUsed)
-			{
-				int toCopy = Math.Min(_readBufferFilled - _readBufferUsed, count);
-				Array.Copy(_readBuffer, _readBufferUsed, buffer, offset, toCopy);
-				_readBufferUsed += toCopy;
-				return Task.FromResult(toCopy);
-			}
-
-			return _stream.ReadAsync(buffer, offset, count, cancellationToken);
 		}
 	}
 }

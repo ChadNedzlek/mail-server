@@ -1,11 +1,9 @@
 using System.IO;
-using JetBrains.Annotations;
-using Vaettir.Mail.Server.Smtp;
 using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server.FileSystem
 {
-	[UsedImplicitly(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature)]
+	[Injected]
 	public class FileSystemDomainResolver : IDomainSettingResolver
 	{
 		private readonly IVolatile<AgentSettings> _settings;

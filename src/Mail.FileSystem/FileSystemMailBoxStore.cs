@@ -5,11 +5,11 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
-using Vaettir.Mail.Server.Smtp;
+using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server.FileSystem
 {
+	[Injected]
 	public class FileSystemMailboxStore : IMailboxStore
 	{
 		private const string CurrentMailStatus = "cur";
@@ -19,7 +19,6 @@ namespace Vaettir.Mail.Server.FileSystem
 
 		private readonly AgentSettings _settings;
 
-		[UsedImplicitly]
 		public FileSystemMailboxStore(AgentSettings settings)
 		{
 			_settings = settings;
@@ -51,11 +50,6 @@ namespace Vaettir.Mail.Server.FileSystem
 			EnsureDirectoryFor(newPath);
 			File.Move(mbox.TempPath, newPath);
 			return Task.CompletedTask;
-		}
-
-		private static void EnsureDirectoryFor(string newPath)
-		{
-			Directory.CreateDirectory(Path.GetDirectoryName(newPath));
 		}
 
 		public Task DeleteAsync(IMailboxItemReference reference)
@@ -96,7 +90,7 @@ namespace Vaettir.Mail.Server.FileSystem
 				throw new ArgumentException("Invalid mail id. Must be a valid file name and cannot start with .");
 			}
 
-			
+
 			string tempFileName = Path.Combine(GetFolderPath(mailbox, folder, TempMailStatus), $"{id}.mbox");
 			EnsureDirectoryFor(tempFileName);
 			return Task.FromResult(
@@ -133,9 +127,16 @@ namespace Vaettir.Mail.Server.FileSystem
 			return Task.CompletedTask;
 		}
 
+		private static void EnsureDirectoryFor(string newPath)
+		{
+			// ReSharper disable once AssignNullToNotNullAttribute
+			Directory.CreateDirectory(Path.GetDirectoryName(newPath));
+		}
+
 		private static (string id, MailboxFlags) CalculateFlagsFromFileName(string fileName)
 		{
 			fileName = Path.GetFileName(fileName);
+			// ReSharper disable once AssignNullToNotNullAttribute
 			Match match = s_maildirPattern.Match(fileName);
 			if (!match.Success)
 			{

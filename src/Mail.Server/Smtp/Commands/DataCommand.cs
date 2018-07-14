@@ -12,9 +12,9 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 	{
 		private readonly IMailBuilder _builder;
 		private readonly ISmtpMessageChannel _channel;
-		private readonly IVariableStreamReader _reader;
 		private readonly ConnectionInformation _connectionInformation;
 		private readonly IMailQueue _mailQueue;
+		private readonly IVariableStreamReader _reader;
 		private readonly AgentSettings _settings;
 
 		public DataCommand(
@@ -46,7 +46,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 
 			await _channel.SendReplyAsync(SmtpReplyCode.StartMail, "Send data, end with .<CR><LF>", token);
 
-			bool rejected = false;
+			var rejected = false;
 
 			using (IMailWriteReference reference = await _mailQueue.NewMailAsync(
 				_builder.PendingMail.FromPath.Mailbox,
@@ -73,7 +73,9 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 						}
 
 						if (rejected)
+						{
 							continue;
+						}
 
 						await mailWriter.WriteLineAsync(line);
 						await mailWriter.FlushAsync();

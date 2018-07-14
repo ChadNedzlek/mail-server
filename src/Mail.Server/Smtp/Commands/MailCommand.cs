@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -44,18 +43,15 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 			string mailbox = fromMatch.Groups[2].Value;
 			string parameterText = fromMatch.Groups[3].Value;
 
-			ImmutableList<string> sourceRouteList = null;
 			if (!string.IsNullOrEmpty(sourceRoute))
 			{
 				return _channel.SendReplyAsync(
 					SmtpReplyCode.InvalidArguments,
 					"Return path not supported",
 					CancellationToken.None);
-
 			}
 
-			Task errorReport;
-			if (!TryProcessParameterValue(_channel, parameterText, out errorReport, token))
+			if (!TryProcessParameterValue(_channel, parameterText, out Task errorReport, token))
 			{
 				return errorReport;
 			}
@@ -72,8 +68,8 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 						d.Name,
 						MailUtilities.GetDomainFromMailbox(mailbox),
 						StringComparison.OrdinalIgnoreCase)
-					) == true
-				)
+				) == true
+			)
 			{
 				return _channel.SendReplyAsync(
 					SmtpReplyCode.InvalidArguments,
@@ -99,6 +95,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 						case "8BITMIME":
 							return true;
 					}
+
 					return false;
 				default:
 					return base.TryProcessParameter(key, value);

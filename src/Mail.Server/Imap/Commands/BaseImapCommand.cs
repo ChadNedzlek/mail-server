@@ -11,6 +11,14 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	{
 		public const string UntaggedTag = "*";
 
+		public string Tag { get; private set; }
+		public ImmutableList<IMessageData> Arguments { get; private set; }
+		public bool HasValidArguments { get; private set; }
+		public string CommandName { get; private set; }
+
+		public abstract bool IsValidWith(IEnumerable<IImapCommand> commands);
+		public abstract Task ExecuteAsync(CancellationToken cancellationToken);
+
 		public void Initialize(string commandName, string tag, ImmutableList<IMessageData> data)
 		{
 			CommandName = commandName;
@@ -19,13 +27,6 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			HasValidArguments = TryParseArguments(Arguments);
 		}
 
-		public string Tag { get; private set; }
-		public ImmutableList<IMessageData> Arguments { get; private set; }
-		public bool HasValidArguments { get; private set; }
-		public string CommandName { get; private set; }
-
-		public abstract bool IsValidWith(IEnumerable<IImapCommand> commands);
-		public abstract Task ExecuteAsync(CancellationToken cancellationToken);
 		protected abstract bool TryParseArguments(ImmutableList<IMessageData> arguments);
 
 		protected ImapMessage GetResultMessage(CommandResult result, params IMessageData[] data)
@@ -39,6 +40,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			{
 				text = CommandName + " completed";
 			}
+
 			return GetResultMessage(CommandResult.Ok, new ServerMessageData(text));
 		}
 
@@ -90,7 +92,10 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			else
 			{
 				await
-					channel.CommandCompletedAsync(GetResultMessage(result, tags, new ServerMessageData(text)), this, cancellationToken);
+					channel.CommandCompletedAsync(
+						GetResultMessage(result, tags, new ServerMessageData(text)),
+						this,
+						cancellationToken);
 			}
 		}
 	}

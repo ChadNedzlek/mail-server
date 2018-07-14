@@ -25,7 +25,7 @@ namespace Vaettir.Mail.Smtp.Test
 		public async Task ResetAfterMailCommand()
 		{
 			var channel = new MockSmtpChannel();
-			var builder = new MockMailBuilder { PendingMail = new SmtpMailMessage(new SmtpPath("someone@example.com")) };
+			var builder = new MockMailBuilder {PendingMail = new SmtpMailMessage(new SmtpPath("someone@example.com"))};
 			var command = new ResetCommand(channel, builder);
 			command.Initialize("");
 			await command.ExecuteAsync(CancellationToken.None);
@@ -37,7 +37,7 @@ namespace Vaettir.Mail.Smtp.Test
 		public async Task ResetAfterRcptCommand()
 		{
 			var channel = new MockSmtpChannel();
-			var builder = new MockMailBuilder { PendingMail = new SmtpMailMessage(new SmtpPath("someone@example.com")) };
+			var builder = new MockMailBuilder {PendingMail = new SmtpMailMessage(new SmtpPath("someone@example.com"))};
 			builder.PendingMail.Recipents.Add("in@test.vaettir.net");
 			var command = new ResetCommand(channel, builder);
 			command.Initialize("");

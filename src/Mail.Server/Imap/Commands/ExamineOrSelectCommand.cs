@@ -11,13 +11,16 @@ namespace Vaettir.Mail.Server.Imap.Commands
 {
 	public abstract class ExamineOrSelectCommand : BaseImapCommand
 	{
-		private string _mailbox;
-
-		private readonly IImapMailStore _mailstore;
 		private readonly IImapMessageChannel _channel;
 		private readonly IImapMailboxPointer _mailboxPointer;
 
-		protected ExamineOrSelectCommand(IImapMailStore mailstore, IImapMessageChannel channel, IImapMailboxPointer mailboxPointer)
+		private readonly IImapMailStore _mailstore;
+		private string _mailbox;
+
+		protected ExamineOrSelectCommand(
+			IImapMailStore mailstore,
+			IImapMessageChannel channel,
+			IImapMailboxPointer mailboxPointer)
 		{
 			_mailstore = mailstore;
 			_channel = channel;

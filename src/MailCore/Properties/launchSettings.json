@@ -1,8 +1,8 @@
 {
-  "profiles": {
-    "MailCore": {
-      "commandName": "Project",
-      "commandLineArgs": "agent"
-    }
-  }
+	"profiles": {
+		"MailCore": {
+			"commandName": "Project",
+			"commandLineArgs": "agent"
+		}
+	}
 }

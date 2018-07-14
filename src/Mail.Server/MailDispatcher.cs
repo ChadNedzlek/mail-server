@@ -5,13 +5,11 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
-using Vaettir.Mail.Server.Smtp;
 using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server
 {
-	[UsedImplicitly]
+	[Injected]
 	public sealed class MailDispatcher : IDisposable
 	{
 		private readonly IDomainSettingResolver _domainResolver;
@@ -113,6 +111,7 @@ namespace Vaettir.Mail.Server
 				int msSleep = _settings.Value.IdleDelay ?? 5000;
 				await Task.Delay(msSleep, token);
 			}
+
 			token.ThrowIfCancellationRequested();
 
 			foreach (IMailReference reference in mailReferences)
@@ -135,6 +134,7 @@ namespace Vaettir.Mail.Server
 					{
 						_log.Error($"Failed to delete message: {deleteException}");
 					}
+
 					continue;
 				}
 
@@ -145,7 +145,7 @@ namespace Vaettir.Mail.Server
 					using (readReference)
 					using (Stream bodyStream = readReference.BodyStream)
 					{
-						IDictionary<string, IEnumerable<string>> headers = await MailUtilities.ParseHeadersAsync(bodyStream, token);
+						IDictionary<string, IEnumerable<string>> headers = await MailUtilities.ParseHeadersAsync(bodyStream);
 						ISet<string> recipients = AugmentRecipients(readReference.Sender, readReference.Recipients, headers);
 
 						if (!recipients.Any())
@@ -188,7 +188,7 @@ namespace Vaettir.Mail.Server
 			}
 		}
 
-		public Task<IWritable[]> CreateDispatchesAsync(
+		private Task<IWritable[]> CreateDispatchesAsync(
 			string mailId,
 			IEnumerable<string> recipients,
 			string sender,
@@ -223,7 +223,7 @@ namespace Vaettir.Mail.Server
 			);
 		}
 
-		public ISet<string> AugmentRecipients(
+		private ISet<string> AugmentRecipients(
 			string from,
 			IEnumerable<string> originalRecipients,
 			IDictionary<string, IEnumerable<string>> headers)
@@ -238,7 +238,7 @@ namespace Vaettir.Mail.Server
 
 			foreach (string header in alreadOnThreadHeaders)
 			{
-				if (headers.TryGetValue(header, out var targets))
+				if (headers.TryGetValue(header, out IEnumerable<string> targets))
 				{
 					foreach (string mbox in ParseMailboxListHeader(targets))
 					{
@@ -261,7 +261,9 @@ namespace Vaettir.Mail.Server
 			foreach (string recipient in originalRecipients)
 			{
 				DomainSettings domain = null;
-				if (_domainSettings.TryGetValue(MailUtilities.GetDomainFromMailbox(recipient), out var settings))
+				if (_domainSettings.TryGetValue(
+					MailUtilities.GetDomainFromMailbox(recipient),
+					out Lazy<IVolatile<DomainSettings>> settings))
 				{
 					domain = settings.Value.Value;
 				}
@@ -280,17 +282,19 @@ namespace Vaettir.Mail.Server
 					{
 						to.Add(member);
 					}
+
 					continue;
 				}
 
 				{
 					// C# compiler mistake that prevents collapsing the domain.Alias null check
-					if (domain?.Aliases != null && domain.Aliases.TryGetValue(recipient, out var newRecipient))
+					if (domain?.Aliases != null && domain.Aliases.TryGetValue(recipient, out string newRecipient))
 					{
 						if (excludedFromExpansion.Contains(newRecipient))
 						{
 							continue;
 						}
+
 						to.Add(newRecipient);
 						continue;
 					}

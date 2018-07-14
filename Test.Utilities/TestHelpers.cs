@@ -6,7 +6,6 @@ using System.Text;
 using Vaettir.Mail.Server;
 using Vaettir.Mail.Server.Authentication;
 using Vaettir.Mail.Server.Authentication.Mechanism;
-using Vaettir.Mail.Server.Smtp;
 
 namespace Vaettir.Mail.Test.Utilities
 {
@@ -54,7 +53,7 @@ namespace Vaettir.Mail.Test.Utilities
 			int unauthenticatedMessageSizeLimit = 0)
 		{
 			return new AgentSettings(
-				domainName: domainName,
+				domainName,
 				mailIncomingQueuePath: null,
 				mailOutgoingQueuePath: null,
 				workingDirectory: null,

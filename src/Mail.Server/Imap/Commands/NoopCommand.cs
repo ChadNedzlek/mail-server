@@ -16,7 +16,10 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			_channel = channel;
 		}
 
-		protected override bool TryParseArguments(ImmutableList<IMessageData> arguments) => arguments.Count == 0;
+		protected override bool TryParseArguments(ImmutableList<IMessageData> arguments)
+		{
+			return arguments.Count == 0;
+		}
 
 		public override async Task ExecuteAsync(CancellationToken cancellationToken)
 		{

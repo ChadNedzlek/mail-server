@@ -10,10 +10,10 @@ namespace Vaettir.Mail.Server.Imap
 {
 	public interface IImapMessageChannel
 	{
-		Task CommandCompletedAsync(ImapMessage message, IImapCommand command, CancellationToken cancellationToken);
-		Task SendMessageAsync(ImapMessage message, Encoding encoding, CancellationToken cancellationToken);
 		UserData AuthenticatedUser { get; set; }
 		SessionState State { get; set; }
+		Task CommandCompletedAsync(ImapMessage message, IImapCommand command, CancellationToken cancellationToken);
+		Task SendMessageAsync(ImapMessage message, Encoding encoding, CancellationToken cancellationToken);
 		void EndSession();
 		Task EndCommandWithoutResponseAsync(IImapCommand command, CancellationToken cancellationToken);
 		void DiscardPendingExpungeResponses();
@@ -23,12 +23,19 @@ namespace Vaettir.Mail.Server.Imap
 	{
 		private static Encoding DefaultEncoding { get; } = Encoding.ASCII;
 
-		public static Task SendMessageAsync(this IImapMessageChannel channel, ImapMessage message, CancellationToken cancellationToken)
+		public static Task SendMessageAsync(
+			this IImapMessageChannel channel,
+			ImapMessage message,
+			CancellationToken cancellationToken)
 		{
 			return channel.SendMessageAsync(message, DefaultEncoding, cancellationToken);
 		}
 
-		public static Task ReportBadAsync(IImapMessageChannel imapSession, string tag, string errorText, CancellationToken cancellationToken)
+		public static Task ReportBadAsync(
+			IImapMessageChannel imapSession,
+			string tag,
+			string errorText,
+			CancellationToken cancellationToken)
 		{
 			var message = new ImapMessage(tag, "BAD", new List<IMessageData> {new ServerMessageData(errorText)});
 			return imapSession.SendMessageAsync(message, DefaultEncoding, cancellationToken);

@@ -1,5 +1,4 @@
 using System;
-using System.Runtime;
 using Autofac.Features.AttributeFilters;
 
 namespace Vaettir.Utility
@@ -9,12 +8,13 @@ namespace Vaettir.Utility
 		Verbose,
 		Information,
 		Warning,
-		Error,
+		Error
 	}
 
 	public sealed class ConsoleLogger : BaseLogger
 	{
-		public ConsoleLogger([KeyFilter("console")]IVolatile<LogSettings> specificSettings,
+		public ConsoleLogger(
+			[KeyFilter("console")] IVolatile<LogSettings> specificSettings,
 			IVolatile<LogSettings> baseSettings) : base(specificSettings, baseSettings)
 		{
 		}

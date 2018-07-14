@@ -10,10 +10,10 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	[ImapCommand("LOGIN", SessionState.NotAuthenticated)]
 	public class LoginCommand : BaseImapCommand
 	{
-		private string _password;
-		private string _userName;
 		private readonly IImapMessageChannel _channel;
 		private readonly IUserStore _userstore;
+		private string _password;
+		private string _userName;
 
 		public LoginCommand(IImapMessageChannel channel, IUserStore userstore)
 		{
@@ -51,7 +51,11 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			}
 
 			_channel.AuthenticatedUser = userData;
-			await EndWithResultAsync(_channel, CommandResult.Ok, "login comleted, now in authenticated state", cancellationToken);
+			await EndWithResultAsync(
+				_channel,
+				CommandResult.Ok,
+				"login comleted, now in authenticated state",
+				cancellationToken);
 		}
 
 		public override bool IsValidWith(IEnumerable<IImapCommand> commands)

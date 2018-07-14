@@ -24,14 +24,15 @@ namespace MailCore
 
 	public static class Program
 	{
-		[UsedImplicitly]
 		public static int Main(string[] args)
 		{
-			Options o = new Options();
-			OptionSet p = new OptionSet()
-				.Add("config|c=", "Configuration file. Default 'smtp.config.json'", s => o.SettingsPath = s);
+			var o = new Options();
+			OptionSet p = new OptionSet
+			{
+				{"config|c=", "Configuration file. Default 'smtp.config.json'", s => o.SettingsPath = s}
+			};
 
-			List<string> remaining = null;
+			List<string> remaining;
 			try
 			{
 				remaining = p.Parse(args);
@@ -48,10 +49,10 @@ namespace MailCore
 				return 1;
 			}
 
-			var command = remaining[0];
+			string command = remaining[0];
 			remaining.RemoveAt(0);
 
-			using (var container = BuildContainer(o))
+			using (IContainer container = BuildContainer(o))
 			{
 				CommandHandler handler = GetHandler(command, container);
 				if (handler == null)
@@ -59,6 +60,7 @@ namespace MailCore
 					ShowHelp(Console.Error, $"Unknown command '{command}'", p, null);
 					return 1;
 				}
+
 				return handler.RunAsync(remaining).GetAwaiter().GetResult();
 			}
 		}
@@ -77,13 +79,20 @@ namespace MailCore
 			}
 		}
 
-		internal static void ShowHelp(TextWriter textWriter, string message, OptionSet optionSet, Exception optionException)
+		private static void ShowHelp(TextWriter textWriter, string message, OptionSet optionSet, Exception optionException)
 		{
 			if (message != null)
 			{
 				textWriter.WriteLine(message);
 				textWriter.WriteLine();
 			}
+
+			if (optionException != null)
+			{
+				textWriter.WriteLine($"ERROR: {optionException.Message}");
+				textWriter.WriteLine();
+			}
+
 			textWriter.WriteLine(
 				@"Usage:
   vmail [global options] run
@@ -108,7 +117,7 @@ namespace MailCore
 			{
 				LogSettings defaultSettings = null;
 				string defaultKey = null;
-				foreach (var log in logSettings)
+				foreach (KeyValuePair<string, LogSettings> log in logSettings)
 				{
 					switch (log.Key.ToLowerInvariant())
 					{

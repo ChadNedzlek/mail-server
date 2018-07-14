@@ -29,30 +29,21 @@ namespace Vaettir.Utility.Test
 		public void NullArrayConstructorThrows()
 		{
 			Assert.Throws<ArgumentNullException>(
-				() =>
-				{
-					var ignored = new MultiStream((Stream[]) null);
-				});
+				() => new MultiStream((Stream[]) null));
 		}
 
 		[Fact]
 		public void NullEnumerableConstructorThrows()
 		{
 			Assert.Throws<ArgumentNullException>(
-				() =>
-				{
-					var ignored = new MultiStream((IEnumerable<Stream>) null);
-				});
+				() => new MultiStream((IEnumerable<Stream>) null));
 		}
 
 		[Fact]
 		public void NullImmutableListConstructorThrows()
 		{
 			Assert.Throws<ArgumentNullException>(
-				() =>
-				{
-					var ignored = new MultiStream((ImmutableList<Stream>) null);
-				});
+				() => new MultiStream((ImmutableList<Stream>) null));
 		}
 
 		[Fact]

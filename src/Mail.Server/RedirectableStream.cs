@@ -11,15 +11,10 @@ namespace Vaettir.Mail.Server
 
 		public RedirectableStream(Stream innerStream)
 		{
-			if (innerStream == null)
-			{
-				throw new ArgumentNullException(nameof(innerStream));
-			}
-
-			_innerStream = innerStream;
+			_innerStream = innerStream ?? throw new ArgumentNullException(nameof(innerStream));
 		}
 
-		public override bool CanTimeout { get; }
+		public override bool CanTimeout => _innerStream.CanTimeout;
 		public override int ReadTimeout { get; set; }
 		public override int WriteTimeout { get; set; }
 		public override bool CanRead => _innerStream.CanRead;

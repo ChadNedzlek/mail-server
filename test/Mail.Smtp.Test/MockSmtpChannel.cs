@@ -20,13 +20,17 @@ namespace Vaettir.Mail.Smtp.Test
 			return Task.CompletedTask;
 		}
 
-		public Task SendReplyAsync(SmtpReplyCode smtpReplyCode, IEnumerable<string> messages, CancellationToken cancellationToken)
+		public Task SendReplyAsync(
+			SmtpReplyCode smtpReplyCode,
+			IEnumerable<string> messages,
+			CancellationToken cancellationToken)
 		{
 			List<string> list = messages.ToList();
 			for (var index = 0; index < list.Count; index++)
 			{
 				Entries.Add(new Entry(smtpReplyCode, list[index], index != list.Count - 1));
 			}
+
 			return Task.CompletedTask;
 		}
 

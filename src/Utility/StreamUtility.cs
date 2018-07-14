@@ -19,8 +19,10 @@ namespace Vaettir.Utility
 				{
 					return null;
 				}
+
 				read += result;
 			}
+
 			return readBuffer;
 		}
 
@@ -38,8 +40,10 @@ namespace Vaettir.Utility
 				{
 					return null;
 				}
+
 				read += result;
 			}
+
 			return readBuffer;
 		}
 
@@ -51,6 +55,7 @@ namespace Vaettir.Utility
 			{
 				newBody = await reader.ReadToEndAsync();
 			}
+
 			stream.Seek(0, SeekOrigin.Begin);
 
 			return newBody;

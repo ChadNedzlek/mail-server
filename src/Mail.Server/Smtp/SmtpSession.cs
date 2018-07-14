@@ -37,6 +37,22 @@ namespace Vaettir.Mail.Server.Smtp
 		}
 
 		SmtpMailMessage IMailBuilder.PendingMail { get; set; }
+
+		public string Id { get; }
+
+		public async Task RunAsync(CancellationToken token)
+		{
+			await this.SendReplyAsync(SmtpReplyCode.Greeting, $"{_settings.DomainName} Service ready", token);
+			while (!token.IsCancellationRequested && !_closeRequested)
+			{
+				ISmtpCommand command = await GetCommandAsync(token);
+				if (command != null)
+				{
+					await command.ExecuteAsync(token);
+				}
+			}
+		}
+
 		public string ConnectedHost { get; set; }
 
 		public UserData AuthenticatedUser { get; set; }
@@ -56,6 +72,7 @@ namespace Vaettir.Mail.Server.Smtp
 			{
 				builder.Append(message);
 			}
+
 			return _connection.WriteLineAsync(builder.ToString(), Encoding.ASCII, cancellationToken);
 		}
 
@@ -85,6 +102,7 @@ namespace Vaettir.Mail.Server.Smtp
 					{
 						builder.Append(message);
 					}
+
 					await _connection.WriteLineAsync(builder.ToString(), Encoding.ASCII, cancellationToken);
 					message = enumerator.Current;
 					more = enumerator.MoveNext();
@@ -98,6 +116,7 @@ namespace Vaettir.Mail.Server.Smtp
 			{
 				builder.Append(message);
 			}
+
 			await _connection.WriteLineAsync(builder.ToString(), Encoding.ASCII, cancellationToken);
 		}
 
@@ -105,21 +124,6 @@ namespace Vaettir.Mail.Server.Smtp
 		{
 			_closeRequested = true;
 			_connection.Close();
-		}
-
-		public string Id { get; }
-
-		public async Task RunAsync(CancellationToken token)
-		{
-			await this.SendReplyAsync(SmtpReplyCode.Greeting, $"{_settings.DomainName} Service ready", token);
-			while (!token.IsCancellationRequested && !_closeRequested)
-			{
-				ISmtpCommand command = await GetCommandAsync(token);
-				if (command != null)
-				{
-					await command.ExecuteAsync(token);
-				}
-			}
 		}
 
 		private async Task<ISmtpCommand> GetCommandAsync(CancellationToken token)
@@ -165,6 +169,7 @@ namespace Vaettir.Mail.Server.Smtp
 		{
 			Mailbox = mailbox;
 		}
+
 		public string Mailbox { get; }
 	}
 

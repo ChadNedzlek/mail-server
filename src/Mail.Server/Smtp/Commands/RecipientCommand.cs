@@ -45,8 +45,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 
 			string parameterString = toMatch.Groups[3].Value;
 
-			Task errorReport;
-			if (!TryProcessParameterValue(_channel, parameterString, out errorReport, token))
+			if (!TryProcessParameterValue(_channel, parameterString, out Task errorReport, token))
 			{
 				return errorReport;
 			}

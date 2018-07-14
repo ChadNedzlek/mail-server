@@ -7,14 +7,12 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using Autofac;
-using JetBrains.Annotations;
 using Vaettir.Mail.Server.Authentication;
-using Vaettir.Mail.Server.Smtp;
 using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server
 {
-	[UsedImplicitly]
+	[Injected]
 	public class ProtocolListener
 	{
 		private readonly ILogger _log;
@@ -58,8 +56,7 @@ namespace Vaettir.Mail.Server
 				int completedIndex = Task.WaitAny(tasks);
 				Task task = tasks[completedIndex];
 
-				var tcpTask = task as Task<TcpClient>;
-				if (tcpTask != null)
+				if (task is Task<TcpClient> tcpTask)
 				{
 					// This is a new connection task
 					TcpClient client = tcpTask.Result;
@@ -89,7 +86,10 @@ namespace Vaettir.Mail.Server
 			}
 		}
 
-		private async Task AcceptNewClientAsync(TcpClient client, ConnectionSetting connectionSettings, CancellationToken cancellationToken)
+		private async Task AcceptNewClientAsync(
+			TcpClient client,
+			ConnectionSetting connectionSettings,
+			CancellationToken cancellationToken)
 		{
 			ILifetimeScope newScope = _scope.BeginLifetimeScope(
 				builder =>
@@ -131,6 +131,7 @@ namespace Vaettir.Mail.Server
 				{
 					session.Scope.Dispose();
 				}
+
 				await Task.WhenAll(_sessions.Select(s => s.Task));
 				_sessions = null;
 			}

@@ -69,6 +69,7 @@ namespace Vaettir.Utility
 					{
 						return 0;
 					}
+
 					semaphoreLock.Dispose();
 					semaphoreLock = null;
 					await _newData.WaitAsync(cancellationToken);
@@ -76,6 +77,7 @@ namespace Vaettir.Utility
 					{
 						throw new ObjectDisposedException("DuplexStream");
 					}
+
 					semaphoreLock = await SemaphoreLock.GetLockAsync(_semaphore, cancellationToken);
 				}
 
@@ -93,6 +95,7 @@ namespace Vaettir.Utility
 					Array.Copy(value, toCopy, remainder, 0, remLength);
 					_chunks.AddFirst(remainder);
 				}
+
 				return toCopy;
 			}
 			finally
@@ -107,6 +110,7 @@ namespace Vaettir.Utility
 			{
 				throw new InvalidOperationException();
 			}
+
 			if (_chunks == null)
 			{
 				throw new ObjectDisposedException(nameof(DuplexStream));

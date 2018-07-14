@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Vaettir.Mail.Server;
-using Vaettir.Mail.Server.Smtp;
 using Vaettir.Mail.Test.Utilities;
 using Vaettir.Utility;
 using Xunit;
@@ -34,9 +33,7 @@ namespace Vaettir.Mail.Dispatcher.Test
 						"disabled-dl@example.com",
 						"Disabled list",
 						new[] {"disabled-dl-owner@example.com"},
-						new[] {"disabled-dl-member1@example.com", "disabled-dl-member2@example.com"},
-						false,
-						false
+						new[] {"disabled-dl-member1@example.com", "disabled-dl-member2@example.com"}
 					),
 					new DistributionList(
 						"ext-dl@example.com",
@@ -57,9 +54,9 @@ namespace Vaettir.Mail.Dispatcher.Test
 				{
 					{"alias-1@example.com", "box@example.com"}
 				});
-			_settings = TestHelpers.MakeSettings(
-				domainName: "example.com",
-				localDomains: new[] {new SmtpAcceptDomain("example.com")},
+			AgentSettings settings = TestHelpers.MakeSettings(
+				"example.com",
+				new[] {new SmtpAcceptDomain("example.com")},
 				relayDomains: new[] {new SmtpRelayDomain("relay.example.com", "relay.example.com")},
 				idleDelay: 1);
 			_dispatcher = new MailDispatcher(
@@ -68,13 +65,12 @@ namespace Vaettir.Mail.Dispatcher.Test
 				_transfer,
 				new TestOutputLogger(output),
 				new MockDomainResolver(_domainSettings),
-				new MockVolatile<AgentSettings>(_settings));
+				new MockVolatile<AgentSettings>(settings));
 		}
 
 		private readonly MailDispatcher _dispatcher;
 		private readonly DomainSettings _domainSettings;
 		private readonly MockMailQueue _queue;
-		private readonly AgentSettings _settings;
 		private readonly MockMailTransferQueue _transfer;
 		private readonly MockMailboxStore _mailbox;
 
@@ -119,10 +115,12 @@ namespace Vaettir.Mail.Dispatcher.Test
 			string newBody;
 			using (MockMailReference reference = _transfer.References.FirstOrDefault(r => r.IsSaved))
 			{
+				Assert.NotNull(reference);
 				Assert.Equal("box@example.com", reference.Sender);
 				SequenceAssert.SameSet(new[] {"box@external.example.com"}, reference.Recipients);
 				newBody = await StreamUtility.ReadAllFromStreamAsync(reference.BackupBodyStream);
 			}
+
 			Assert.Equal(body, newBody);
 			Assert.Empty(_mailbox.References);
 		}
@@ -224,10 +222,12 @@ namespace Vaettir.Mail.Dispatcher.Test
 			string newBody;
 			using (MockMailReference reference = _transfer.References.FirstOrDefault(r => r.IsSaved))
 			{
+				Assert.NotNull(reference);
 				Assert.Equal("box@external.example.com", reference.Sender);
 				SequenceAssert.SameSet(new[] {"box@relay.example.com", "other@relay.example.com"}, reference.Recipients);
 				newBody = await StreamUtility.ReadAllFromStreamAsync(reference.BackupBodyStream);
 			}
+
 			Assert.Equal(body, newBody);
 			Assert.Empty(_mailbox.References);
 		}

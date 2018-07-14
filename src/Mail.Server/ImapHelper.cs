@@ -36,11 +36,12 @@ namespace Vaettir.Mail.Server
 			var flags = MailboxFlags.None;
 			foreach (char c in maildirFlags)
 			{
-				if (s_maildirToInternal.TryGetValue(c, out var f))
+				if (s_maildirToInternal.TryGetValue(c, out MailboxFlags f))
 				{
 					flags |= f;
 				}
 			}
+
 			return flags;
 		}
 

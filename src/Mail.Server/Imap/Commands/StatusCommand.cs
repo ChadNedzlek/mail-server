@@ -22,10 +22,11 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			"UNSEEN"
 		};
 
-		private ImmutableList<string> _items;
-		private string _mailbox;
 		private readonly IImapMessageChannel _channel;
 		private readonly IImapMailStore _mailstore;
+
+		private ImmutableList<string> _items;
+		private string _mailbox;
 
 		public StatusCommand(IImapMessageChannel channel, IImapMailStore mailstore)
 		{
@@ -35,19 +36,31 @@ namespace Vaettir.Mail.Server.Imap.Commands
 
 		protected override bool TryParseArguments(ImmutableList<IMessageData> arguments)
 		{
-			if (arguments.Count != 2) return false;
+			if (arguments.Count != 2)
+			{
+				return false;
+			}
 
 			_mailbox = MessageData.GetString(arguments[0], Encoding.UTF8);
 
-			if (string.IsNullOrEmpty(_mailbox)) return false;
+			if (string.IsNullOrEmpty(_mailbox))
+			{
+				return false;
+			}
 
 			var itemList = arguments[1] as ListMessageData;
 
-			if (itemList == null) return false;
+			if (itemList == null)
+			{
+				return false;
+			}
 
 			_items = ImmutableList.CreateRange(itemList.Items.Select(i => MessageData.GetString(i, Encoding.UTF8)));
 
-			if (!_items.All(i => ValidStatusItems.Contains(i, StringComparer.Ordinal))) return false;
+			if (!_items.All(i => ValidStatusItems.Contains(i, StringComparer.Ordinal)))
+			{
+				return false;
+			}
 
 			return true;
 		}

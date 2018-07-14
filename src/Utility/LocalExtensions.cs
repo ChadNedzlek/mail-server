@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -22,7 +21,7 @@ namespace Vaettir.Utility
 			TKey key,
 			TValue defaultValue = default(TValue))
 		{
-			return dict.TryGetValue(key, out var value) ? value : defaultValue;
+			return dict.TryGetValue(key, out TValue value) ? value : defaultValue;
 		}
 
 		public static TValue GetOrAdd<TKey, TValue>(
@@ -30,8 +29,11 @@ namespace Vaettir.Utility
 			TKey key,
 			TValue newValue)
 		{
-			if (dict.TryGetValue(key, out var value))
+			if (dict.TryGetValue(key, out TValue value))
+			{
 				return value;
+			}
+
 			dict.Add(key, newValue);
 			return newValue;
 		}
@@ -41,8 +43,10 @@ namespace Vaettir.Utility
 			TKey key,
 			Func<TValue> newValueFunc)
 		{
-			if (dict.TryGetValue(key, out var value))
+			if (dict.TryGetValue(key, out TValue value))
+			{
 				return value;
+			}
 
 			TValue newValue = newValueFunc();
 			dict.Add(key, newValue);
@@ -54,8 +58,10 @@ namespace Vaettir.Utility
 			TKey key,
 			Func<TKey, TValue> newValueFunc)
 		{
-			if (dict.TryGetValue(key, out var value))
+			if (dict.TryGetValue(key, out TValue value))
+			{
 				return value;
+			}
 
 			TValue newValue = newValueFunc(key);
 			dict.Add(key, newValue);
@@ -68,7 +74,7 @@ namespace Vaettir.Utility
 			TValue newValue,
 			Func<TKey, TValue, TValue> updateFunc)
 		{
-			if (dict.TryGetValue(key, out var value))
+			if (dict.TryGetValue(key, out TValue value))
 			{
 				newValue = updateFunc(key, value);
 				dict[key] = newValue;
@@ -85,29 +91,23 @@ namespace Vaettir.Utility
 			Func<TKey, TValue> newValueFunc,
 			Func<TKey, TValue, TValue> updateFunc)
 		{
-			if (dict.TryGetValue(key, out var value))
+			if (dict.TryGetValue(key, out TValue value))
 			{
-				var newValue = updateFunc(key, value);
+				TValue newValue = updateFunc(key, value);
 				dict[key] = newValue;
 				return newValue;
 			}
 
 			{
-				var newValue = newValueFunc(key);
+				TValue newValue = newValueFunc(key);
 				dict.Add(key, newValue);
 				return newValue;
 			}
 		}
-
 	}
 
 	public static class LocalExtensions
 	{
-		public static IEnumerable<T> Append<T>(this IEnumerable<T> list, T item)
-		{
-			return list.Concat(new[] {item});
-		}
-
 		public static Task<bool> TryReadLineAsync(this TextReader reader, Action<string> getLine, CancellationToken token)
 		{
 			return reader.ReadLineAsync()

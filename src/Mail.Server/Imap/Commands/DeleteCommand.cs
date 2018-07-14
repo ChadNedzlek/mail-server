@@ -11,10 +11,10 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	[ImapCommand("DELETE", SessionState.Authenticated)]
 	public class DeleteCommand : BaseImapCommand
 	{
-		private string _mailbox;
+		private readonly IImapMessageChannel _channel;
 
 		private readonly IImapMailStore _mailstore;
-		private readonly IImapMessageChannel _channel;
+		private string _mailbox;
 
 		public DeleteCommand(IImapMailStore mailstore, IImapMessageChannel channel)
 		{
@@ -34,6 +34,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			{
 				return false;
 			}
+
 			return true;
 		}
 

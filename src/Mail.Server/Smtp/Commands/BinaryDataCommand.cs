@@ -43,8 +43,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 				return;
 			}
 
-			int length;
-			if (!int.TryParse(parts[0], out length) || length < 1)
+			if (!int.TryParse(parts[0], out int length) || length < 1)
 			{
 				await _session.SendReplyAsync(SmtpReplyCode.InvalidArguments, "Length must be positive integer", token);
 				return;
@@ -58,6 +57,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 					await _session.SendReplyAsync(SmtpReplyCode.InvalidArguments, "LAST expected", token);
 					return;
 				}
+
 				last = true;
 			}
 

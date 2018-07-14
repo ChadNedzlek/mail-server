@@ -3,14 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using Autofac;
-using JetBrains.Annotations;
 using Mono.Options;
 using Vaettir.Mail.Server;
+using Vaettir.Utility;
 
 namespace MailCore
 {
-	[UsedImplicitly(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature)]
+	[Injected]
 	internal class UserHandler : CommandHandler
 	{
 		private readonly IUserStore _userStore;
@@ -66,6 +65,13 @@ namespace MailCore
 				textWriter.WriteLine(message);
 				textWriter.WriteLine();
 			}
+
+			if (exception != null)
+			{
+				textWriter.WriteLine($"ERROR: {exception.Message}");
+				textWriter.WriteLine();
+			}
+
 			textWriter.WriteLine(
 				@"Usage:
   vmail [global options] run

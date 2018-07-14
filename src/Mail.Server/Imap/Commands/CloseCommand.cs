@@ -38,6 +38,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 						return false;
 				}
 			}
+
 			return true;
 		}
 

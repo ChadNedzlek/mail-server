@@ -10,8 +10,8 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 	public class AuthenticateCommand : BaseSmtpCommand
 	{
 		private readonly IIndex<string, IAuthenticationSession> _authentication;
-		private readonly ISmtpMessageChannel _channel;
 		private readonly IMailBuilder _builder;
+		private readonly ISmtpMessageChannel _channel;
 
 		public AuthenticateCommand(
 			IIndex<string, IAuthenticationSession> authentication,
@@ -38,7 +38,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 			}
 
 			string[] parts = Arguments.Split(new[] {' '}, 2);
-			if (parts == null || parts.Length == 0 || parts.Length > 1)
+			if (parts.Length == 0 || parts.Length > 1)
 			{
 				await _channel.SendReplyAsync(
 					SmtpReplyCode.InvalidArguments,
@@ -46,9 +46,10 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 					token);
 				return;
 			}
+
 			string mechanismName = parts[0];
 
-			if (!_authentication.TryGetValue(mechanismName, out var mechanism))
+			if (!_authentication.TryGetValue(mechanismName, out IAuthenticationSession mechanism))
 			{
 				await _channel.SendReplyAsync(SmtpReplyCode.InvalidArguments, "Unknown mechanism", token);
 				return;

@@ -23,17 +23,12 @@ namespace Vaettir.Mail.Transfer.Test
 
 		public SmtpFailureData GetFailure(string mailId, bool createIfMissing)
 		{
-			SmtpFailureData failure;
-			if (!CurrentFailures.TryGetValue(mailId, out failure))
+			if (!CurrentFailures.TryGetValue(mailId, out SmtpFailureData failure))
 			{
 				if (createIfMissing)
 				{
 					failure = new SmtpFailureData(mailId) {FirstFailure = DateTimeOffset.UtcNow, Retries = 0};
 					CurrentFailures.Add(mailId, failure);
-				}
-				else
-				{
-					failure = null;
 				}
 			}
 

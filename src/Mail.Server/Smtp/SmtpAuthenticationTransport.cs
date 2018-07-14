@@ -2,12 +2,12 @@ using System;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
 using Vaettir.Mail.Server.Authentication;
+using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server.Smtp
 {
-	[UsedImplicitly(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature)]
+	[Injected]
 	public class SmtpAuthenticationTransport : IAuthenticationTransport
 	{
 		private readonly ISmtpMessageChannel _channel;
@@ -23,7 +23,10 @@ namespace Vaettir.Mail.Server.Smtp
 
 		public Task SendAuthenticationFragmentAsync(byte[] data, CancellationToken cancellationToken)
 		{
-			return _channel.SendReplyAsync(SmtpReplyCode.AuthenticationFragment, Convert.ToBase64String(data), cancellationToken);
+			return _channel.SendReplyAsync(
+				SmtpReplyCode.AuthenticationFragment,
+				Convert.ToBase64String(data),
+				cancellationToken);
 		}
 
 		public async Task<byte[]> ReadAuthenticationFragmentAsync(CancellationToken cancellationToken)

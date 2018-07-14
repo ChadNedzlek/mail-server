@@ -12,13 +12,12 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	[ImapCommand("APPEND", SessionState.Authenticated)]
 	public class AppendCommand : BaseImapCommand
 	{
+		private readonly IImapMessageChannel _channel;
+		private readonly IImapMailStore _mailstore;
 		private DateTime? _date;
 		private ListMessageData _flags;
 		private string _mailbox;
 		private LiteralMessageData _messageBody;
-
-		private readonly IImapMessageChannel _channel;
-		private readonly IImapMailStore _mailstore;
 
 		public AppendCommand(IImapMailStore mailstore)
 		{
@@ -37,12 +36,14 @@ namespace Vaettir.Mail.Server.Imap.Commands
 					{
 						return false;
 					}
+
 					_flags = secondList;
 					DateTime localDate;
 					if (!MessageData.TryGetDateTime(arguments[2], Encoding.ASCII, out localDate))
 					{
 						return false;
 					}
+
 					_date = localDate;
 					goto case 2;
 				}
@@ -61,8 +62,10 @@ namespace Vaettir.Mail.Server.Imap.Commands
 						{
 							return false;
 						}
+
 						_date = localDate;
 					}
+
 					goto case 2;
 				}
 				case 2:

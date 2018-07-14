@@ -1,15 +1,17 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Autofac;
+using JetBrains.Annotations;
 using Vaettir.Mail.Server;
+using Vaettir.Utility;
 
 namespace MailCore
 {
+	[Injected]
 	internal class AgentHandler : CommandHandler
 	{
-		private readonly ProtocolListener _protocol;
 		private readonly MailDispatcher _dispatcher;
+		private readonly ProtocolListener _protocol;
 		private readonly MailTransfer _transfer;
 
 		public AgentHandler(

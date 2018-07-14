@@ -13,9 +13,9 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	[ImapCommand("CAPABILITY", SessionState.Open)]
 	public class CapabilityCommand : BaseImapCommand
 	{
-		private readonly IConnectionSecurity _connection;
 		private readonly IEnumerable<Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata>> _auth;
 		private readonly IImapMessageChannel _channel;
+		private readonly IConnectionSecurity _connection;
 
 		public CapabilityCommand(
 			IConnectionSecurity connection,
@@ -27,7 +27,10 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			_channel = channel;
 		}
 
-		protected override bool TryParseArguments(ImmutableList<IMessageData> arguments) => arguments.Count == 0;
+		protected override bool TryParseArguments(ImmutableList<IMessageData> arguments)
+		{
+			return arguments.Count == 0;
+		}
 
 		public override async Task ExecuteAsync(CancellationToken cancellationToken)
 		{
@@ -39,7 +42,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 				};
 
 
-				foreach (var mechanism in _auth)
+				foreach (Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata> mechanism in _auth)
 				{
 					data.Add(new AtomMessageData($"AUTH=${mechanism.Metadata.Name}"));
 				}

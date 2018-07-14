@@ -40,6 +40,7 @@ namespace Vaettir.Mail.Test.Utilities
 			{
 				cancelled = true;
 			}
+
 			Assert.True(cancelled, "Task was cancelled");
 		}
 	}

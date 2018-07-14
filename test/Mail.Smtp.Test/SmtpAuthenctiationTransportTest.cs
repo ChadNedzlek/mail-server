@@ -12,16 +12,16 @@ namespace Vaettir.Mail.Smtp.Test
 		public async Task Roundtrip()
 		{
 			var channel = new MockSmtpChannel();
-			SmtpAuthenticationTransport trans = new SmtpAuthenticationTransport(
+			var trans = new SmtpAuthenticationTransport(
 				channel,
 				TestHelpers.GetReader("AQID\r\n")
-				);
+			);
 
 			await trans.SendAuthenticationFragmentAsync(new byte[] {4, 5, 6}, CancellationToken.None);
 			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.AuthenticationFragment);
 			Assert.Equal("BAUG", channel.Entries[0].Message);
 
-			var bytes = await trans.ReadAuthenticationFragmentAsync(CancellationToken.None);
+			byte[] bytes = await trans.ReadAuthenticationFragmentAsync(CancellationToken.None);
 
 			Assert.Equal(new byte[] {1, 2, 3}, bytes);
 		}

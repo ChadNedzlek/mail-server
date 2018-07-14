@@ -11,6 +11,6 @@ namespace Vaettir.Mail.Server
 		Seen = 0b0000_0100,
 		Deleted = 0b0000_1000,
 		Draft = 0b0001_0000,
-		Flagged = 0b0010_0000,
+		Flagged = 0b0010_0000
 	}
 }

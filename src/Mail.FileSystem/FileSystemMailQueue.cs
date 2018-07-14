@@ -5,12 +5,11 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
-using Vaettir.Mail.Server.Smtp;
+using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server.FileSystem
 {
-	[UsedImplicitly(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature)]
+	[Injected]
 	public class FileSystemMailQueue : FileSystemMailQueueBase, IMailQueue
 	{
 		public FileSystemMailQueue(AgentSettings settings) : base(settings)
@@ -43,11 +42,6 @@ namespace Vaettir.Mail.Server.FileSystem
 			);
 		}
 
-		private string GetRootPath(string type)
-		{
-			return Path.Combine(Settings.MailIncomingQueuePath, type);
-		}
-
 		public IEnumerable<IMailReference> GetAllMailReferences()
 		{
 			return Directory.GetFiles(GetRootPath("cur"), "*", SearchOption.TopDirectoryOnly)
@@ -74,6 +68,11 @@ namespace Vaettir.Mail.Server.FileSystem
 			File.Move(writeReference.TempPath, writeReference.Path);
 			writeReference.Saved = true;
 			return Task.CompletedTask;
+		}
+
+		private string GetRootPath(string type)
+		{
+			return Path.Combine(Settings.MailIncomingQueuePath, type);
 		}
 	}
 }

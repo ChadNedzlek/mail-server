@@ -10,7 +10,6 @@ namespace Vaettir.Utility
 {
 	public class MultiStream : Stream
 	{
-		private bool _isDisposed = false;
 		private readonly bool _leaveOpen;
 		private readonly ImmutableList<Stream> _streams;
 
@@ -65,6 +64,7 @@ namespace Vaettir.Utility
 				{
 					throw new InvalidOperationException();
 				}
+
 				return _streams[0].Length;
 			}
 		}
@@ -77,6 +77,7 @@ namespace Vaettir.Utility
 				{
 					throw new InvalidOperationException();
 				}
+
 				return _streams[0].Position;
 			}
 			set
@@ -117,6 +118,7 @@ namespace Vaettir.Utility
 			{
 				throw new InvalidOperationException();
 			}
+
 			return _streams[0].Read(buffer, offset, count);
 		}
 
@@ -126,6 +128,7 @@ namespace Vaettir.Utility
 			{
 				throw new InvalidOperationException();
 			}
+
 			return _streams[0].ReadAsync(buffer, offset, count, cancellationToken);
 		}
 
@@ -156,7 +159,6 @@ namespace Vaettir.Utility
 
 		protected override void Dispose(bool disposing)
 		{
-			_isDisposed = true;
 			if (disposing && !_leaveOpen)
 			{
 				Do(s => s.Dispose());

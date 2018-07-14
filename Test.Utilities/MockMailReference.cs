@@ -27,7 +27,7 @@ namespace Vaettir.Mail.Test.Utilities
 			Sender = sender;
 			Recipients = recipients;
 			BackupBodyStream = body == null ? new MemoryStream() : new MemoryStream(body);
-			BodyStream = new MultiStream(new[] {BackupBodyStream}, true);
+			BodyStream = new MultiStream(new Stream[] {BackupBodyStream}, true);
 			IsSaved = saved;
 			Store = store;
 		}

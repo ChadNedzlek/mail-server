@@ -10,10 +10,12 @@ namespace Vaettir.Utility
 			{
 				return true;
 			}
+
 			if (left == null)
 			{
 				return false;
 			}
+
 			if (right == null)
 			{
 				return false;
@@ -50,10 +52,12 @@ namespace Vaettir.Utility
 			{
 				return true;
 			}
+
 			if (left == null)
 			{
 				return false;
 			}
+
 			if (right == null)
 			{
 				return false;

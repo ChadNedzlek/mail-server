@@ -3,7 +3,6 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
-using Vaettir.Mail.Server.Smtp;
 using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server.FileSystem
@@ -34,17 +33,13 @@ namespace Vaettir.Mail.Server.FileSystem
 			{
 				return null;
 			}
+
 			if (!ConstantTimeEquals(hash, 0, user.Hash, 0, hash.Length))
 			{
 				return null;
 			}
 
 			return new UserData(userName);
-		}
-
-		public Task<byte[]> GetSaltForUserAsync(string username, CancellationToken cancellationToken)
-		{
-			throw new NotImplementedException();
 		}
 
 		public bool CanUserSendAs(UserData user, string mailbox)
@@ -117,6 +112,7 @@ namespace Vaettir.Mail.Server.FileSystem
 			{
 				differentbits |= x[xOffset + i] ^ y[yOffset + i];
 			}
+
 			return (1 & (unchecked((uint) differentbits - 1) >> 8)) != 0;
 		}
 

@@ -11,12 +11,13 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	[ImapCommand("RENAME", SessionState.Authenticated)]
 	public class RenameCommand : BaseImapCommand
 	{
-		private string _newMailbox;
-		private string _oldMailbox;
 		private readonly IImapMessageChannel _channel;
 		private readonly IImapMailStore _mailstore;
+		private string _newMailbox;
+		private string _oldMailbox;
 
-		public RenameCommand(IImapMessageChannel channel,
+		public RenameCommand(
+			IImapMessageChannel channel,
 			IImapMailStore mailstore)
 		{
 			_channel = channel;

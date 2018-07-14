@@ -8,6 +8,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{9B297193-E07F-48CA-A1BD-D49DD77F04E0}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
+		Directory.Build.props = Directory.Build.props
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{E83EA7A1-0714-448D-AADC-A5A3094D7651}"
@@ -22,15 +23,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Utility.Test", "test\Utilit
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mail.FileSystem", "src\Mail.FileSystem\Mail.FileSystem.csproj", "{7EF4ECA1-B7F3-4C95-8C44-1E65A9382455}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mail.Smtp.Test", "test\Mail.Smtp.Test\Mail.Smtp.Test.csproj", "{F6B69C78-6384-4AEF-A91A-6CD75AF495F5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mail.Smtp.Test", "test\Mail.Smtp.Test\Mail.Smtp.Test.csproj", "{F6B69C78-6384-4AEF-A91A-6CD75AF495F5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mail.FileSystem.Test", "test\Mail.FileSystem.Test\Mail.FileSystem.Test.csproj", "{92C82538-0BFB-4710-A906-FFF8064590F8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mail.FileSystem.Test", "test\Mail.FileSystem.Test\Mail.FileSystem.Test.csproj", "{92C82538-0BFB-4710-A906-FFF8064590F8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mail.Dispatcher.Test", "test\Mail.Dispatcher.Test\Mail.Dispatcher.Test.csproj", "{0EA55CC2-A283-4F8E-8B08-C819F32127D3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mail.Dispatcher.Test", "test\Mail.Dispatcher.Test\Mail.Dispatcher.Test.csproj", "{0EA55CC2-A283-4F8E-8B08-C819F32127D3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mail.Transfer.Test", "test\Mail.Transfer.Test\Mail.Transfer.Test.csproj", "{C1EED450-434B-45DB-8F78-C0F5185FFE44}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mail.Transfer.Test", "test\Mail.Transfer.Test\Mail.Transfer.Test.csproj", "{C1EED450-434B-45DB-8F78-C0F5185FFE44}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test.Utilities", "Test.Utilities\Test.Utilities.csproj", "{D65A8764-838E-4337-9DBD-F6E8C096386C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Test.Utilities", "Test.Utilities\Test.Utilities.csproj", "{D65A8764-838E-4337-9DBD-F6E8C096386C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -93,5 +94,8 @@ Global
 		{0EA55CC2-A283-4F8E-8B08-C819F32127D3} = {E83EA7A1-0714-448D-AADC-A5A3094D7651}
 		{C1EED450-434B-45DB-8F78-C0F5185FFE44} = {E83EA7A1-0714-448D-AADC-A5A3094D7651}
 		{D65A8764-838E-4337-9DBD-F6E8C096386C} = {E83EA7A1-0714-448D-AADC-A5A3094D7651}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {658FC4FF-106B-402B-9CE3-F9AD24D74D67}
 	EndGlobalSection
 EndGlobal

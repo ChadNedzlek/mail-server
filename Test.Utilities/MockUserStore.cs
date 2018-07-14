@@ -7,19 +7,14 @@ namespace Vaettir.Mail.Test.Utilities
 {
 	public class MockUserStore : IUserStore
 	{
-		public bool Accept { get; }
-
 		public MockUserStore(bool accept)
 		{
 			Accept = accept;
 		}
 
-		public Task<UserData> GetUserWithPasswordAsync(string userName, string password, CancellationToken cancellationToken)
-		{
-			throw new NotImplementedException();
-		}
+		public bool Accept { get; }
 
-		public Task<byte[]> GetSaltForUserAsync(string username, CancellationToken cancellationToken)
+		public Task<UserData> GetUserWithPasswordAsync(string userName, string password, CancellationToken cancellationToken)
 		{
 			throw new NotImplementedException();
 		}

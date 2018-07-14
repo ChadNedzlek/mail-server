@@ -11,7 +11,7 @@ namespace Vaettir.Mail.Smtp.Test
 		[Fact]
 		public async Task NotSupported()
 		{
-			MockSmtpChannel channel = new MockSmtpChannel();
+			var channel = new MockSmtpChannel();
 			var command = new VerifyCommand(channel);
 			await command.ExecuteAsync(CancellationToken.None);
 			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.CannotVerify);

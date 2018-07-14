@@ -72,7 +72,9 @@ namespace Vaettir.Utility
 			{
 				long remaning = _length.Value - Position;
 				if (remaning < count)
-					count = (int)remaning;
+				{
+					count = (int) remaning;
+				}
 			}
 		}
 
@@ -82,6 +84,7 @@ namespace Vaettir.Utility
 			{
 				return _baseStream.Seek(offset + _offset, origin);
 			}
+
 			return _baseStream.Seek(offset, origin);
 		}
 

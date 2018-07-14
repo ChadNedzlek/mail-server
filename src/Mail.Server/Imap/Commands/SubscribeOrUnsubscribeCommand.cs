@@ -10,9 +10,9 @@ namespace Vaettir.Mail.Server.Imap.Commands
 {
 	public abstract class SubscribeOrUnsubscribeCommand : BaseImapCommand
 	{
-		private string _mailbox;
 		private readonly IImapMessageChannel _channel;
 		private readonly IImapMailStore _mailstore;
+		private string _mailbox;
 
 		protected SubscribeOrUnsubscribeCommand(IImapMessageChannel channel, IImapMailStore mailstore)
 		{
@@ -24,11 +24,17 @@ namespace Vaettir.Mail.Server.Imap.Commands
 
 		protected override bool TryParseArguments(ImmutableList<IMessageData> arguments)
 		{
-			if (arguments.Count != 1) return false;
+			if (arguments.Count != 1)
+			{
+				return false;
+			}
 
 			_mailbox = MessageData.GetString(arguments[0], Encoding.UTF8);
 
-			if (string.IsNullOrEmpty(_mailbox)) return false;
+			if (string.IsNullOrEmpty(_mailbox))
+			{
+				return false;
+			}
 
 			return true;
 		}

@@ -13,20 +13,21 @@ namespace Vaettir.Mail.Transfer.Test
 
 		public Task<IEnumerable<DnsMxRecord>> QueryMx(string domain, CancellationToken token)
 		{
-			return Task.FromResult(_mx.TryGetValue(domain, out var mx) ? (IEnumerable<DnsMxRecord>) mx : null);
+			return Task.FromResult(_mx.TryGetValue(domain, out List<DnsMxRecord> mx) ? (IEnumerable<DnsMxRecord>) mx : null);
 		}
 
 		public Task<IPAddress> QueryIp(string domain, CancellationToken token)
 		{
-			return Task.FromResult(_ip.TryGetValue(domain, out var ip) ? ip : null);
+			return Task.FromResult(_ip.TryGetValue(domain, out IPAddress ip) ? ip : null);
 		}
 
 		public void AddMx(string domain, string exchange, int priority)
 		{
-			if (!_mx.TryGetValue(domain, out var records))
+			if (!_mx.TryGetValue(domain, out List<DnsMxRecord> records))
 			{
 				_mx.Add(domain, records = new List<DnsMxRecord>());
 			}
+
 			records.Add(new DnsMxRecord(exchange, priority));
 		}
 

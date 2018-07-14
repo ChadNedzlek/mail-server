@@ -29,6 +29,7 @@ namespace Vaettir.Utility
 					_signaled = false;
 					return Task.CompletedTask;
 				}
+
 				var tcs = new TaskCompletionSource<bool>();
 				Data data;
 				if (cancellationToken.CanBeCanceled)
@@ -42,6 +43,7 @@ namespace Vaettir.Utility
 					data = new Data(tcs, null);
 					_waits.AddLast(data);
 				}
+
 				return tcs.Task;
 			}
 		}
@@ -71,6 +73,7 @@ namespace Vaettir.Utility
 					{
 						toRelease.Value.Registration.Dispose();
 					}
+
 					_waits.RemoveFirst();
 				}
 				else if (!_signaled)

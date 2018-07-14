@@ -26,6 +26,6 @@ namespace Vaettir.Mail.Server.Smtp
 		UserNotLocal = 551,
 		ExceededQuota = 552,
 		NameNotAllowed = 553,
-		Failed = 554,
+		Failed = 554
 	}
 }

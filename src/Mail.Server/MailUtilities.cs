@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 using Vaettir.Utility;
 
@@ -38,9 +37,7 @@ namespace Vaettir.Mail.Server
 			return mailbox.Substring(0, atIndex);
 		}
 
-		public static async Task<IDictionary<string, IEnumerable<string>>> ParseHeadersAsync(
-			Stream mailStream,
-			CancellationToken token)
+		public static async Task<IDictionary<string, IEnumerable<string>>> ParseHeadersAsync(Stream mailStream)
 		{
 			string existingHeaderName = null;
 			string existingHeaderValue = null;
@@ -93,7 +90,7 @@ namespace Vaettir.Mail.Server
 		{
 			IList<string> list;
 
-			if (!dict.TryGetValue(key, out var enumerable) ||
+			if (!dict.TryGetValue(key, out IEnumerable<string> enumerable) ||
 				(list = enumerable as IList<string>) == null)
 			{
 				dict.Add(key, list = new List<string>());
@@ -110,6 +107,7 @@ namespace Vaettir.Mail.Server
 				logger?.Warning($"Unable to parse Mailbox: {address}");
 				return null;
 			}
+
 			return mailboxPart.Groups[1].Value;
 		}
 	}

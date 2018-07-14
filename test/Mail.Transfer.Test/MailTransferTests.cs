@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -21,8 +22,9 @@ namespace Vaettir.Mail.Transfer.Test
 		public MailTransferTests()
 		{
 			_queue = new MockMailTransferQueue();
-			_settings = new MockVolatile<AgentSettings>(TestHelpers.MakeSettings(
-				relayDomains: new[] {new SmtpRelayDomain("relay.example.com", "relaytarget.example.com", 99)}
+			_settings = new MockVolatile<AgentSettings>(
+				TestHelpers.MakeSettings(
+					relayDomains: new[] {new SmtpRelayDomain("relay.example.com", "relaytarget.example.com", 99)}
 				));
 			_dns = new MockDnsResolve();
 			_failures = new MockMailSendFailureManager();
@@ -66,9 +68,11 @@ namespace Vaettir.Mail.Transfer.Test
 					await Task.Delay(100);
 				}
 			}
+
 			return client;
 		}
 
+		[SuppressMessage("ReSharper", "ParameterOnlyUsedForPreconditionCheck.Local")]
 		private static async Task AssertCommandRecieved(TextReader reader, string command)
 		{
 			Assert.Equal(command, (await reader.ReadLineAsync()).Split(' ')[0]);
@@ -110,6 +114,7 @@ namespace Vaettir.Mail.Transfer.Test
 			{
 				Assert.False(await _transfer.TrySendSingleMailAsync(mockMailReference, writer, reader, CancellationToken.None));
 			}
+
 			Assert.Equal(1, _queue.References.Count);
 			Assert.Equal(0, _queue.DeletedReferences.Count);
 		}
@@ -244,7 +249,7 @@ namespace Vaettir.Mail.Transfer.Test
 			_dns.AddMx("external.example.com", "mx.external.example.com", 10);
 			_dns.AddIp("mx.external.example.com", IPAddress.Parse("10.20.30.40"));
 
-			var (keep, give) = PairedStream.Create();
+			(Stream keep, Stream give) = PairedStream.Create();
 			using (var reader = new StreamReader(keep))
 			{
 				byte[] responseBytes = Encoding.ASCII.GetBytes(responseMessages);
@@ -293,7 +298,7 @@ namespace Vaettir.Mail.Transfer.Test
 			_dns.AddMx("external.example.com", "test.example.com", 10);
 			_dns.AddIp("test.example.com", IPAddress.Parse("10.20.30.40"));
 
-			var (keep, give) = PairedStream.Create();
+			(Stream keep, Stream give) = PairedStream.Create();
 
 			using (var recieveStream = new RedirectableStream(keep))
 			using (var reader = new StreamReader(recieveStream))
@@ -302,6 +307,7 @@ namespace Vaettir.Mail.Transfer.Test
 					() => _transfer.TrySendMailsToStream(
 						"external.example.com",
 						new[] {mockMailReference},
+						// ReSharper disable once AccessToDisposedClosure
 						new UnclosableStream(give),
 						CancellationToken.None));
 
@@ -350,7 +356,7 @@ namespace Vaettir.Mail.Transfer.Test
 			_dns.AddMx("external.example.com", "test.example.com", 10);
 			_dns.AddIp("test.example.com", IPAddress.Parse("10.20.30.40"));
 
-			var (keep, give) = PairedStream.Create();
+			(Stream keep, Stream give) = PairedStream.Create();
 
 			using (var recieveStream = new RedirectableStream(keep))
 			using (var reader = new StreamReader(recieveStream))
@@ -359,6 +365,7 @@ namespace Vaettir.Mail.Transfer.Test
 					() => _transfer.TrySendMailsToStream(
 						"external.example.com",
 						new[] {mockMailReference},
+						// ReSharper disable once AccessToDisposedClosure
 						new UnclosableStream(give),
 						CancellationToken.None));
 
@@ -406,7 +413,7 @@ namespace Vaettir.Mail.Transfer.Test
 			_dns.AddMx("external.example.com", "mx.external.example.com", 10);
 			_dns.AddIp("mx.external.example.com", IPAddress.Parse("10.20.30.40"));
 
-			var (keep, give) = PairedStream.Create();
+			(Stream keep, Stream give) = PairedStream.Create();
 			using (var reader = new StreamReader(keep))
 			{
 				byte[] responseBytes = Encoding.ASCII.GetBytes(responseMessages);
@@ -546,6 +553,7 @@ namespace Vaettir.Mail.Transfer.Test
 			{
 				Assert.True(await _transfer.TrySendSingleMailAsync(mockMailReference, writer, reader, CancellationToken.None));
 			}
+
 			Assert.Equal(0, _queue.References.Count);
 			Assert.Equal(1, _queue.DeletedReferences.Count);
 		}
@@ -575,6 +583,7 @@ namespace Vaettir.Mail.Transfer.Test
 			{
 				Assert.True(await _transfer.TrySendSingleMailAsync(mockMailReference, writer, reader, CancellationToken.None));
 			}
+
 			Assert.Equal(0, _queue.References.Count);
 			Assert.Equal(1, _queue.DeletedReferences.Count);
 		}
@@ -601,6 +610,7 @@ namespace Vaettir.Mail.Transfer.Test
 			{
 				Assert.False(await _transfer.TrySendSingleMailAsync(mockMailReference, writer, reader, CancellationToken.None));
 			}
+
 			Assert.Equal(1, _queue.References.Count);
 			Assert.Equal(0, _queue.DeletedReferences.Count);
 		}

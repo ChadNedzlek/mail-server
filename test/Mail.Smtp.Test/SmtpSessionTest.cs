@@ -43,7 +43,7 @@ namespace Vaettir.Mail.Smtp.Test
 
 			public TestConnection(ITestOutputHelper output)
 			{
-				var (a, b) = PairedStream.Create();
+				(Stream a, Stream b) = PairedStream.Create();
 				LocalStream = new RedirectableStream(a);
 				Reader = new StreamReader(LocalStream);
 				Writer = new StreamWriter(LocalStream) {AutoFlush = true};
@@ -53,7 +53,7 @@ namespace Vaettir.Mail.Smtp.Test
 				builder.RegisterAssemblyTypes(typeof(SmtpSession).GetTypeInfo().Assembly)
 					.Where(t => t.GetTypeInfo().GetCustomAttribute<SmtpCommandAttribute>() != null)
 					.Keyed<ISmtpCommand>(t => t.GetTypeInfo().GetCustomAttribute<SmtpCommandAttribute>().Name);
-				builder.RegisterInstance(TestHelpers.MakeSettings(domainName: "test.vaettir.net"))
+				builder.RegisterInstance(TestHelpers.MakeSettings("test.vaettir.net"))
 					.As<AgentSettings>()
 					.As<AgentSettings>();
 
@@ -124,6 +124,7 @@ namespace Vaettir.Mail.Smtp.Test
 				{
 					totalLines += (line = await Do(Reader.ReadLineAsync())) + "\n";
 				} while (line[3] == '-');
+
 				var rx = new Regex(pattern, RegexOptions.Multiline);
 				Match match = rx.Match(totalLines);
 				Assert.True(match.Success, $"Conversation '{totalLines}' line matches pattern '{pattern}'");

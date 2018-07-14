@@ -52,7 +52,7 @@ namespace Vaettir.Mail.Transfer.Test
 
 			public Stream GetStream()
 			{
-				var (a, b) = PairedStream.Create();
+				(Stream a, Stream b) = PairedStream.Create();
 				HalfStream = a;
 				ActiveStream = b;
 				return b;

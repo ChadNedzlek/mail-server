@@ -85,7 +85,7 @@ namespace Vaettir.Mail.Test.Utilities
 		{
 			Dictionary<string, List<MockMailboxItemReference>> folders = GetMailbox(mailbox);
 
-			if (!folders.TryGetValue(folder, out var collection))
+			if (!folders.TryGetValue(folder, out List<MockMailboxItemReference> collection))
 			{
 				folders.Add(folder, collection = new List<MockMailboxItemReference>());
 			}
@@ -95,7 +95,7 @@ namespace Vaettir.Mail.Test.Utilities
 
 		private Dictionary<string, List<MockMailboxItemReference>> GetMailbox(string mailbox)
 		{
-			if (!References.TryGetValue(mailbox, out var folders))
+			if (!References.TryGetValue(mailbox, out Dictionary<string, List<MockMailboxItemReference>> folders))
 			{
 				References.Add(mailbox, folders = new Dictionary<string, List<MockMailboxItemReference>>());
 			}

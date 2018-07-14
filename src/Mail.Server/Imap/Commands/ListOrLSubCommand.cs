@@ -10,10 +10,10 @@ namespace Vaettir.Mail.Server.Imap.Commands
 {
 	public abstract class ListOrLSubCommand : BaseImapCommand
 	{
+		private readonly IImapMessageChannel _channel;
+		private readonly IImapMailStore _mailstore;
 		private string _pattern;
 		private string _reference;
-		private readonly IImapMailStore _mailstore;
-		private readonly IImapMessageChannel _channel;
 
 		protected ListOrLSubCommand(IImapMessageChannel channel, IImapMailStore mailstore)
 		{
@@ -25,7 +25,10 @@ namespace Vaettir.Mail.Server.Imap.Commands
 
 		protected override bool TryParseArguments(ImmutableList<IMessageData> arguments)
 		{
-			if (arguments.Count != 2) return false;
+			if (arguments.Count != 2)
+			{
+				return false;
+			}
 
 			_reference = MessageData.GetString(arguments[0], Encoding.UTF8);
 			_pattern = MessageData.GetString(arguments[0], Encoding.UTF8);
@@ -64,7 +67,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 					list = new ListMessageData(new AtomMessageData(Tags.NoSelect));
 				}
 
-				#warning Presumably we should use the list...
+#warning Presumably we should use the list...
 
 				await _channel.SendMessageAsync(
 					new ImapMessage(

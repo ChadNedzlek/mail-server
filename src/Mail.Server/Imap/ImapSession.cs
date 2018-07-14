@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -16,10 +15,16 @@ using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server.Imap
 {
-	[UsedImplicitly(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature)]
-	public sealed class ImapSession : IDisposable, IProtocolSession, IAuthenticationTransport, IImapMessageChannel, IImapMailboxPointer
+	[Injected]
+	public sealed class ImapSession : IDisposable,
+		IProtocolSession,
+		IAuthenticationTransport,
+		IImapMessageChannel,
+		IImapMailboxPointer
 	{
 		private readonly IIndex<string, Lazy<Owned<IImapCommand>, IImapCommandMetadata>> _commands;
+
+		private readonly SecurableConnection _connection;
 		private readonly List<IImapCommand> _outstandingCommands = new List<IImapCommand>();
 		private readonly Queue<IImapCommand> _pendingCommands = new Queue<IImapCommand>();
 		private readonly byte[] _readBuffer = new byte[1000000];
@@ -35,20 +40,114 @@ namespace Vaettir.Mail.Server.Imap
 			State = SessionState.Open;
 		}
 
-		private readonly SecurableConnection _connection;
-		public SessionState State { get; set; }
-		public UserData AuthenticatedUser { get; set; }
-		public SelectedMailbox SelectedMailbox { get; private set; }
+		public Task SendAuthenticationFragmentAsync(byte[] data, CancellationToken cancellationToken)
+		{
+			return SendContinuationAsync(Convert.ToBase64String(data), Encoding.ASCII, cancellationToken);
+		}
+
+		public Task<byte[]> ReadAuthenticationFragmentAsync(CancellationToken cancellationToken)
+		{
+			return _connection.ReadLineAsync(Encoding.ASCII, cancellationToken)
+				.ContinueWith(t => Convert.FromBase64String(t.Result), cancellationToken);
+		}
 
 		public void Dispose()
 		{
 			_connection.Dispose();
 		}
 
+		public SelectedMailbox SelectedMailbox { get; private set; }
+
+		public async Task<SelectedMailbox> SelectMailboxAsync(Mailbox mailbox, CancellationToken cancellationToken)
+		{
+			State = SessionState.Selected;
+			SelectedMailbox = await ProcessSelectionAsync(mailbox, cancellationToken);
+			return SelectedMailbox;
+		}
+
+		public async Task UnselectMailboxAsync(CancellationToken cancellationToken)
+		{
+			SelectedMailbox = null;
+			State = SessionState.Authenticated;
+		}
+
+		public SessionState State { get; set; }
+		public UserData AuthenticatedUser { get; set; }
+
 		public void EndSession()
 		{
 			State = SessionState.Closed;
 			_connection.Close();
+		}
+
+		public async Task CommandCompletedAsync(
+			ImapMessage message,
+			IImapCommand command,
+			CancellationToken cancellationToken)
+		{
+			await SendPendingResponsesAsync(cancellationToken);
+			await this.SendMessageAsync(message, cancellationToken);
+			await EndCommandWithoutResponseAsync(command, cancellationToken);
+		}
+
+		public async Task SendMessageAsync(ImapMessage message, Encoding encoding, CancellationToken cancellationToken)
+		{
+			using (await SemaphoreLock.GetLockAsync(_sendSemaphore, cancellationToken))
+			{
+				var builder = new StringBuilder();
+				builder.Append(message.Tag);
+				foreach (IMessageData data in message.Data)
+				{
+					var literal = data as LiteralMessageData;
+					if (literal != null)
+					{
+						builder.Append("}");
+						builder.Append(literal.Data.Length);
+						builder.AppendLine("}");
+						await _connection.WriteAsync(builder.ToString(), encoding, cancellationToken);
+						builder.Clear();
+					}
+					else
+					{
+						if (builder.Length > 0)
+						{
+							builder.Append(" ");
+						}
+
+						builder.Append(data.ToMessageString());
+					}
+				}
+
+				if (builder.Length > 0)
+				{
+					builder.AppendLine();
+					await _connection.WriteAsync(builder.ToString(), encoding, cancellationToken);
+				}
+			}
+		}
+
+		public async Task EndCommandWithoutResponseAsync(IImapCommand command, CancellationToken cancellationToken)
+		{
+			_outstandingCommands.Remove(command);
+
+			while (_pendingCommands.Count > 0 && CanRunImmediately(_pendingCommands.Peek()))
+			{
+				IImapCommand newCommand = _pendingCommands.Dequeue();
+				_outstandingCommands.Add(newCommand);
+				await newCommand.ExecuteAsync(cancellationToken);
+			}
+		}
+
+		public void DiscardPendingExpungeResponses()
+		{
+			throw new NotImplementedException();
+		}
+
+		public string Id { get; }
+
+		public Task RunAsync(CancellationToken cancellationToken)
+		{
+			throw new NotImplementedException();
 		}
 
 		public async Task Start(CancellationToken cancellationToken)
@@ -104,20 +203,13 @@ namespace Vaettir.Mail.Server.Imap
 				return false;
 			}
 
-			var commandEnumerable = new[] {command};
+			IImapCommand[] commandEnumerable = {command};
 			if (!_outstandingCommands.All(c => c.IsValidWith(commandEnumerable)))
 			{
 				return false;
 			}
 
 			return true;
-		}
-
-		public async Task CommandCompletedAsync(ImapMessage message, IImapCommand command, CancellationToken cancellationToken)
-		{
-			await SendPendingResponsesAsync(cancellationToken);
-			await this.SendMessageAsync(message, cancellationToken);
-			await EndCommandWithoutResponseAsync(command, cancellationToken);
 		}
 
 		private async Task SendPendingResponsesAsync(CancellationToken cancellationToken)
@@ -163,12 +255,14 @@ namespace Vaettir.Mail.Server.Imap
 						{
 							throw new BadImapCommandFormatException(tag);
 						}
+
 						read += newRead;
 					} while (read < literalLength);
 
 					data.Add(new LiteralMessageData(_readBuffer, literalLength));
 				}
 			}
+
 			return data;
 		}
 
@@ -178,6 +272,7 @@ namespace Vaettir.Mail.Server.Imap
 			{
 				throw new BadImapCommandFormatException(null);
 			}
+
 			var tagArg = data[0] as AtomMessageData;
 			if (tagArg == null)
 			{
@@ -196,7 +291,7 @@ namespace Vaettir.Mail.Server.Imap
 				throw new BadImapCommandFormatException(tagArg.Value);
 			}
 
-			if (!_commands.TryGetValue(commandArg.Value, out var command))
+			if (!_commands.TryGetValue(commandArg.Value, out Lazy<Owned<IImapCommand>, IImapCommandMetadata> command))
 			{
 				throw new BadImapCommandFormatException(tagArg.Value);
 			}
@@ -213,41 +308,6 @@ namespace Vaettir.Mail.Server.Imap
 		public async Task SendContinuationAsync(string text, Encoding encoding, CancellationToken cancellationToken)
 		{
 			await _connection.WriteLineAsync("+ " + text, encoding, cancellationToken);
-		}
-
-		public async Task SendMessageAsync(ImapMessage message, Encoding encoding, CancellationToken cancellationToken)
-		{
-			using (await SemaphoreLock.GetLockAsync(_sendSemaphore, cancellationToken))
-			{
-				var builder = new StringBuilder();
-				builder.Append(message.Tag);
-				foreach (IMessageData data in message.Data)
-				{
-					var literal = data as LiteralMessageData;
-					if (literal != null)
-					{
-						builder.Append("}");
-						builder.Append(literal.Data.Length);
-						builder.AppendLine("}");
-						await _connection.WriteAsync(builder.ToString(), encoding, cancellationToken);
-						builder.Clear();
-					}
-					else
-					{
-						if (builder.Length > 0)
-						{
-							builder.Append(" ");
-						}
-						builder.Append(data.ToMessageString());
-					}
-				}
-
-				if (builder.Length > 0)
-				{
-					builder.AppendLine();
-					await _connection.WriteAsync(builder.ToString(), encoding, cancellationToken);
-				}
-			}
 		}
 
 		internal static void ParseLine(string text, List<IMessageData> data, out int literalLength)
@@ -328,6 +388,7 @@ namespace Vaettir.Mail.Server.Imap
 						{
 							throw new BadImapCommandFormatException(tag);
 						}
+
 						segmentStart = i + 1;
 						inUtf7Escape = false;
 					}
@@ -351,6 +412,7 @@ namespace Vaettir.Mail.Server.Imap
 									isUtf8 = true;
 									goto case '"';
 								}
+
 								goto default;
 							case '{':
 								segmentStart = i + 1;
@@ -402,7 +464,11 @@ namespace Vaettir.Mail.Server.Imap
 							}
 							case '&':
 							{
-								if (isUtf8) goto default;
+								if (isUtf8)
+								{
+									goto default;
+								}
+
 								string substring = text.Substring(segmentStart, i - segmentStart);
 								AddSegment(ref segment, substring);
 								segmentStart = i + 1;
@@ -421,6 +487,7 @@ namespace Vaettir.Mail.Server.Imap
 									AddSegment(ref segment, substring);
 									listStack.Peek().Add(new AtomMessageData(segment));
 								}
+
 								segment = null;
 								segmentStart = -1;
 								List<IMessageData> currentList = listStack.Pop();
@@ -466,56 +533,9 @@ namespace Vaettir.Mail.Server.Imap
 			State = SessionState.Authenticated;
 		}
 
-		public async Task<SelectedMailbox> SelectMailboxAsync(Mailbox mailbox, CancellationToken cancellationToken)
-		{
-			State = SessionState.Selected;
-			SelectedMailbox = await ProcessSelectionAsync(mailbox, cancellationToken);
-			return SelectedMailbox;
-		}
-
 		private async Task<SelectedMailbox> ProcessSelectionAsync(Mailbox mailbox, CancellationToken cancellationToken)
 		{
 			return new SelectedMailbox(mailbox);
-		}
-
-		public async Task UnselectMailboxAsync(CancellationToken cancellationToken)
-		{
-			SelectedMailbox = null;
-			State = SessionState.Authenticated;
-		}
-
-		public async Task EndCommandWithoutResponseAsync(IImapCommand command, CancellationToken cancellationToken)
-		{
-			_outstandingCommands.Remove(command);
-
-			while (_pendingCommands.Count > 0 && CanRunImmediately(_pendingCommands.Peek()))
-			{
-				IImapCommand newCommand = _pendingCommands.Dequeue();
-				_outstandingCommands.Add(newCommand);
-				await newCommand.ExecuteAsync(cancellationToken);
-			}
-		}
-
-		public void DiscardPendingExpungeResponses()
-		{
-			throw new NotImplementedException();
-		}
-
-		public Task SendAuthenticationFragmentAsync(byte[] data, CancellationToken cancellationToken)
-		{
-			return SendContinuationAsync(Convert.ToBase64String(data), Encoding.ASCII, cancellationToken);
-		}
-
-		public Task<byte[]> ReadAuthenticationFragmentAsync(CancellationToken cancellationToken)
-		{
-			return _connection.ReadLineAsync(Encoding.ASCII, cancellationToken)
-					.ContinueWith(t => Convert.FromBase64String(t.Result), cancellationToken);
-		}
-
-		public string Id { get; }
-		public Task RunAsync(CancellationToken cancellationToken)
-		{
-			throw new NotImplementedException();
 		}
 	}
 }

@@ -27,7 +27,7 @@ namespace Vaettir.Mail.Smtp.Test
 				TestHelpers.GetAuths(),
 				conn,
 				channel,
-				TestHelpers.MakeSettings(domainName: "test.vaettir.net"),
+				TestHelpers.MakeSettings("test.vaettir.net"),
 				new MockLogger());
 			command.Initialize("Sender.net");
 
@@ -59,7 +59,7 @@ namespace Vaettir.Mail.Smtp.Test
 				TestHelpers.GetAuths(),
 				conn,
 				channel,
-				TestHelpers.MakeSettings(domainName: "test.vaettir.net"),
+				TestHelpers.MakeSettings("test.vaettir.net"),
 				new MockLogger());
 			command.Initialize("Sender.net");
 
@@ -90,7 +90,7 @@ namespace Vaettir.Mail.Smtp.Test
 				TestHelpers.GetAuths(),
 				conn,
 				channel,
-				TestHelpers.MakeSettings(domainName: "test.vaettir.net"),
+				TestHelpers.MakeSettings("test.vaettir.net"),
 				new MockLogger());
 			command.Initialize("Sender.net");
 

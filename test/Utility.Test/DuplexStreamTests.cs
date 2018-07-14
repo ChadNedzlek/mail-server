@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,7 +15,7 @@ namespace Vaettir.Utility.Test
 		[Fact]
 		public async Task ReceiveNoData()
 		{
-			var (a, b) = PairedStream.Create();
+			(Stream a, Stream b) = PairedStream.Create();
 			var buffer = new byte[s_bytes.Length * 2];
 			await TaskHelpers.AssertNotTriggered(a.ReadAsync(buffer, 0, buffer.Length));
 			await TaskHelpers.AssertNotTriggered(b.ReadAsync(buffer, 0, buffer.Length));
@@ -23,7 +24,7 @@ namespace Vaettir.Utility.Test
 		[Fact]
 		public async Task ReceiveNoData_Cancellable()
 		{
-			var (a, b) = PairedStream.Create();
+			(Stream a, Stream b) = PairedStream.Create();
 			var buffer = new byte[s_bytes.Length * 2];
 			var cts = new CancellationTokenSource();
 			await TaskHelpers.AssertNotTriggered(a.ReadAsync(buffer, 0, buffer.Length, cts.Token));
@@ -33,7 +34,7 @@ namespace Vaettir.Utility.Test
 		[Fact]
 		public async Task ReceiveNoData_Cancelled()
 		{
-			var (a, b) = PairedStream.Create();
+			(Stream a, Stream b) = PairedStream.Create();
 			var buffer = new byte[s_bytes.Length * 2];
 			var cts = new CancellationTokenSource();
 			Task[] tasks =
@@ -53,7 +54,7 @@ namespace Vaettir.Utility.Test
 		[Fact]
 		public async Task ReceiveNoData_Uncancellable()
 		{
-			var (a, b) = PairedStream.Create();
+			(Stream a, Stream b) = PairedStream.Create();
 			var buffer = new byte[s_bytes.Length * 2];
 			await TaskHelpers.AssertNotTriggered(a.ReadAsync(buffer, 0, buffer.Length, CancellationToken.None));
 			await TaskHelpers.AssertNotTriggered(b.ReadAsync(buffer, 0, buffer.Length, CancellationToken.None));
@@ -62,7 +63,7 @@ namespace Vaettir.Utility.Test
 		[Fact]
 		public async Task SendBothRecieveBoth()
 		{
-			var (a, b) = PairedStream.Create();
+			(Stream a, Stream b) = PairedStream.Create();
 			await a.WriteAsync(s_bytes, 0, s_bytes.Length);
 			await b.WriteAsync(s_bytes, 0, s_bytes.Length);
 			var buffer = new byte[s_bytes.Length * 2];
@@ -79,7 +80,7 @@ namespace Vaettir.Utility.Test
 		[Fact]
 		public async Task SendPartialOneWay()
 		{
-			var (a, b) = PairedStream.Create();
+			(Stream a, Stream b) = PairedStream.Create();
 			await a.WriteAsync(s_bytes, 0, s_bytes.Length);
 			var buffer = new byte[s_bytes.Length / 2];
 			int read = await b.ReadAsync(buffer, 0, buffer.Length);
@@ -95,7 +96,7 @@ namespace Vaettir.Utility.Test
 		[Fact]
 		public async Task SendRecieveOneWay()
 		{
-			var (a, b) = PairedStream.Create();
+			(Stream a, Stream b) = PairedStream.Create();
 			await a.WriteAsync(s_bytes, 0, s_bytes.Length);
 			var buffer = new byte[s_bytes.Length * 2];
 			int read = await b.ReadAsync(buffer, 0, buffer.Length);
@@ -106,7 +107,7 @@ namespace Vaettir.Utility.Test
 		[Fact]
 		public async Task SendRecieveOneWay_WithCancellableToken()
 		{
-			var (a, b) = PairedStream.Create();
+			(Stream a, Stream b) = PairedStream.Create();
 			await a.WriteAsync(s_bytes, 0, s_bytes.Length);
 			var buffer = new byte[s_bytes.Length * 2];
 			var cts = new CancellationTokenSource();
@@ -118,7 +119,7 @@ namespace Vaettir.Utility.Test
 		[Fact]
 		public async Task SendRecieveOneWay_WithToken()
 		{
-			var (a, b) = PairedStream.Create();
+			(Stream a, Stream b) = PairedStream.Create();
 			await a.WriteAsync(s_bytes, 0, s_bytes.Length);
 			var buffer = new byte[s_bytes.Length * 2];
 			int read = await b.ReadAsync(buffer, 0, buffer.Length, CancellationToken.None);

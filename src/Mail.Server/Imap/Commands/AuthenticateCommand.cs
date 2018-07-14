@@ -17,7 +17,9 @@ namespace Vaettir.Mail.Server.Imap.Commands
 		private readonly IIndex<string, Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata>> _auth;
 		private readonly IImapMessageChannel _channel;
 
-		public AuthenticateCommand(IIndex<string, Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata>> auth, IImapMessageChannel channel)
+		public AuthenticateCommand(
+			IIndex<string, Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata>> auth,
+			IImapMessageChannel channel)
 		{
 			_auth = auth;
 			_channel = channel;
@@ -27,7 +29,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 
 		public override async Task ExecuteAsync(CancellationToken cancellationToken)
 		{
-			if (!_auth.TryGetValue(Mechanism, out var mechanism))
+			if (!_auth.TryGetValue(Mechanism, out Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata> mechanism))
 			{
 				await EndWithResultAsync(_channel, CommandResult.No, "unknown mechanism", cancellationToken);
 				return;

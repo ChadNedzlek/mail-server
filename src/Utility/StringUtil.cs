@@ -35,6 +35,7 @@ namespace Vaettir.Utility
 				{
 					parts.Add(part);
 				}
+
 				oldIndex = index;
 			}
 

@@ -7,13 +7,12 @@ using System.Net;
 using System.Net.Security;
 using System.Threading;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
 using Vaettir.Mail.Server.Smtp;
 using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server
 {
-	[UsedImplicitly(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature)]
+	[Injected]
 	public class MailTransfer
 	{
 		private static readonly ImmutableArray<TimeSpan> s_retryDelays = ImmutableArray.Create(
@@ -71,6 +70,7 @@ namespace Vaettir.Mail.Server
 						{
 							continue;
 						}
+
 						_log.Information($"Forwarding {mails.Count} mails to {domain}");
 						sent = true;
 						await SendMailsToDomain(domain, mails, token);
@@ -106,6 +106,7 @@ namespace Vaettir.Mail.Server
 					await HandleFailedMailsAsync(unsent);
 					_log.Warning("Relay failed");
 				}
+
 				return;
 			}
 
@@ -116,10 +117,11 @@ namespace Vaettir.Mail.Server
 					_log.Warning("Detected send to self in preference fallback, aborting");
 					break;
 				}
+
 				_log.Verbose($"Resolved MX record {mxRecord.Exchange} at priority {mxRecord.Preference}");
 				mails = await TrySendToMx(mxRecord.Exchange, mails, 25, token);
 
-				if ((mails?.Count ?? 0) == 0)
+				if (mails == null || mails.Count == 0)
 				{
 					return;
 				}
@@ -180,6 +182,7 @@ namespace Vaettir.Mail.Server
 				_log.Warning($"Failed to resolve A or AAAA record for MX record {target}");
 				return mails;
 			}
+
 			using (ITcpClient mxClient = _tcp.GetClient())
 			{
 				_log.Information($"Connecting to MX {target} at {targetIp} on port {port}");
@@ -242,6 +245,7 @@ namespace Vaettir.Mail.Server
 						_log.Warning($"Failed TLS negotiations: {e}");
 						return mails;
 					}
+
 					stream.ChangeSteam(sslStream);
 				}
 
@@ -272,6 +276,7 @@ namespace Vaettir.Mail.Server
 
 				await SendCommandAsync(writer, "QUIT");
 			}
+
 			return unsent;
 		}
 
@@ -315,6 +320,7 @@ namespace Vaettir.Mail.Server
 			{
 				return null;
 			}
+
 			return s_retryDelays[retries];
 		}
 
@@ -388,17 +394,20 @@ namespace Vaettir.Mail.Server
 					_log.Warning($"Illegal response: {line}");
 					return null;
 				}
-				if (!int.TryParse(line.Substring(0, 3), out var reponseCode))
+
+				if (!int.TryParse(line.Substring(0, 3), out int reponseCode))
 				{
 					_log.Warning($"Illegal response: {line}");
 					return null;
 				}
+
 				var newReply = (SmtpReplyCode) reponseCode;
 				if (currentSmtpReply.HasValue && newReply != currentSmtpReply.Value)
 				{
 					_log.Warning($"Illegal contiuation: Previous reply {currentSmtpReply}, new line: {line}");
 					return null;
 				}
+
 				currentSmtpReply = newReply;
 				more = line.Length >= 4 && line[3] == '-';
 				lines.Add(line.Substring(Math.Min(line.Length, 4)));

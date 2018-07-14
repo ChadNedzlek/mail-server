@@ -13,10 +13,10 @@ namespace Vaettir.Utility
 		}
 	}
 
-	public sealed class ChildWatcherSettings<TParent,TValue> : IVolatile<TValue> where TValue : class
+	public sealed class ChildWatcherSettings<TParent, TValue> : IVolatile<TValue> where TValue : class
 	{
-		private readonly IVolatile<TParent> _parent;
 		private readonly Func<TParent, TValue> _getChild;
+		private readonly IVolatile<TParent> _parent;
 		private TValue _value;
 
 		public ChildWatcherSettings(IVolatile<TParent> parent, Func<TParent, TValue> getChild)
@@ -38,8 +38,8 @@ namespace Vaettir.Utility
 
 		private void ParentValueChanged(object sender, TParent newvalue, TParent oldvalue)
 		{
-			var newChildValue = _getChild(newvalue);
-			var oldChildValue = Value;
+			TValue newChildValue = _getChild(newvalue);
+			TValue oldChildValue = Value;
 			Interlocked.Exchange(ref _value, newChildValue);
 			ValueChanged?.Invoke(sender, newChildValue, oldChildValue);
 		}

@@ -10,8 +10,8 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	[ImapCommand("SEARCH", SessionState.Selected)]
 	public class SearchCommand : BaseImapCommand
 	{
-		private Encoding _encoding;
 		private readonly IImapMessageChannel _channel;
+		private Encoding _encoding;
 
 		public SearchCommand(IImapMessageChannel channel)
 		{

@@ -37,9 +37,11 @@ namespace Vaettir.Mail.Server.Imap.Messages.Data
 				{
 					builder.Append(" ");
 				}
+
 				first = false;
 				builder.Append(item.ToMessageString());
 			}
+
 			builder.Append(EndMarker);
 
 			return builder.ToString();

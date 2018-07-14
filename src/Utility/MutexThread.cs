@@ -51,6 +51,7 @@ namespace Vaettir.Utility
 						{
 							waiting.Add(item);
 						}
+
 						continue;
 					}
 

@@ -9,15 +9,19 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	[ImapCommand("STARTTLS", SessionState.Open)]
 	public class StartTlsCommand : BaseImapCommand
 	{
-		protected override bool TryParseArguments(ImmutableList<IMessageData> arguments) => arguments.Count == 0;
+		private readonly IImapMessageChannel _channel;
 
 		private readonly SecurableConnection _connection;
-		private readonly IImapMessageChannel _channel;
 
 		public StartTlsCommand(SecurableConnection connection, IImapMessageChannel channel)
 		{
 			_connection = connection;
 			_channel = channel;
+		}
+
+		protected override bool TryParseArguments(ImmutableList<IMessageData> arguments)
+		{
+			return arguments.Count == 0;
 		}
 
 		public override async Task ExecuteAsync(CancellationToken cancellationToken)

@@ -8,16 +8,15 @@ namespace Vaettir.Mail.Test.Utilities
 {
 	public class MockPlainTextAuth : IAuthenticationSession
 	{
-		private readonly Action _action;
-
-		public const string UserMailbox = "test@test.vaettir.net";
-
 		public enum Action
 		{
 			Throw,
 			Null,
 			Return
 		}
+
+		public const string UserMailbox = "test@test.vaettir.net";
+		private readonly Action _action;
 
 		public MockPlainTextAuth(Action action)
 		{
@@ -28,12 +27,12 @@ namespace Vaettir.Mail.Test.Utilities
 		{
 			switch (_action)
 			{
-					case Action.Throw:
-						throw new ArgumentException();
-					case Action.Null:
-						return Task.FromResult((UserData) null);
-					case Action.Return:
-						return Task.FromResult(new UserData(UserMailbox));
+				case Action.Throw:
+					throw new ArgumentException();
+				case Action.Null:
+					return Task.FromResult((UserData) null);
+				case Action.Return:
+					return Task.FromResult(new UserData(UserMailbox));
 			}
 
 			throw new NotSupportedException();

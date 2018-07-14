@@ -73,7 +73,7 @@ namespace Vaettir.Mail.Server
 		None = 0,
 		Internal = 0b01,
 		External = 0b10,
-		Both = Internal | External,
+		Both = Internal | External
 	}
 
 	public class SmtpIncomingMailScan

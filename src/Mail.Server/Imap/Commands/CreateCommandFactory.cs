@@ -11,11 +11,12 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	[ImapCommand("CREATE", SessionState.Authenticated)]
 	public class CreateCommandFactory : BaseImapCommand
 	{
-		private string _mailbox;
 		private readonly IImapMessageChannel _channel;
 		private readonly IImapMailStore _mailstore;
+		private string _mailbox;
 
-		public CreateCommandFactory(IImapMessageChannel channel,
+		public CreateCommandFactory(
+			IImapMessageChannel channel,
 			IImapMailStore mailstore)
 		{
 			_channel = channel;
@@ -34,6 +35,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			{
 				return false;
 			}
+
 			return true;
 		}
 
@@ -48,6 +50,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 				await EndWithResultAsync(_channel, CommandResult.No, "failed to create mailbox", cancellationToken);
 				return;
 			}
+
 			await EndOkAsync(_channel, cancellationToken);
 		}
 
