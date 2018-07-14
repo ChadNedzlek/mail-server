@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <AssemblyName>Mail.Imap.Parser</AssemblyName>
-    <RootNamespace>Vaettir.Mail.Imap.Parser</RootNamespace>
+    <AssemblyName>Mail.Mime</AssemblyName>
+    <RootNamespace>Vaettir.Mail.Mime</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Utility\Utility.csproj" />

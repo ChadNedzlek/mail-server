@@ -33,7 +33,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mail.Transfer.Test", "test\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Test.Utilities", "Test.Utilities\Test.Utilities.csproj", "{D65A8764-838E-4337-9DBD-F6E8C096386C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mail.Imap.Parser", "src\Mail.Imap.Parser\Mail.Imap.Parser.csproj", "{9024B4AD-7BBC-4E0F-A480-13D3B7A5A378}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mail.Imap.Parser", "src\Mail.Imap.Parser\Mail.Imap.Parser.csproj", "{9024B4AD-7BBC-4E0F-A480-13D3B7A5A378}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
