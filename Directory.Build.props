@@ -2,5 +2,6 @@
 	<PropertyGroup>
 		<TargetFramework>netstandard2.0</TargetFramework>
 		<Copyright>© 2016- vaettir.net</Copyright>
+		<Company>vaettir.net</Company>
 	</PropertyGroup>
 </Project>
