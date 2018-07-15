@@ -9,5 +9,6 @@ namespace Vaettir.Mail.Server
 	{
 		Task<string> ReadLineAsync(Encoding encoding, CancellationToken cancellationToken);
 		Task<int> ReadBytesAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken);
+		long BytePositition { get; }
 	}
 }

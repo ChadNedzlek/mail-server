@@ -9,19 +9,27 @@ namespace Vaettir.Mail.Server
 	public sealed class VariableStreamReader : IVariableStreamReader
 	{
 		private readonly Stream _stream;
+		private readonly bool _leaveOpen;
 		private char[] _charBuffer = new char[10000];
 		private byte[] _readBuffer = new byte[10000];
 		private int _readBufferFilled;
 		private int _readBufferUsed;
 
-		public VariableStreamReader(Stream stream)
+		public long BytePositition => _stream.Position - _readBufferFilled + _readBufferUsed;
+
+		public VariableStreamReader(Stream stream) : this(stream, false)
+		{
+		}
+
+		public VariableStreamReader(Stream stream, bool leaveOpen)
 		{
 			_stream = stream;
+			_leaveOpen = leaveOpen;
 		}
 
 		public void Dispose()
 		{
-			_stream?.Dispose();
+			if (!_leaveOpen) _stream?.Dispose();
 			_readBuffer = null;
 			_charBuffer = null;
 		}
