@@ -1,14 +1,15 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 
 namespace Vaettir.Mail.Mime
 {
+	[DebuggerDisplay("{Span,nq} ({HeaderSpan,nq} + {ContentSpan,nq})")]
 	public class MimePartSpan
 	{
 		public MimePartSpan(MessageSpan span, MessageSpan headerSpan, MessageSpan contentSpan) : this(
 			span,
 			headerSpan,
 			contentSpan,
-			null,
 			ImmutableArray<MimePartSpan>.Empty)
 		{
 		}
@@ -17,13 +18,11 @@ namespace Vaettir.Mail.Mime
 			MessageSpan span,
 			MessageSpan headerSpan,
 			MessageSpan contentSpan,
-			string boundary,
 			ImmutableArray<MimePartSpan> parts)
 		{
 			Span = span;
 			HeaderSpan = headerSpan;
 			ContentSpan = contentSpan;
-			Boundary = boundary;
 			Parts = parts;
 		}
 
@@ -31,8 +30,7 @@ namespace Vaettir.Mail.Mime
 		public MessageSpan HeaderSpan { get; }
 		public MessageSpan ContentSpan { get; }
 
-		public bool IsMultiPart => Boundary != null;
-		public string Boundary { get; }
+		public bool IsMultiPart => !Parts.IsEmpty;
 		public ImmutableArray<MimePartSpan> Parts { get; }
 	}
 }

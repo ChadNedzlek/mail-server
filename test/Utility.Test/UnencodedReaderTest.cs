@@ -20,6 +20,7 @@ namespace Vaettir.Utility.Test
 			var read = await reader.TryReadLineAsync(buffer, CancellationToken.None);
 			Assert.False(read.HasValue);
 			Assert.Equal(0, buffer[0]);
+			Assert.Equal(testString.Length, reader.BytePositition);
 		}
 
 		[Fact]
@@ -32,6 +33,7 @@ namespace Vaettir.Utility.Test
 			var read = await reader.TryReadLineAsync(buffer, CancellationToken.None);
 			Assert.Equal(testString.Length, read);
 			Assert.Equal(testString, Encoding.ASCII.GetString(buffer, 0, read.Value));
+			Assert.Equal(testString.Length, reader.BytePositition);
 		}
 
 		[Fact]
@@ -44,6 +46,7 @@ namespace Vaettir.Utility.Test
 			var read = await reader.TryReadLineAsync(buffer, CancellationToken.None);
 			Assert.Equal(testString.Length, read);
 			Assert.Equal(testString, Encoding.ASCII.GetString(buffer, 0, read.Value));
+			Assert.Equal(testString.Length, reader.BytePositition);
 		}
 
 		[Fact]
@@ -56,6 +59,7 @@ namespace Vaettir.Utility.Test
 			var read = await reader.TryReadLineAsync(buffer, CancellationToken.None);
 			Assert.Equal(3, read);
 			Assert.Equal("ABC", Encoding.ASCII.GetString(buffer, 0, read.Value));
+			Assert.Equal(5, reader.BytePositition);
 			read = await reader.TryReadLineAsync(buffer, CancellationToken.None);
 			Assert.Equal(3, read);
 			Assert.Equal("DEF", Encoding.ASCII.GetString(buffer, 0, read.Value));
@@ -64,6 +68,7 @@ namespace Vaettir.Utility.Test
 			Assert.Equal("GHI", Encoding.ASCII.GetString(buffer, 0, read.Value));
 			read = await reader.TryReadLineAsync(buffer, CancellationToken.None);
 			Assert.False(read.HasValue);
+			Assert.Equal(testString.Length, reader.BytePositition);
 		}
 	}
 }

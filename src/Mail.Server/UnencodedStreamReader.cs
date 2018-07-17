@@ -53,8 +53,6 @@ namespace Vaettir.Mail.Server
 				{
 					return readCount == 0 ? (int?) null : readCount;
 				}
-
-				_readBufferUsed = 0;
 			}
 			readCount += read;
 			return readCount;
@@ -98,6 +96,7 @@ namespace Vaettir.Mail.Server
 				return Task.FromResult(toCopy);
 			}
 
+			_readBufferUsed = 0;
 			return _stream.ReadAsync(buffer, offset, count, cancellationToken);
 		}
 	}
