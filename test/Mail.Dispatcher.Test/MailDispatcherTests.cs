@@ -253,7 +253,7 @@ namespace Vaettir.Mail.Dispatcher.Test
 			var expected = new HashSet<string> {"box@example.com", "other@example.com"};
 			foreach (MockMailboxItemReference r in _mailbox.SavedReferences)
 			{
-				Assert.True(expected.Contains(r.Mailbox));
+				Assert.Contains(r.Mailbox, expected);
 				expected.Remove(r.Mailbox);
 				Assert.Equal(body, await StreamUtility.ReadAllFromStreamAsync(r.BackupBodyStream));
 				r.Dispose();

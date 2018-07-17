@@ -39,7 +39,7 @@ namespace Vaettir.Mail.Smtp.Test
 
 			Assert.DoesNotContain(channel.Entries, e => e.Message == "STARTTLS");
 			List<MockSmtpChannel.Entry> authReplies = channel.Entries.Where(e => e.Message.StartsWith("AUTH")).ToList();
-			Assert.Equal(1, authReplies.Count);
+			Assert.Single(authReplies);
 			List<string> authParts = authReplies[0].Message.Split(' ').Skip(1).ToList();
 			SequenceAssert.SameSet(new[] {"PLN", "ENC"}, authParts);
 
@@ -71,7 +71,7 @@ namespace Vaettir.Mail.Smtp.Test
 
 			Assert.Contains(channel.Entries, e => e.Message == "STARTTLS");
 			List<MockSmtpChannel.Entry> authReplies = channel.Entries.Where(e => e.Message.StartsWith("AUTH")).ToList();
-			Assert.Equal(1, authReplies.Count);
+			Assert.Single(authReplies);
 			List<string> authParts = authReplies[0].Message.Split(' ').Skip(1).ToList();
 			SequenceAssert.SameSet(new[] {"PLN"}, authParts);
 

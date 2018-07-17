@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>    
-    <TargetFramework>netcoreapp2.0</TargetFramework>    
     <RootNamespace>Vaettir.Mail.Smtp.Test</RootNamespace>
   </PropertyGroup>
 
@@ -14,12 +13,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Test.Utilities\Test.Utilities.csproj" />
     <ProjectReference Include="..\Utility.Test\Utility.Test.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="System.Data">
-      <HintPath>C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.6.1\System.Data.dll</HintPath>
-    </Reference>
   </ItemGroup>
 
   <ItemGroup>

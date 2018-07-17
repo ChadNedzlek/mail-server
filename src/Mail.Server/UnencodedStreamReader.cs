@@ -1,12 +1,11 @@
 using System;
 using System.IO;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Vaettir.Mail.Server
 {
-	public sealed class UnencodedStreamReader
+	public sealed class UnencodedStreamReader : IDisposable
 	{
 		private readonly Stream _stream;
 		private readonly bool _leaveOpen;
@@ -32,32 +31,36 @@ namespace Vaettir.Mail.Server
 			_readBuffer = null;
 		}
 
-		public async Task<byte[]> ReadLineAsync(CancellationToken cancellationToken)
+		public enum ReadState
 		{
-			using (MemoryStream stream = new MemoryStream())
-			{
-				byte lastChar = 0;
-				ArraySegment<byte> chunk;
-				while (!TryFinishLine(ref lastChar, out chunk))
-				{
-					await stream.WriteAsync(chunk.Array, chunk.Offset, chunk.Count, cancellationToken);
-					_readBufferFilled = await ReadBytesAsync(_readBuffer, 0, _readBuffer.Length, cancellationToken);
-					if (_readBufferFilled == 0)
-					{
-						if (stream.Length == 0)
-							return null;
-						return stream.ToArray();
-					}
-
-					_readBufferUsed = 0;
-				}
-
-				await stream.WriteAsync(chunk.Array, chunk.Offset, chunk.Count, cancellationToken);
-				return stream.ToArray();
-			}
+			More,
+			EndOfStream,
+			InputBufferTooSmall,
 		}
 
-		private bool TryFinishLine(ref byte lastChar, out ArraySegment<byte> chunk)
+		public async Task<int?> TryReadLineAsync(Memory<byte> output, CancellationToken cancellationToken)
+		{
+			byte lastChar = 0;
+
+			int readCount = 0;
+			int read;
+			while (!TryFinishLine(ref lastChar, output.Span, out read))
+			{
+				output = output.Slice(read);
+				readCount += read;
+				_readBufferFilled = await ReadBytesAsync(_readBuffer, 0, _readBuffer.Length, cancellationToken);
+				if (_readBufferFilled == 0)
+				{
+					return readCount == 0 ? (int?) null : readCount;
+				}
+
+				_readBufferUsed = 0;
+			}
+			readCount += read;
+			return readCount;
+		}
+
+		private bool TryFinishLine(ref byte lastChar, in Span<byte> target, out int readBytes)
 		{
 			var charStart = _readBufferUsed;
 			var charIndex = charStart;
@@ -66,7 +69,8 @@ namespace Vaettir.Mail.Server
 				if (charIndex == _readBufferFilled)
 				{
 					_readBufferUsed = charIndex;
-					chunk = new ArraySegment<byte>(_readBuffer, charStart, _readBufferFilled - charStart);
+					readBytes = _readBufferFilled - charStart;
+					_readBuffer.AsSpan(charStart, readBytes).CopyTo(target);
 					return false;
 				}
 
@@ -74,7 +78,8 @@ namespace Vaettir.Mail.Server
 				{
 					// We found a CRLF set!
 					_readBufferUsed = charIndex + 1;
-					chunk = new ArraySegment<byte>(_readBuffer, charStart, charIndex - charStart - 1);
+					readBytes = charIndex - charStart - 1;
+					_readBuffer.AsSpan(charStart, readBytes).CopyTo(target);
 					return true;
 				}
 

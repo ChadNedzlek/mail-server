@@ -4,6 +4,7 @@
     <RootNamespace>Vaettir.Mail.Mime</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Mail.Server\Mail.Server.csproj" />
     <ProjectReference Include="..\Utility\Utility.csproj" />
   </ItemGroup>
 </Project>

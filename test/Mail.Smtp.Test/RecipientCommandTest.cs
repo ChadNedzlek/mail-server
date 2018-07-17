@@ -28,7 +28,7 @@ namespace Vaettir.Mail.Smtp.Test
 			await command.ExecuteAsync(CancellationToken.None);
 			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.Okay);
 			Assert.Same(mail, builder.PendingMail);
-			Assert.Equal(1, mail.Recipents.Count);
+			Assert.Single(mail.Recipents);
 			Assert.Equal("test@test.vaettir.net", mail.Recipents[0]);
 		}
 
@@ -72,7 +72,7 @@ namespace Vaettir.Mail.Smtp.Test
 			await command.ExecuteAsync(CancellationToken.None);
 			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.Okay);
 			Assert.Same(mail, builder.PendingMail);
-			Assert.Equal(1, mail.Recipents.Count);
+			Assert.Single(mail.Recipents);
 			Assert.Equal("test@test.vaettir.net", mail.Recipents[0]);
 		}
 

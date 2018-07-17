@@ -1,4 +1,3 @@
-
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26228.10
@@ -34,6 +33,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Test.Utilities", "Test.Utilities\Test.Utilities.csproj", "{D65A8764-838E-4337-9DBD-F6E8C096386C}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mail.Mime", "src\Mail.Mime\Mail.Mime.csproj", "{50008EF8-591D-4C0F-837E-D14E4A6DB7F9}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mail.Mime.Test", "test\Mail.Mime.Test\Mail.Mime.Test.csproj", "{E3EA3A33-5832-4D44-8905-D92A6728B761}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -85,6 +86,10 @@ Global
 		{50008EF8-591D-4C0F-837E-D14E4A6DB7F9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{50008EF8-591D-4C0F-837E-D14E4A6DB7F9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{50008EF8-591D-4C0F-837E-D14E4A6DB7F9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E3EA3A33-5832-4D44-8905-D92A6728B761}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E3EA3A33-5832-4D44-8905-D92A6728B761}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E3EA3A33-5832-4D44-8905-D92A6728B761}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E3EA3A33-5832-4D44-8905-D92A6728B761}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -101,6 +106,7 @@ Global
 		{C1EED450-434B-45DB-8F78-C0F5185FFE44} = {E83EA7A1-0714-448D-AADC-A5A3094D7651}
 		{D65A8764-838E-4337-9DBD-F6E8C096386C} = {E83EA7A1-0714-448D-AADC-A5A3094D7651}
 		{50008EF8-591D-4C0F-837E-D14E4A6DB7F9} = {EAE50C1D-1F6C-4CE0-8FC2-CFA8DB5F2BE5}
+		{E3EA3A33-5832-4D44-8905-D92A6728B761} = {E83EA7A1-0714-448D-AADC-A5A3094D7651}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {658FC4FF-106B-402B-9CE3-F9AD24D74D67}

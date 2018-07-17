@@ -90,13 +90,14 @@ namespace Vaettir.Utility
 			public readonly Action<object> Cancel;
 			public readonly TaskCompletionSource<bool> Source;
 
+			public CancellationTokenRegistration Registration { get; set; }
+
 			public Data(TaskCompletionSource<bool> source, Action<object> cancel)
 			{
 				Source = source;
 				Cancel = cancel;
+				Registration = default;
 			}
-
-			public CancellationTokenRegistration Registration { get; set; }
 		}
 	}
 }

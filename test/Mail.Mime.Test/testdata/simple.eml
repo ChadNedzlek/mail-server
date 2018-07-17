@@ -1,0 +1,14 @@
+Return-Path: <test@example.com>
+From: "Sender Name" <test@example.com>
+To: "Recipient Name" <test@test.com>,
+	"Other Name" <other@test.com>
+Subject: Sample subject
+MIME-Version: 1.0
+Content-Type: text/plain;
+	charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+
+Test body
+
+Test paragraph
+
