@@ -23,7 +23,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			return arguments.Count == 0;
 		}
 
-		public override bool IsValidWith(IEnumerable<IImapCommand> commands)
+		protected override bool IsValidWithCommands(IReadOnlyList<IImapCommand> commands)
 		{
 			foreach (IImapCommand command in commands)
 			{

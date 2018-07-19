@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -15,6 +16,8 @@ namespace Vaettir.Mail.Server
 	[Injected]
 	public class ProtocolListener
 	{
+		public const string ConnectionScopeTag = "ConnectionScope";
+
 		private readonly ILogger _log;
 		private readonly ILifetimeScope _scope;
 		private readonly SemaphoreSlim _sessionSemaphore = new SemaphoreSlim(1);
@@ -27,8 +30,6 @@ namespace Vaettir.Mail.Server
 			_scope = scope;
 			_log = log;
 		}
-
-		public X509Certificate2 ServerCertificate { get; set; }
 
 		public async Task RunAsync(CancellationToken cancellationToken)
 		{
@@ -92,17 +93,18 @@ namespace Vaettir.Mail.Server
 			CancellationToken cancellationToken)
 		{
 			ILifetimeScope newScope = _scope.BeginLifetimeScope(
+				ConnectionScopeTag,
 				builder =>
 				{
 					builder.RegisterInstance(
 						new ConnectionInformation(
 							client.Client.LocalEndPoint.ToString(),
 							client.Client.RemoteEndPoint.ToString()));
-
+					
 					builder.RegisterInstance(
 							new SecurableConnection(client.GetStream())
 							{
-								Certificate = ServerCertificate
+								Certificate = GetCertificate(connectionSettings),
 							})
 						.As<SecurableConnection>()
 						.As<IConnectionSecurity>()
@@ -120,6 +122,24 @@ namespace Vaettir.Mail.Server
 			using (await SemaphoreLock.GetLockAsync(_sessionSemaphore, cancellationToken))
 			{
 				_sessions.Add(new SessionHolder(newSession, newSession.RunAsync(cancellationToken), newScope));
+			}
+		}
+
+		private X509Certificate2 GetCertificate(ConnectionSetting connectionSettings)
+		{
+			if (String.IsNullOrEmpty(connectionSettings.CertificatePath))
+			{
+				return null;
+			}
+
+			try
+			{
+				return (X509Certificate2) X509Certificate.CreateFromCertFile(connectionSettings.CertificatePath);
+			}
+			catch (Exception e)
+			{
+				_log.Error($"Failed to load certificate for {connectionSettings.Protocol}:{connectionSettings.Port}: {e.GetType().Name} {e.Message}");
+				return null;
 			}
 		}
 

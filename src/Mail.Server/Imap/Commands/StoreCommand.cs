@@ -84,7 +84,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			return true;
 		}
 
-		public override bool IsValidWith(IEnumerable<IImapCommand> commands)
+		protected override bool IsValidWithCommands(IReadOnlyList<IImapCommand> commands)
 		{
 			return false;
 		}

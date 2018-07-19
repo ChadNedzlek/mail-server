@@ -128,7 +128,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 					cancellationToken);
 		}
 
-		public override bool IsValidWith(IEnumerable<IImapCommand> commands)
+		protected override bool IsValidWithCommands(IReadOnlyList<IImapCommand> commands)
 		{
 			return true;
 		}

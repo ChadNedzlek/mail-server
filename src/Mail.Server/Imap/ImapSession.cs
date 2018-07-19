@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Autofac.Features.Indexed;
+using Autofac.Features.Metadata;
 using Autofac.Features.OwnedInstances;
 using JetBrains.Annotations;
 using Vaettir.Mail.Server.Authentication;
@@ -22,7 +24,7 @@ namespace Vaettir.Mail.Server.Imap
 		IImapMessageChannel,
 		IImapMailboxPointer
 	{
-		private readonly IIndex<string, Lazy<Owned<IImapCommand>, IImapCommandMetadata>> _commands;
+		private readonly IIndex<string, Meta<Lazy<Owned<IImapCommand>>, ImapCommandMetadata>> _commands;
 
 		private readonly SecurableConnection _connection;
 		private readonly List<IImapCommand> _outstandingCommands = new List<IImapCommand>();
@@ -30,13 +32,16 @@ namespace Vaettir.Mail.Server.Imap
 		private readonly byte[] _readBuffer = new byte[1000000];
 		private readonly SemaphoreSlim _readSemaphore = new SemaphoreSlim(1);
 		private readonly SemaphoreSlim _sendSemaphore = new SemaphoreSlim(1);
+		private readonly ILogger _logger;
 
 		public ImapSession(
 			[NotNull] SecurableConnection connection,
-			[NotNull] IIndex<string, Lazy<Owned<IImapCommand>, IImapCommandMetadata>> commands)
+			[NotNull] IIndex<string, Meta<Lazy<Owned<IImapCommand>>, ImapCommandMetadata>> commands,
+			ILogger logger)
 		{
 			_commands = commands ?? throw new ArgumentNullException(nameof(commands));
 			_connection = connection ?? throw new ArgumentNullException(nameof(connection));
+			_logger = logger;
 			State = SessionState.Open;
 		}
 
@@ -98,8 +103,7 @@ namespace Vaettir.Mail.Server.Imap
 				builder.Append(message.Tag);
 				foreach (IMessageData data in message.Data)
 				{
-					var literal = data as LiteralMessageData;
-					if (literal != null)
+					if (data is LiteralMessageData literal)
 					{
 						builder.Append("}");
 						builder.Append(literal.Data.Length);
@@ -120,6 +124,7 @@ namespace Vaettir.Mail.Server.Imap
 
 				if (builder.Length > 0)
 				{
+					_logger.Verbose("OUTGOING -> " + builder);
 					builder.AppendLine();
 					await _connection.WriteAsync(builder.ToString(), encoding, cancellationToken);
 				}
@@ -145,13 +150,10 @@ namespace Vaettir.Mail.Server.Imap
 
 		public string Id { get; }
 
-		public Task RunAsync(CancellationToken cancellationToken)
+		public async Task RunAsync(CancellationToken cancellationToken)
 		{
-			throw new NotImplementedException();
-		}
+			await SendMessageAsync(new ImapMessage("*", "OK", new ServerMessageData("IMAP4rev1 Service Ready")), Encoding.ASCII, cancellationToken);
 
-		public async Task Start(CancellationToken cancellationToken)
-		{
 			cancellationToken.ThrowIfCancellationRequested();
 			while (_connection.State != SecurableConnectionState.Closed)
 			{
@@ -230,8 +232,8 @@ namespace Vaettir.Mail.Server.Imap
 			while (true)
 			{
 				string line = await _connection.ReadLineAsync(Encoding.UTF8, cancellationToken);
-				int literalLength;
-				ParseLine(ref tag, line, data, out literalLength);
+				_logger.Verbose("INCOMING <- " + line);
+				ParseLine(ref tag, line, data, out int literalLength);
 
 				if (literalLength == -1)
 				{
@@ -291,18 +293,20 @@ namespace Vaettir.Mail.Server.Imap
 				throw new BadImapCommandFormatException(tagArg.Value);
 			}
 
-			if (!_commands.TryGetValue(commandArg.Value, out Lazy<Owned<IImapCommand>, IImapCommandMetadata> command))
+			if (!_commands.TryGetValue(commandArg.Value, out var command))
 			{
 				throw new BadImapCommandFormatException(tagArg.Value);
 			}
 
 			if (command.Metadata.MinimumState > State)
 			{
-				command.Value.Dispose();
+				command.Value.Value.Dispose();
 				throw new BadImapCommandFormatException(tagArg.Value);
 			}
 
-			return command.Value.Value;
+			IImapCommand imapCommand = command.Value.Value.Value;
+			imapCommand.Initialize(commandArg.Value, tagArg.Value, data.Skip(2).ToImmutableList());
+			return imapCommand;
 		}
 
 		public async Task SendContinuationAsync(string text, Encoding encoding, CancellationToken cancellationToken)

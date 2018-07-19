@@ -8,8 +8,6 @@ namespace Vaettir.Mail.Server.Imap.Messages
 		public ImapMessage(string tag, string messageName, IReadOnlyList<IMessageData> data)
 			: this(tag, Concat(messageName, data))
 		{
-			Tag = tag;
-			Data = data;
 		}
 
 		public ImapMessage(string tag, IReadOnlyList<IMessageData> data)

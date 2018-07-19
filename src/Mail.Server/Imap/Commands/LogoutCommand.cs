@@ -36,7 +36,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			_channel.EndSession();
 		}
 
-		public override bool IsValidWith(IEnumerable<IImapCommand> commands)
+		protected override bool IsValidWithCommands(IReadOnlyList<IImapCommand> commands)
 		{
 			return false;
 		}

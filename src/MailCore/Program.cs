@@ -1,8 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using Autofac;
+using Autofac.Extras.AttributeMetadata;
+using Autofac.Features.Indexed;
+using Autofac.Features.Metadata;
+using Autofac.Features.OwnedInstances;
 using JetBrains.Annotations;
 using Mono.Options;
 using Vaettir.Mail.Server;
@@ -10,6 +15,7 @@ using Vaettir.Mail.Server.Authentication;
 using Vaettir.Mail.Server.Authentication.Mechanism;
 using Vaettir.Mail.Server.FileSystem;
 using Vaettir.Mail.Server.Imap;
+using Vaettir.Mail.Server.Imap.Commands;
 using Vaettir.Mail.Server.Smtp;
 using Vaettir.Mail.Server.Smtp.Commands;
 using Vaettir.Utility;
@@ -18,7 +24,7 @@ namespace MailCore
 {
 	internal class Options
 	{
-		public string SettingsPath { get; set; } = "smtp.config.json";
+		public string SettingsPath { get; set; } = "mail.config.json";
 		public LogLevel Verbosity { get; set; }
 	}
 
@@ -157,18 +163,18 @@ namespace MailCore
 				.Keyed<IProtocolSession>("smtp")
 				.As<ISmtpMessageChannel>()
 				.As<IMailBuilder>()
-				.InstancePerLifetimeScope();
+				.InstancePerMatchingLifetimeScope(ProtocolListener.ConnectionScopeTag);
 
 			builder.RegisterType<SmtpAuthenticationTransport>()
 				.Keyed<IAuthenticationTransport>("smtp")
-				.InstancePerLifetimeScope();
+				.InstancePerMatchingLifetimeScope(ProtocolListener.ConnectionScopeTag);
 
 			builder.RegisterType<ImapSession>()
 				.Keyed<IProtocolSession>("imap")
 				.Keyed<IAuthenticationTransport>("imap")
 				.As<IImapMessageChannel>()
 				.As<IImapMailboxPointer>()
-				.InstancePerLifetimeScope();
+				.InstancePerMatchingLifetimeScope(ProtocolListener.ConnectionScopeTag);
 
 			builder.RegisterType<MailTransfer>();
 			builder.RegisterType<MailDispatcher>();
@@ -188,10 +194,28 @@ namespace MailCore
 			builder.RegisterInstance(settings)
 				.As<IVolatile<AgentSettings>>()
 				.As<IVolatile<AgentSettings>>();
-
+			
 			builder.RegisterAssemblyTypes(typeof(SmtpSession).GetTypeInfo().Assembly)
 				.Where(t => t.GetTypeInfo().GetCustomAttribute<SmtpCommandAttribute>() != null)
 				.Keyed<ISmtpCommand>(t => t.GetTypeInfo().GetCustomAttribute<SmtpCommandAttribute>().Name);
+
+			var imapCommands = typeof(ImapSession)
+				.Assembly
+				.DefinedTypes
+				.Select(t => (t, md: t.GetTypeInfo().GetCustomAttribute<ImapCommandAttribute>()))
+				.Where(p => p.md != null);
+			foreach (var (t, md) in imapCommands)
+			{
+				builder.RegisterType(t)
+					.Keyed<IImapCommand>(md.Name)
+					.WithMetadata<ImapCommandMetadata>(m =>
+					{
+						m.For(x => x.Name, md.Name);
+						m.For(x => x.MinimumState, md.MinimumState);
+					});
+			}
+
+			builder.RegisterType<CapabilityCommand>().As<IImapCommand>();
 
 			builder.RegisterAssemblyTypes(typeof(IAuthenticationSession).GetTypeInfo().Assembly)
 				.Where(t => t.GetTypeInfo().GetCustomAttribute<AuthenticationMechanismAttribute>() != null)

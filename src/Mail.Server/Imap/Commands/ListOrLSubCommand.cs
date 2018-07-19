@@ -82,7 +82,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			await EndOkAsync(_channel, cancellationToken);
 		}
 
-		public override bool IsValidWith(IEnumerable<IImapCommand> commands)
+		protected override bool IsValidWithCommands(IReadOnlyList<IImapCommand> commands)
 		{
 			return true;
 		}

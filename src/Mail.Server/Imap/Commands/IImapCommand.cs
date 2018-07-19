@@ -13,6 +13,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 		ImmutableList<IMessageData> Arguments { get; }
 		bool HasValidArguments { get; }
 		Task ExecuteAsync(CancellationToken cancellationToken);
-		bool IsValidWith(IEnumerable<IImapCommand> commands);
+		bool IsValidWith(IReadOnlyList<IImapCommand> commands);
+		void Initialize(string commandName, string tag, ImmutableList<IMessageData> data);
 	}
 }

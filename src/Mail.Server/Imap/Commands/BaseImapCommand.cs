@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Vaettir.Mail.Server.Imap.Messages;
@@ -16,7 +17,18 @@ namespace Vaettir.Mail.Server.Imap.Commands
 		public bool HasValidArguments { get; private set; }
 		public string CommandName { get; private set; }
 
-		public abstract bool IsValidWith(IEnumerable<IImapCommand> commands);
+		public virtual bool IsValidWith(IReadOnlyList<IImapCommand> commands)
+		{
+			if (!commands.Any())
+			{
+				return true;
+			}
+
+			return IsValidWithCommands(commands);
+		}
+
+		protected abstract bool IsValidWithCommands(IReadOnlyList<IImapCommand> command);
+
 		public abstract Task ExecuteAsync(CancellationToken cancellationToken);
 
 		public void Initialize(string commandName, string tag, ImmutableList<IMessageData> data)

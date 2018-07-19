@@ -19,9 +19,10 @@ namespace Vaettir.Mail.Server.Imap.Commands
 		private string _mailbox;
 		private LiteralMessageData _messageBody;
 
-		public AppendCommand(IImapMailStore mailstore)
+		public AppendCommand(IImapMailStore mailstore, IImapMessageChannel channel)
 		{
 			_mailstore = mailstore;
+			_channel = channel;
 		}
 
 		protected override bool TryParseArguments(ImmutableList<IMessageData> arguments)
@@ -38,8 +39,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 					}
 
 					_flags = secondList;
-					DateTime localDate;
-					if (!MessageData.TryGetDateTime(arguments[2], Encoding.ASCII, out localDate))
+					if (!MessageData.TryGetDateTime(arguments[2], Encoding.ASCII, out DateTime localDate))
 					{
 						return false;
 					}
@@ -50,15 +50,13 @@ namespace Vaettir.Mail.Server.Imap.Commands
 				case 3:
 				{
 					IMessageData second = arguments[1];
-					var secondList = second as ListMessageData;
-					if (secondList != null)
+					if (second is ListMessageData secondList)
 					{
 						_flags = secondList;
 					}
 					else
 					{
-						DateTime localDate;
-						if (!MessageData.TryGetDateTime(second, Encoding.ASCII, out localDate))
+						if (!MessageData.TryGetDateTime(second, Encoding.ASCII, out DateTime localDate))
 						{
 							return false;
 						}
@@ -77,7 +75,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 			}
 		}
 
-		public override bool IsValidWith(IEnumerable<IImapCommand> commands)
+		protected override bool IsValidWithCommands(IReadOnlyList<IImapCommand> commands)
 		{
 			return false;
 		}
