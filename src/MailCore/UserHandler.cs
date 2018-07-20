@@ -74,7 +74,9 @@ namespace MailCore
 
 			textWriter.WriteLine(
 				@"Usage:
-  vmail [global options] run
+  vmail [global options] mail <command>
+
+    add -u <user> -p <password>
 
   global options:
 ");

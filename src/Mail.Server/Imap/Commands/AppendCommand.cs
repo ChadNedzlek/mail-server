@@ -32,8 +32,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 				case 4:
 				{
 					IMessageData second = arguments[1];
-					var secondList = second as ListMessageData;
-					if (secondList == null)
+					if (!(second is ListMessageData secondList))
 					{
 						return false;
 					}

@@ -50,7 +50,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 				return;
 			}
 
-			_channel.AuthenticatedUser = userData;
+			_channel.SetAuthenticatedUser(userData);
 			await EndWithResultAsync(
 				_channel,
 				CommandResult.Ok,

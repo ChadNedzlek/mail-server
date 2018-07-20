@@ -34,33 +34,30 @@ namespace Vaettir.Mail.Server.Imap.Commands
 
 		public override async Task ExecuteAsync(CancellationToken cancellationToken)
 		{
-			if (_connection.IsEncrypted)
+			var data = new List<IMessageData>
 			{
-				var data = new List<IMessageData>
-				{
-					new AtomMessageData("IMAP4rev1")
-				};
+				new AtomMessageData("IMAP4rev1")
+			};
 
+			if (!_connection.IsEncrypted && _connection.Certificate != null)
+				data.Add(new AtomMessageData("STARTTLS"));
 
-				foreach (Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata> mechanism in _auth)
+			bool validLogin = false;
+			foreach (Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata> mechanism in _auth)
+			{
+				if (!mechanism.Metadata.RequiresEncryption || _connection.IsEncrypted)
 				{
 					data.Add(new AtomMessageData($"AUTH=${mechanism.Metadata.Name}"));
+					validLogin = true;
 				}
+			}
 
-				await _channel.SendMessageAsync(new ImapMessage(UntaggedTag, CommandName, data), cancellationToken);
-			}
-			else
+			if (!validLogin)
 			{
-				await _channel.SendMessageAsync(
-					new ImapMessage(
-						UntaggedTag,
-						CommandName,
-						new AtomMessageData("IMAP4rev1"),
-						new AtomMessageData("STARTTLS"),
-						new AtomMessageData("LOGINDISABLED")
-					),
-					cancellationToken);
+				data.Add(new AtomMessageData("LOGINDISABLED"));
 			}
+
+			await _channel.SendMessageAsync(new ImapMessage(UntaggedTag, CommandName, data), cancellationToken);
 
 			await EndOkAsync(_channel, cancellationToken);
 		}

@@ -154,6 +154,8 @@ namespace Vaettir.Mail.Server.Imap
 		{
 			await SendMessageAsync(new ImapMessage("*", "OK", new ServerMessageData("IMAP4rev1 Service Ready")), Encoding.ASCII, cancellationToken);
 
+			State = SessionState.NotAuthenticated;
+
 			cancellationToken.ThrowIfCancellationRequested();
 			while (_connection.State != SecurableConnectionState.Closed)
 			{

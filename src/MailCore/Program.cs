@@ -4,11 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using Autofac;
-using Autofac.Extras.AttributeMetadata;
-using Autofac.Features.Indexed;
-using Autofac.Features.Metadata;
-using Autofac.Features.OwnedInstances;
-using JetBrains.Annotations;
 using Mono.Options;
 using Vaettir.Mail.Server;
 using Vaettir.Mail.Server.Authentication;
@@ -102,6 +97,7 @@ namespace MailCore
 			textWriter.WriteLine(
 				@"Usage:
   vmail [global options] run
+  vmail [global options] user
 
   global options:
 ");

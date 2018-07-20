@@ -3,12 +3,10 @@
 	"connections": [
 		{
 			"protocol": "smtp",
-			"certificatePath": "C:\\temp\\mail\\mail-cert.pfx", 
 			"port": 9025
 		},
 		{
 			"protocol": "imap",
-			"certificatePath": "C:\\temp\\mail\\mail-cert.pfx", 
 			"port": 143 
 		}
 	],

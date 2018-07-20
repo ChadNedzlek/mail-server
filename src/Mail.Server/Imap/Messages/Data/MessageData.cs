@@ -12,16 +12,14 @@ namespace Vaettir.Mail.Server.Imap.Messages.Data
 
 		public static string GetString(IMessageData data, Encoding encoding)
 		{
-			var atom = data as AtomMessageData;
-			if (atom != null)
+			switch (data)
 			{
-				return atom.Value;
-			}
-
-			var literal = data as LiteralMessageData;
-			if (literal != null)
-			{
-				return encoding.GetString(literal.Data);
+				case AtomMessageData atom:
+					return atom.Value;
+				case LiteralMessageData literal:
+					return encoding.GetString(literal.Data);
+				case QuotedMessageData quoted:
+					return quoted.Value;
 			}
 
 			return null;
