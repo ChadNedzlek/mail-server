@@ -16,8 +16,6 @@ namespace Vaettir.Mail.Server.Imap.Messages.Data
 			{
 				case AtomMessageData atom:
 					return atom.Value;
-				case LiteralMessageData literal:
-					return encoding.GetString(literal.Data);
 				case QuotedMessageData quoted:
 					return quoted.Value;
 			}
@@ -48,8 +46,8 @@ namespace Vaettir.Mail.Server.Imap.Messages.Data
 				return new QuotedMessageData(value);
 			}
 
-			byte[] dataBytes = Encoding.UTF8.GetBytes(value);
-			return new LiteralMessageData(dataBytes, dataBytes.Length);
+
+			throw new NotSupportedException();
 		}
 	}
 }

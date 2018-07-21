@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -36,11 +37,10 @@ namespace Vaettir.Mail.Server.Imap
 		Task SaveAsync(MailMessage message);
 		Task RefreshAsync(MailMessage message);
 
-		Task SaveBinaryAsync(
+		Task<Stream> OpenBinaryAsync(
 			string mailbox,
 			DateTime dateTime,
 			IEnumerable<string> flags,
-			byte[] data,
 			CancellationToken cancellationToken);
 	}
 }

@@ -127,14 +127,15 @@ namespace Vaettir.Mail.Server
 
 		private X509Certificate2 GetCertificate(ConnectionSetting connectionSettings)
 		{
-			if (String.IsNullOrEmpty(connectionSettings.CertificatePath))
+			if (String.IsNullOrEmpty(connectionSettings.Certificate))
 			{
 				return null;
 			}
 
 			try
 			{
-				return (X509Certificate2) X509Certificate.CreateFromCertFile(connectionSettings.CertificatePath);
+				_log.Information($"Loading certificate from {connectionSettings.Certificate}");
+				return new X509Certificate2(connectionSettings.Certificate);
 			}
 			catch (Exception e)
 			{

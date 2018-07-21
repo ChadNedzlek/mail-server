@@ -11,16 +11,16 @@ namespace Vaettir.Mail.Test.Utilities
 {
 	public static class TestHelpers
 	{
-		public static IEnumerable<Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata>> GetAuths()
+		public static IEnumerable<Lazy<IAuthenticationSession, AuthencticationMechanismMetadata>> GetAuths()
 		{
-			return new List<Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata>>
+			return new List<Lazy<IAuthenticationSession, AuthencticationMechanismMetadata>>
 			{
-				new Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata>(
+				new Lazy<IAuthenticationSession, AuthencticationMechanismMetadata>(
 					() => new MockEncryptedAuth(),
-					new AuthenticationMechanismAttribute("ENC", true)),
-				new Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata>(
+					new AuthencticationMechanismMetadata{Name="ENC", RequiresEncryption = true}),
+				new Lazy<IAuthenticationSession, AuthencticationMechanismMetadata>(
 					() => new MockPlainTextAuth(MockPlainTextAuth.Action.Null),
-					new AuthenticationMechanismAttribute("PLN", false))
+					new AuthencticationMechanismMetadata{Name="PLN", RequiresEncryption = false})
 			};
 		}
 

@@ -1,6 +1,8 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -81,12 +83,38 @@ namespace Vaettir.Mail.Server.Imap.Commands
 
 		public override async Task ExecuteAsync(CancellationToken cancellationToken)
 		{
-			await _mailstore.SaveBinaryAsync(
+			using (Stream writeStream = await _mailstore.OpenBinaryAsync(
 				_mailbox,
 				_date ?? DateTime.UtcNow,
 				_flags?.Items.Select(f => MessageData.GetString(f, Encoding.ASCII)),
-				_messageBody.Data,
-				cancellationToken);
+				cancellationToken))
+			{
+				using (var readStream = await _channel.ReadLiteralDataAsync(cancellationToken))
+				{
+					int toRead = _messageBody.Length;
+					byte[] buffer = null;
+					try
+					{
+						buffer = ArrayPool<byte>.Shared.Rent(4096);
+						int read;
+						while ((read = await readStream.ReadBytesAsync(
+							buffer,
+							0,
+							Math.Min(toRead, buffer.Length),
+							cancellationToken)) != 0)
+						{
+							await writeStream.WriteAsync(buffer, 0, read, cancellationToken);
+						}
+					}
+					finally
+					{
+						if (buffer != null)
+						{
+							ArrayPool<byte>.Shared.Return(buffer);
+						}
+					}
+				}
+			}
 
 			await EndOkAsync(_channel, cancellationToken);
 		}

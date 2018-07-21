@@ -4,13 +4,12 @@ namespace Vaettir.Mail.Server.Imap.Messages.Data
 {
 	public class LiteralMessageData : IMessageData
 	{
-		public LiteralMessageData(byte[] dataBytes, int length)
+		public LiteralMessageData(int length)
 		{
-			Data = new byte[length];
-			Array.Copy(dataBytes, Data, length);
+			Length = length;
 		}
 
-		public byte[] Data { get; }
+		public int Length { get; }
 
 		public string ToMessageString()
 		{

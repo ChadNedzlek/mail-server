@@ -21,14 +21,14 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 			//"BINARYMIME",
 		};
 
-		private readonly IList<Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata>> _authentication;
+		private readonly List<Lazy<IAuthenticationSession, AuthencticationMechanismMetadata>> _authentication;
 		private readonly ISmtpMessageChannel _channel;
 		private readonly IConnectionSecurity _connection;
 		private readonly ILogger _log;
 		private readonly AgentSettings _settings;
 
 		public ExtendedHelloCommand(
-			IEnumerable<Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata>> authentication,
+			IEnumerable<Lazy<IAuthenticationSession, AuthencticationMechanismMetadata>> authentication,
 			IConnectionSecurity connection,
 			ISmtpMessageChannel channel,
 			AgentSettings settings,
@@ -56,7 +56,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 			}
 			else
 			{
-				List<Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata>> plainAuths =
+				List<Lazy<IAuthenticationSession, AuthencticationMechanismMetadata>> plainAuths =
 					_authentication.Where(a => !a.Metadata.RequiresEncryption).ToList();
 				if (plainAuths.Count > 0)
 				{

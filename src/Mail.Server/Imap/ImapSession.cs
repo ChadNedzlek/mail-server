@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -106,7 +107,7 @@ namespace Vaettir.Mail.Server.Imap
 					if (data is LiteralMessageData literal)
 					{
 						builder.Append("}");
-						builder.Append(literal.Data.Length);
+						builder.Append(literal.Length);
 						builder.AppendLine("}");
 						await _connection.WriteAsync(builder.ToString(), encoding, cancellationToken);
 						builder.Clear();
@@ -124,7 +125,7 @@ namespace Vaettir.Mail.Server.Imap
 
 				if (builder.Length > 0)
 				{
-					_logger.Verbose("OUTGOING -> " + builder);
+					_logger.Verbose("IMAP -> " + builder);
 					builder.AppendLine();
 					await _connection.WriteAsync(builder.ToString(), encoding, cancellationToken);
 				}
@@ -234,37 +235,8 @@ namespace Vaettir.Mail.Server.Imap
 			while (true)
 			{
 				string line = await _connection.ReadLineAsync(Encoding.UTF8, cancellationToken);
-				_logger.Verbose("INCOMING <- " + line);
-				ParseLine(ref tag, line, data, out int literalLength);
-
-				if (literalLength == -1)
-				{
-					break;
-				}
-
-				if (_readBuffer.Length < literalLength)
-				{
-					// Too much data
-					throw new BadImapCommandFormatException(tag, "Command line too long");
-				}
-
-				using (await SemaphoreLock.GetLockAsync(_readSemaphore, cancellationToken))
-				{
-					var read = 0;
-					do
-					{
-						await _connection.WriteLineAsync("+ Ready for literal data", Encoding.ASCII, cancellationToken);
-						int newRead = await _connection.ReadBytesAsync(_readBuffer, read, literalLength, cancellationToken);
-						if (newRead == 0)
-						{
-							throw new BadImapCommandFormatException(tag);
-						}
-
-						read += newRead;
-					} while (read < literalLength);
-
-					data.Add(new LiteralMessageData(_readBuffer, literalLength));
-				}
+				_logger.Verbose("IMAP <- " + line);
+				ParseLine(ref tag, line, data);
 			}
 
 			return data;
@@ -316,16 +288,15 @@ namespace Vaettir.Mail.Server.Imap
 			await _connection.WriteLineAsync("+ " + text, encoding, cancellationToken);
 		}
 
-		internal static void ParseLine(string text, List<IMessageData> data, out int literalLength)
+		internal static void ParseLine(string text, List<IMessageData> data)
 		{
 			string tag = null;
-			ParseLine(ref tag, text, data, out literalLength);
+			ParseLine(ref tag, text, data);
 		}
 
-		internal static void ParseLine(ref string tag, string text, List<IMessageData> data, out int literalLength)
+		internal static void ParseLine(ref string tag, string text, List<IMessageData> data)
 		{
 			int segmentStart = -1;
-			literalLength = -1;
 			var inQuote = false;
 			var inLiteralLength = false;
 			var inUtf7Escape = false;
@@ -341,7 +312,7 @@ namespace Vaettir.Mail.Server.Imap
 				{
 					if (c == '}')
 					{
-						if (!int.TryParse(text.Substring(segmentStart, i - segmentStart), out literalLength))
+						if (!int.TryParse(text.Substring(segmentStart, i - segmentStart), out int literalLength))
 						{
 							throw new BadImapCommandFormatException(tag);
 						}
@@ -350,6 +321,8 @@ namespace Vaettir.Mail.Server.Imap
 						{
 							throw new BadImapCommandFormatException(tag);
 						}
+
+						listStack.Peek().Add(new LiteralMessageData(literalLength));
 
 						return;
 					}
@@ -537,6 +510,12 @@ namespace Vaettir.Mail.Server.Imap
 		{
 			AuthenticatedUser = userData;
 			State = SessionState.Authenticated;
+		}
+
+		public async Task<IVariableStreamReader> ReadLiteralDataAsync(CancellationToken cancellationToken)
+		{ 
+			await _connection.WriteLineAsync("+ Ready for literal data", Encoding.ASCII, cancellationToken);
+			return _connection;
 		}
 
 		private async Task<SelectedMailbox> ProcessSelectionAsync(Mailbox mailbox, CancellationToken cancellationToken)

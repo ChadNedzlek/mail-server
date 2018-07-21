@@ -13,13 +13,13 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	[ImapCommand("CAPABILITY", SessionState.Open)]
 	public class CapabilityCommand : BaseImapCommand
 	{
-		private readonly IEnumerable<Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata>> _auth;
+		private readonly IEnumerable<Lazy<IAuthenticationSession, AuthencticationMechanismMetadata>> _auth;
 		private readonly IImapMessageChannel _channel;
 		private readonly IConnectionSecurity _connection;
 
 		public CapabilityCommand(
 			IConnectionSecurity connection,
-			IEnumerable<Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata>> auth,
+			IEnumerable<Lazy<IAuthenticationSession, AuthencticationMechanismMetadata>> auth,
 			IImapMessageChannel channel)
 		{
 			_connection = connection;
@@ -43,7 +43,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 				data.Add(new AtomMessageData("STARTTLS"));
 
 			bool validLogin = false;
-			foreach (Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata> mechanism in _auth)
+			foreach (Lazy<IAuthenticationSession, AuthencticationMechanismMetadata> mechanism in _auth)
 			{
 				if (!mechanism.Metadata.RequiresEncryption || _connection.IsEncrypted)
 				{
@@ -52,7 +52,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 				}
 			}
 
-			if (!validLogin)
+			if (!validLogin && !_connection.IsEncrypted)
 			{
 				data.Add(new AtomMessageData("LOGINDISABLED"));
 			}

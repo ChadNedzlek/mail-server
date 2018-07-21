@@ -5,12 +5,13 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Vaettir.Mail.Server.Imap;
 using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server.FileSystem
 {
 	[Injected]
-	public class FileSystemMailboxStore : IMailboxStore
+	public class FileSystemMailboxStore : IMailboxStore, IImapMailStore
 	{
 		private const string CurrentMailStatus = "cur";
 		private const string TempMailStatus = "tmp";
@@ -22,6 +23,73 @@ namespace Vaettir.Mail.Server.FileSystem
 		public FileSystemMailboxStore(AgentSettings settings)
 		{
 			_settings = settings;
+		}
+
+		public Task<Mailbox> GetMailBoxAsync(
+			UserData authenticatedUser,
+			string mailbox,
+			bool isExamine,
+			CancellationToken cancellationToken)
+		{
+			throw new NotImplementedException();
+		}
+
+		public Task<Mailbox> CreateMailboxAsync(
+			UserData authenticatedUser,
+			string mailbox,
+			CancellationToken cancellationToken)
+		{
+			throw new NotImplementedException();
+		}
+
+		public Task DeleteMailboxAsync(UserData authenticatedUser, string mailbox, CancellationToken cancellationToken)
+		{
+			throw new NotImplementedException();
+		}
+
+		public Task RenameMailboxAsync(
+			UserData authenticatedUser,
+			string oldMailbox,
+			string newMailbox,
+			CancellationToken cancellationToken)
+		{
+			throw new NotImplementedException();
+		}
+
+		public Task MarkMailboxSubscribedAsync(
+			UserData authenticatedUser,
+			string mailbox,
+			bool subscribed,
+			CancellationToken cancellationToken)
+		{
+			throw new NotImplementedException();
+		}
+
+		public Task<IEnumerable<Mailbox>> ListMailboxesAsync(
+			UserData authenticatedUser,
+			string pattern,
+			CancellationToken cancellationToken)
+		{
+			throw new NotImplementedException();
+		}
+
+		public Task SaveAsync(MailMessage message)
+		{
+			throw new NotImplementedException();
+		}
+
+		public Task RefreshAsync(MailMessage message)
+		{
+			throw new NotImplementedException();
+		}
+
+		public Task<Stream> OpenBinaryAsync(
+			string mailbox,
+			DateTime dateTime,
+			IEnumerable<string> flags,
+			CancellationToken cancellationToken)
+		{
+			throw new NotImplementedException();
 		}
 
 		public Task<IMailboxItemReadReference> OpenReadAsync(IMailboxItemReference reference, CancellationToken token)
@@ -67,14 +135,20 @@ namespace Vaettir.Mail.Server.FileSystem
 		{
 			return Task.FromResult(
 				(IEnumerable<IMailboxItemReference>) Directory
-					.GetFiles(GetFolderPath(mailbox, folder, CurrentMailStatus), "*.mbox", SearchOption.TopDirectoryOnly)
+					.GetFiles(
+						GetFolderPath(mailbox, folder, CurrentMailStatus),
+						"*.mbox",
+						SearchOption.TopDirectoryOnly)
 					.Select(file => new MBoxReference(mailbox, folder, file)));
 		}
 
 		public Task<IEnumerable<string>> GetFolders(string mailbox, string folder, CancellationToken token)
 		{
 			return Task.FromResult(
-				Directory.GetDirectories(GetFolderPath(mailbox, folder, CurrentMailStatus), ".*", SearchOption.TopDirectoryOnly)
+				Directory.GetDirectories(
+						GetFolderPath(mailbox, folder, CurrentMailStatus),
+						".*",
+						SearchOption.TopDirectoryOnly)
 					.Select(s => s.Substring(1)) // Strip off the leading .
 			);
 		}
@@ -204,7 +278,10 @@ namespace Vaettir.Mail.Server.FileSystem
 		{
 			public string CurrentFileName;
 
-			public MBoxReference(string mailbox, string folder, string currentFileName) : base(mailbox, folder, currentFileName)
+			public MBoxReference(string mailbox, string folder, string currentFileName) : base(
+				mailbox,
+				folder,
+				currentFileName)
 			{
 				CurrentFileName = currentFileName;
 			}

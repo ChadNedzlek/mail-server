@@ -17,9 +17,15 @@ namespace Vaettir.Mail.Server.Authentication.Mechanism
 		public bool RequiresEncryption { get; }
 	}
 
-	public interface IAuthencticationMechanismMetadata
+	internal interface IAuthencticationMechanismMetadata
 	{
 		string Name { get; }
 		bool RequiresEncryption { get; }
+	}
+
+	public class AuthencticationMechanismMetadata : IAuthencticationMechanismMetadata
+	{
+		public string Name { get; set; }
+		public bool RequiresEncryption { get; set;  }
 	}
 }

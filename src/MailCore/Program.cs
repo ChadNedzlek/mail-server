@@ -212,14 +212,23 @@ namespace MailCore
 			}
 
 			builder.RegisterType<CapabilityCommand>().As<IImapCommand>();
-
-			builder.RegisterAssemblyTypes(typeof(IAuthenticationSession).GetTypeInfo().Assembly)
-				.Where(t => t.GetTypeInfo().GetCustomAttribute<AuthenticationMechanismAttribute>() != null)
-				.Keyed<IAuthenticationSession>(
-					t => t.GetTypeInfo().GetCustomAttribute<AuthenticationMechanismAttribute>().Name)
-				.WithMetadata(
-					"RequiresEncryption",
-					t => t.GetTypeInfo().GetCustomAttribute<AuthenticationMechanismAttribute>().RequiresEncryption);
+			
+			var authMechs = typeof(IAuthenticationSession)
+				.Assembly
+				.DefinedTypes
+				.Select(t => (t, md: t.GetTypeInfo().GetCustomAttribute<AuthenticationMechanismAttribute>()))
+				.Where(p => p.md != null);
+			foreach (var (t, md) in authMechs)
+			{
+				builder.RegisterType(t)
+					.WithMetadata<AuthencticationMechanismMetadata>(m =>
+					{
+						m.For(x => x.Name, md.Name);
+						m.For(x => x.RequiresEncryption, md.RequiresEncryption);
+					})
+					.As<IAuthenticationSession>()
+					.Keyed<IAuthenticationSession>(md.Name);
+			}
 
 			return builder.Build();
 		}

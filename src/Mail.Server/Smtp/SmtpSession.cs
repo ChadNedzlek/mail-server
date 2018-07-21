@@ -72,8 +72,10 @@ namespace Vaettir.Mail.Server.Smtp
 			{
 				builder.Append(message);
 			}
-
-			return _connection.WriteLineAsync(builder.ToString(), Encoding.ASCII, cancellationToken);
+			
+			string output = builder.ToString();
+			_log.Verbose($"SMTP -> {output}");
+			return _connection.WriteLineAsync(output, Encoding.ASCII, cancellationToken);
 		}
 
 		async Task ISmtpMessageChannel.SendReplyAsync(
@@ -117,7 +119,9 @@ namespace Vaettir.Mail.Server.Smtp
 				builder.Append(message);
 			}
 
-			await _connection.WriteLineAsync(builder.ToString(), Encoding.ASCII, cancellationToken);
+			var output = builder.ToString();
+			_log.Verbose($"SMTP -> {output}");
+			await _connection.WriteLineAsync(output, Encoding.ASCII, cancellationToken);
 		}
 
 		void ISmtpMessageChannel.Close()
@@ -129,7 +133,7 @@ namespace Vaettir.Mail.Server.Smtp
 		private async Task<ISmtpCommand> GetCommandAsync(CancellationToken token)
 		{
 			string line = await _connection.ReadLineAsync(Encoding.UTF8, token);
-			_log.Verbose(line);
+			_log.Verbose($"SMTP <- {line}");
 			if (line.Length < 4)
 			{
 				await this.SendReplyAsync(SmtpReplyCode.SyntaxError, "No command found", token);

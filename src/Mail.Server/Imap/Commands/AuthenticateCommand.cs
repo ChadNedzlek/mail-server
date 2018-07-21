@@ -14,11 +14,11 @@ namespace Vaettir.Mail.Server.Imap.Commands
 	[ImapCommand("AUTHENTICATE", SessionState.NotAuthenticated)]
 	public class AuthenticateCommand : BaseImapCommand
 	{
-		private readonly IIndex<string, Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata>> _auth;
+		private readonly IIndex<string, Lazy<IAuthenticationSession, AuthencticationMechanismMetadata>> _auth;
 		private readonly IImapMessageChannel _channel;
 
 		public AuthenticateCommand(
-			IIndex<string, Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata>> auth,
+			IIndex<string, Lazy<IAuthenticationSession, AuthencticationMechanismMetadata>> auth,
 			IImapMessageChannel channel)
 		{
 			_auth = auth;
@@ -29,7 +29,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 
 		public override async Task ExecuteAsync(CancellationToken cancellationToken)
 		{
-			if (!_auth.TryGetValue(Mechanism, out Lazy<IAuthenticationSession, IAuthencticationMechanismMetadata> mechanism))
+			if (!_auth.TryGetValue(Mechanism, out Lazy<IAuthenticationSession, AuthencticationMechanismMetadata> mechanism))
 			{
 				await EndWithResultAsync(_channel, CommandResult.No, "unknown mechanism", cancellationToken);
 				return;

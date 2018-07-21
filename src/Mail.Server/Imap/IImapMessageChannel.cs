@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,6 +19,7 @@ namespace Vaettir.Mail.Server.Imap
 		Task EndCommandWithoutResponseAsync(IImapCommand command, CancellationToken cancellationToken);
 		void DiscardPendingExpungeResponses();
 		void SetAuthenticatedUser(UserData userData);
+		Task<IVariableStreamReader> ReadLiteralDataAsync(CancellationToken cancellationToken);
 	}
 
 	public static class ImapMessageChannel

@@ -3,10 +3,12 @@
 	"connections": [
 		{
 			"protocol": "smtp",
+			"certificate":  "C:\\temp\\mail\\localhost.pfx",
 			"port": 9025
 		},
 		{
 			"protocol": "imap",
+			"certificate":  "C:\\temp\\mail\\localhost.pfx",
 			"port": 143 
 		}
 	],
