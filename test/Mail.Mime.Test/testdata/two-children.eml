@@ -1,5 +1,5 @@
 From: From Name <fn@example.com>
-To:  To Name<tn@example.com>
+To: To Name<tn@example.com>
 Subject: Sample message
 MIME-Version: 1.0
 Content-type: multipart/mixed; boundary="simple boundary"

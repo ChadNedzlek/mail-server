@@ -154,23 +154,23 @@ namespace Vaettir.Mail.Server
 						}
 
 						bodyStream.Seek(0, SeekOrigin.Begin);
-						IWritable[] dispatchReferenecs = await CreateDispatchesAsync(
+						IWritable[] dispatchReferences = await CreateDispatchesAsync(
 							readReference.Id,
 							recipients,
 							readReference.Sender,
 							token);
 
-						if (!dispatchReferenecs.Any())
+						if (!dispatchReferences.Any())
 						{
 							_log.Warning("Failed to locate any processor for {mailId}");
 						}
 
-						using (var targetStream = new MultiStream(dispatchReferenecs.Select(r => r.BodyStream)))
+						using (var targetStream = new MultiStream(dispatchReferences.Select(r => r.BodyStream)))
 						{
-							await bodyStream.CopyToAsync(targetStream);
+							await bodyStream.CopyToAsync(targetStream, token);
 						}
 
-						await Task.WhenAll(dispatchReferenecs.Select(r => r.Store.SaveAsync(r, token)));
+						await Task.WhenAll(dispatchReferences.Select(r => r.Store.SaveAsync(r, token)));
 					}
 
 					_log.Verbose($"Processing mail {readReference.Id} complete. Deleting incoming item...");
@@ -229,14 +229,14 @@ namespace Vaettir.Mail.Server
 			IDictionary<string, IEnumerable<string>> headers)
 		{
 			var excludedFromExpansion = new HashSet<string>();
-			string[] alreadOnThreadHeaders =
+			string[] alreadyOnThreadHeaders =
 			{
 				"To",
 				"Cc",
 				"Bcc"
 			};
 
-			foreach (string header in alreadOnThreadHeaders)
+			foreach (string header in alreadyOnThreadHeaders)
 			{
 				if (headers.TryGetValue(header, out IEnumerable<string> targets))
 				{

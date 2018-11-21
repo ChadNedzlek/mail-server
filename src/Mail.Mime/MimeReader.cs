@@ -65,18 +65,33 @@ namespace Vaettir.Mail.Mime
 							{
 								string type = match.Groups["type"].Value;
 								string subtype = match.Groups["subtype"].Value;
-								CaptureCollection paramCaptures = match.Groups["param"].Captures;
-								CaptureCollection valueCaptures = match.Groups["value"].Captures;
-								for (int i = 0; i < paramCaptures.Count; i++)
+								if (type == "multipart")
 								{
-									switch (paramCaptures[i].Value.ToLowerInvariant())
+									CaptureCollection paramCaptures = match.Groups["param"].Captures;
+									CaptureCollection valueCaptures = match.Groups["value"].Captures;
+									for (int i = 0; i < paramCaptures.Count; i++)
 									{
-										case "charset":
-											break;
-										case "boundary":
-											currentBuilder.EndBoundary =
-												Encoding.ASCII.GetBytes("--" + valueCaptures[i].Value + "--");
-											break;
+										switch (paramCaptures[i].Value.ToLowerInvariant())
+										{
+											case "charset":
+												break;
+											case "boundary":
+												ReadOnlySpan<char> value = valueCaptures[i].Value.AsSpan();
+												if (value.Length > 1 &&
+													value[0] == '"' &&
+													value[value.Length - 1] == '"')
+												{
+													value = value.Slice(1, value.Length - 2);
+													if (value.Contains("\\", StringComparison.Ordinal))
+													{
+														value = Regex.Replace(value.ToString(), @"\\.", m => m.Value[1].ToString());
+													}
+												}
+
+												currentBuilder.EndBoundary =
+													Encoding.ASCII.GetBytes("--" + value.ToString() + "--");
+												break;
+										}
 									}
 								}
 							}
@@ -163,7 +178,7 @@ namespace Vaettir.Mail.Mime
 				return new MimePartSpan(
 					new MessageSpan(Start, End - Start),
 					new MessageSpan(Start, ContentStart - 2 - Start), // Remove the CRLF between header and content
-					new MessageSpan(ContentStart, End - ContentStart),
+					new MessageSpan(ContentStart, End - ContentStart - 2),
 					Children?.Select(c => c.ToMimePart()).ToImmutableArray() ?? ImmutableArray<MimePartSpan>.Empty
 				);
 			}
@@ -197,7 +212,7 @@ namespace Vaettir.Mail.Mime
 	(?<subtype>[^;]+)
 	\s*
 	(?:	
-		;\s*(?<param>[^=]+)\s*=\s*""(?<value>[^""]*)""\s*
+		;\s*(?<param>[^=]+)\s*=\s*(?<value>""(?:[^""]|\\.)*""|[^ ()<>@,;:\\""/\[\]?=]+)\s*
 	)*
 	;?
 $", RegexOptions.IgnorePatternWhitespace | RegexOptions.IgnoreCase);
