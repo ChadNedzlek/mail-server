@@ -64,7 +64,6 @@ namespace Vaettir.Mail.Mime
 							if (TestRegex(ContentTypeRegex, headerString, out var match))
 							{
 								string type = match.Groups["type"].Value;
-								string subtype = match.Groups["subtype"].Value;
 								if (type == "multipart")
 								{
 									CaptureCollection paramCaptures = match.Groups["param"].Captures;
@@ -209,7 +208,7 @@ namespace Vaettir.Mail.Mime
 	Content-Type\s*:\s*
 	(?<type>[^/]+)
 	/
-	(?<subtype>[^;]+)
+	(?:[^;]+)
 	\s*
 	(?:	
 		;\s*(?<param>[^=]+)\s*=\s*(?<value>""(?:[^""]|\\.)*""|[^ ()<>@,;:\\""/\[\]?=]+)\s*
