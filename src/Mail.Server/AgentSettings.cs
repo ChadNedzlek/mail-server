@@ -78,7 +78,26 @@ namespace Vaettir.Mail.Server
 
 	public class SmtpIncomingMailScan
 	{
-		public string SpamAssassinPath { get; }
+		public SmtpIncomingMailScan(SpamAssassinSettings spamAssassin)
+		{
+			SpamAssassin = spamAssassin;
+		}
+
+		public SpamAssassinSettings SpamAssassin{ get; }
+	}
+
+	public class SpamAssassinSettings
+	{
+		public SpamAssassinSettings(string clientPath, double? deleteThreshold, string scoreHeader)
+		{
+			ClientPath = clientPath;
+			DeleteThreshold = deleteThreshold;
+			ScoreHeader = scoreHeader;
+		}
+
+		public string ClientPath { get; }
+		public double? DeleteThreshold { get; }
+		public string ScoreHeader { get; }
 	}
 
 	public class SmtpAcceptDomain

@@ -3,13 +3,13 @@
 	"connections": [
 		{
 			"protocol": "smtp",
-			"certificate":  "C:\\temp\\mail\\localhost.pfx",
+			"certificate": "C:\\temp\\mail\\localhost.pfx",
 			"port": 9025
 		},
 		{
 			"protocol": "imap",
-			"certificate":  "C:\\temp\\mail\\localhost.pfx",
-			"port": 143 
+			"certificate": "C:\\temp\\mail\\localhost.pfx",
+			"port": 143
 		}
 	],
 	"mailIncomingQueuePath": "C:\\temp\\mail\\in",
@@ -32,5 +32,12 @@
 	"logging": {
 		"default": {},
 		"console": {}
+	},
+	"incomingScan": {
+		"spamAssassin": {
+			"clientPath": "",
+			"deleteThreshold": 8.0,
+			"scoreHeader": "X-Spam-Score"
+		}
 	}
 }

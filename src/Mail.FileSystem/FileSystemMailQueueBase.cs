@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server.FileSystem
@@ -176,7 +177,7 @@ namespace Vaettir.Mail.Server.FileSystem
 			public string Path { get; }
 		}
 
-		private class ReadReference : IMailReadReference, IReference
+		protected class ReadReference : IMailReadReference, IReference
 		{
 			public ReadReference(
 				string id,

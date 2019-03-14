@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server.FileSystem
@@ -46,6 +47,21 @@ namespace Vaettir.Mail.Server.FileSystem
 		{
 			return Directory.GetFiles(GetRootPath("cur"), "*", SearchOption.TopDirectoryOnly)
 				.Select(path => new Reference(Path.GetFileNameWithoutExtension(path), path));
+		}
+		
+		public Stream GetTemporaryMailStream(IMailReadReference reference)
+		{
+			if (reference == null)
+			{
+				throw new ArgumentNullException(nameof(reference));
+			}
+
+			if (!(reference is ReadReference concrete))
+			{
+				throw new ArgumentException($"Reference must be returned from {GetType().Name}.", nameof(reference));
+			}
+
+			return File.Create(Path.Combine(GetRootPath("tmp"), $"{concrete.Id}-{DateTime.UtcNow:yyyy-MM-ddTHH-mm-ss-ffff}"), 1024, FileOptions.DeleteOnClose);
 		}
 
 		public override Task SaveAsync(IWritable reference, CancellationToken token)

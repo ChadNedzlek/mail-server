@@ -13,6 +13,7 @@ namespace Vaettir.Mail.Server
 	public sealed class MailDispatcher : IDisposable
 	{
 		private readonly IDomainSettingResolver _domainResolver;
+		private readonly SpamAssassin _spamAssassin;
 		private readonly IMailQueue _incoming;
 		private readonly ILogger _log;
 		private readonly IMailboxStore _mailbox;
@@ -27,6 +28,7 @@ namespace Vaettir.Mail.Server
 			IMailTransferQueue transfer,
 			ILogger log,
 			IDomainSettingResolver domainResolver,
+			SpamAssassin spamAssassin,
 			IVolatile<AgentSettings> settings)
 		{
 			_settings = settings;
@@ -35,6 +37,7 @@ namespace Vaettir.Mail.Server
 			_transfer = transfer;
 			_log = log;
 			_domainResolver = domainResolver;
+			_spamAssassin = spamAssassin;
 
 			_settings.ValueChanged += UpdateDomains;
 			UpdateDomains(null, _settings.Value, null);
@@ -142,35 +145,29 @@ namespace Vaettir.Mail.Server
 				{
 					_log.Verbose($"Processing mail {readReference.Id} from {readReference.Sender}");
 
+
+					Stream bodyStream;
 					using (readReference)
-					using (Stream bodyStream = readReference.BodyStream)
+					using (bodyStream = readReference.BodyStream)
 					{
-						IDictionary<string, IEnumerable<string>> headers = await MailUtilities.ParseHeadersAsync(bodyStream);
-						ISet<string> recipients = AugmentRecipients(readReference.Sender, readReference.Recipients, headers);
-
-						if (!recipients.Any())
+						var currentSettings = _settings.Value;
+						if (currentSettings.IncomingScan != null)
 						{
-							_log.Warning($"{readReference.Id} had no recipients");
+							if (currentSettings.IncomingScan?.SpamAssassin != null)
+							{
+								bodyStream = await _spamAssassin.ScanAsync(readReference, bodyStream);
+							}
 						}
 
-						bodyStream.Seek(0, SeekOrigin.Begin);
-						IWritable[] dispatchReferences = await CreateDispatchesAsync(
-							readReference.Id,
-							recipients,
-							readReference.Sender,
-							token);
-
-						if (!dispatchReferences.Any())
+						if (bodyStream == null)
 						{
-							_log.Warning("Failed to locate any processor for {mailId}");
+							// Something told us not to deliver this mail
+							_log.Information($"Mail {readReference.Id} was rejected by incoming scan, deleting");
 						}
-
-						using (var targetStream = new MultiStream(dispatchReferences.Select(r => r.BodyStream)))
+						else
 						{
-							await bodyStream.CopyToAsync(targetStream, token);
+							await DispatchSingleMailReferenceAsync(readReference, bodyStream, token);
 						}
-
-						await Task.WhenAll(dispatchReferences.Select(r => r.Store.SaveAsync(r, token)));
 					}
 
 					_log.Verbose($"Processing mail {readReference.Id} complete. Deleting incoming item...");
@@ -186,6 +183,41 @@ namespace Vaettir.Mail.Server
 					_log.Error("Failed to process mail", e);
 				}
 			}
+		}
+
+		private async Task DispatchSingleMailReferenceAsync(
+			IMailReadReference readReference,
+			Stream bodyStream,
+			CancellationToken token)
+		{
+			IDictionary<string, IEnumerable<string>> headers =
+				await MailUtilities.ParseHeadersAsync(bodyStream);
+			ISet<string> recipients =
+				AugmentRecipients(readReference.Sender, readReference.Recipients, headers);
+
+			if (!recipients.Any())
+			{
+				_log.Warning($"{readReference.Id} had no recipients");
+			}
+
+			bodyStream.Seek(0, SeekOrigin.Begin);
+			IWritable[] dispatchReferences = await CreateDispatchesAsync(
+				readReference.Id,
+				recipients,
+				readReference.Sender,
+				token);
+
+			if (!dispatchReferences.Any())
+			{
+				_log.Warning($"Failed to locate any processor for {readReference.Id}");
+			}
+
+			using (var targetStream = new MultiStream(dispatchReferences.Select(r => r.BodyStream)))
+			{
+				await bodyStream.CopyToAsync(targetStream, token);
+			}
+
+			await Task.WhenAll(dispatchReferences.Select(r => r.Store.SaveAsync(r, token)));
 		}
 
 		private Task<IWritable[]> CreateDispatchesAsync(
