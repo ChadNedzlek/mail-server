@@ -13,6 +13,7 @@ namespace Vaettir.Mail.Server.FileSystem
 	[Injected]
 	public class FileSystemMailboxStore : IMailboxStore, IImapMailStore
 	{
+		private const string NewMailStatus = "new";
 		private const string CurrentMailStatus = "cur";
 		private const string TempMailStatus = "tmp";
 
@@ -114,7 +115,7 @@ namespace Vaettir.Mail.Server.FileSystem
 				throw new ArgumentException("reference of incorrect type", nameof(reference));
 			}
 
-			string newPath = GetPath(mbox, "cur");
+			string newPath = GetPath(mbox, mbox.IsNew ? NewMailStatus : CurrentMailStatus);
 			EnsureDirectoryFor(newPath);
 			File.Move(mbox.TempPath, newPath);
 			return Task.CompletedTask;
@@ -159,6 +160,11 @@ namespace Vaettir.Mail.Server.FileSystem
 			string folder,
 			CancellationToken token)
 		{
+			if (string.Equals(folder, "inbox", StringComparison.OrdinalIgnoreCase))
+			{
+				folder = "";
+			}
+
 			if (string.IsNullOrEmpty(id) || id[0] == '.' || Path.GetInvalidFileNameChars().Any(id.Contains))
 			{
 				throw new ArgumentException("Invalid mail id. Must be a valid file name and cannot start with .");
@@ -174,7 +180,8 @@ namespace Vaettir.Mail.Server.FileSystem
 					id,
 					this,
 					File.Create(tempFileName),
-					tempFileName));
+					tempFileName,
+					isNew: true));
 		}
 
 		public Task MoveAsync(IMailboxItemReference reference, string folder, CancellationToken token)
@@ -232,9 +239,17 @@ namespace Vaettir.Mail.Server.FileSystem
 				CalculateFilnameFromFlags(mbox.Id, mbox.Flags) + ".mbox");
 		}
 
+		private static readonly char[] FolderSeparator = new char['/'];
 		private string GetFolderPath(string mailbox, string folder, string status)
 		{
-			string folderPart = Path.Combine(folder.Split('/').Select(s => "." + s).ToArray());
+			// Turn foo/bar into .foo.bar, because that's what maildir says
+			string folderPart = string.Join(
+				"",
+				folder.Split(FolderSeparator,StringSplitOptions.RemoveEmptyEntries)
+					.Select(s => "." + s)
+					.ToArray()
+			);
+
 			return Path.Combine(
 				_settings.MailLocalPath,
 				MailUtilities.GetDomainFromMailbox(mailbox),
@@ -313,22 +328,24 @@ namespace Vaettir.Mail.Server.FileSystem
 				string id,
 				IWriter store,
 				Stream bodyStream,
-				string tempPath) : base(mailbox, folder, id, MailboxFlags.None)
+				string tempPath,
+				bool isNew) : base(mailbox, folder, id, MailboxFlags.None)
 			{
 				Store = store;
 				BodyStream = bodyStream;
 				TempPath = tempPath;
+				IsNew = isNew;
 			}
 
 			public string TempPath { get; }
+			public bool IsNew { get; }
+			public Stream BodyStream { get; }
+			public IWriter Store { get; }
 
 			public void Dispose()
 			{
 				BodyStream?.Dispose();
 			}
-
-			public Stream BodyStream { get; }
-			public IWriter Store { get; }
 		}
 	}
 }

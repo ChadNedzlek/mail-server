@@ -75,7 +75,7 @@ namespace Vaettir.Mail.Server
 			return _variableReader.ReadBytesAsync(read, offset, count, cancellationToken);
 		}
 
-		public long BytePositition => _variableReader.BytePositition;
+		public long BytePosition => _variableReader.BytePosition;
 
 		private void Init(Stream source)
 		{

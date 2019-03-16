@@ -16,7 +16,7 @@ namespace Vaettir.Mail.Server
 		private readonly SpamAssassin _spamAssassin;
 		private readonly IMailQueue _incoming;
 		private readonly ILogger _log;
-		private readonly IMailboxStore _mailbox;
+		private readonly IMailboxDeliveryStore _delivery;
 		private readonly IVolatile<AgentSettings> _settings;
 		private readonly IMailTransferQueue _transfer;
 
@@ -24,7 +24,7 @@ namespace Vaettir.Mail.Server
 
 		public MailDispatcher(
 			IMailQueue incoming,
-			IMailboxStore mailbox,
+			IMailboxDeliveryStore delivery,
 			IMailTransferQueue transfer,
 			ILogger log,
 			IDomainSettingResolver domainResolver,
@@ -33,7 +33,7 @@ namespace Vaettir.Mail.Server
 		{
 			_settings = settings;
 			_incoming = incoming;
-			_mailbox = mailbox;
+			_delivery = delivery;
 			_transfer = transfer;
 			_log = log;
 			_domainResolver = domainResolver;
@@ -151,12 +151,9 @@ namespace Vaettir.Mail.Server
 					using (bodyStream = readReference.BodyStream)
 					{
 						var currentSettings = _settings.Value;
-						if (currentSettings.IncomingScan != null)
+						if (currentSettings.IncomingScan?.SpamAssassin != null && _spamAssassin != null)
 						{
-							if (currentSettings.IncomingScan?.SpamAssassin != null)
-							{
-								bodyStream = await _spamAssassin.ScanAsync(readReference, bodyStream);
-							}
+							bodyStream = await _spamAssassin.ScanAsync(readReference, bodyStream);
 						}
 
 						if (bodyStream == null)
@@ -236,7 +233,7 @@ namespace Vaettir.Mail.Server
 							if (_settings.Value.DomainName == g.Key)
 							{
 								_log.Information($"{mailId} is local mail found");
-								return g.Select(r => _mailbox.NewMailAsync(mailId, r, token).Cast<IMailboxItemWriteReference, IWritable>());
+								return g.Select(r => _delivery.NewMailAsync(mailId, r, token).Cast<IMailboxItemWriteReference, IWritable>());
 							}
 
 							if (_settings.Value.RelayDomains.Any(d => string.Equals(d.Name, g.Key, StringComparison.OrdinalIgnoreCase)) ||

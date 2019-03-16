@@ -15,7 +15,7 @@ namespace Vaettir.Mail.Server
 		private int _readBufferFilled;
 		private int _readBufferUsed;
 
-		public long BytePositition => _stream.Position - _readBufferFilled + _readBufferUsed;
+		public long BytePosition => _stream.Position - _readBufferFilled + _readBufferUsed;
 
 		public VariableStreamReader(Stream stream) : this(stream, false)
 		{

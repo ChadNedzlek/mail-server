@@ -32,10 +32,13 @@ namespace Vaettir.Mail.Server
 		Stream BodyStream { get; }
 	}
 
-	public interface IMailboxStore : IWriter
+	public interface IMailboxDeliveryStore : IWriter
 	{
 		Task<IMailboxItemWriteReference> NewMailAsync(string id, string mailbox, string folder, CancellationToken token);
+	}
 
+	public interface IMailboxStore : IMailboxDeliveryStore
+	{
 		Task MoveAsync(IMailboxItemReference reference, string folder, CancellationToken token);
 		Task SetFlags(IMailboxItemReference reference, MailboxFlags flags, CancellationToken token);
 		Task<IMailboxItemReadReference> OpenReadAsync(IMailboxItemReference reference, CancellationToken token);
@@ -45,10 +48,10 @@ namespace Vaettir.Mail.Server
 		Task<IEnumerable<string>> GetFolders(string mailbox, string folder, CancellationToken token);
 	}
 
-	public static class MailboxStoreExtensions
+	public static class MailboxDeliveryStoreExtensions
 	{
 		public static Task<IMailboxItemWriteReference> NewMailAsync(
-			this IMailboxStore store,
+			this IMailboxDeliveryStore store,
 			string id,
 			string mailbox,
 			CancellationToken token)

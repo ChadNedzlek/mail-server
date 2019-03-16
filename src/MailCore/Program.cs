@@ -181,7 +181,7 @@ namespace MailCore
 			builder.RegisterType<HashedPasswordUserStore>().As<IUserStore>().SingleInstance();
 			builder.RegisterType<FileSystemDomainResolver>().As<IDomainSettingResolver>().SingleInstance();
 			builder.RegisterType<FileSystemMailTransferQueue>().As<IMailTransferQueue>();
-			builder.RegisterType<FileSystemMailboxStore>().As<IMailboxStore>();
+			builder.RegisterType<FileSystemMailboxStore>().As<IMailboxStore>().As<IMailboxDeliveryStore>();
 			builder.RegisterType<FileSystemMailSendFailureManager>().As<IMailSendFailureManager>();
 			AgentSettings initialValue = settings.Value;
 			builder.RegisterInstance(initialValue)
