@@ -65,6 +65,7 @@ namespace Vaettir.Mail.Dispatcher.Test
 				_transfer,
 				new TestOutputLogger(output),
 				new MockDomainResolver(_domainSettings),
+				null,
 				new MockVolatile<AgentSettings>(settings));
 		}
 

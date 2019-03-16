@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -26,6 +27,11 @@ namespace Vaettir.Mail.Test.Utilities
 		public IEnumerable<IMailReference> GetAllMailReferences()
 		{
 			return References.Where(r => r.IsSaved);
+		}
+
+		public Stream GetTemporaryMailStream(IMailReadReference reference)
+		{
+			return new MemoryStream();
 		}
 
 		public Task<IMailReadReference> OpenReadAsync(IMailReference reference, CancellationToken token)
