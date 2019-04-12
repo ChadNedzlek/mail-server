@@ -97,5 +97,14 @@ namespace Vaettir.Utility
 			Array.Copy(value, 0, data, 0, value.Length);
 			return data;
 		}
+
+		public static void Deconstruct<T>(this T[] array, out T item1, out T item2)
+		{
+			if (array.Length != 2)
+				throw new ArgumentOutOfRangeException(nameof(array));
+
+			item1 = array[1];
+			item2 = array[2];
+		}
 	}
 }

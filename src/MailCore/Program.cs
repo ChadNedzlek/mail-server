@@ -21,6 +21,7 @@ namespace MailCore
 	{
 		public string SettingsPath { get; set; } = "mail.config.json";
 		public LogLevel Verbosity { get; set; }
+		public Dictionary<string, string> PipeNames { get; } = new Dictionary<string, string>();
 	}
 
 	public static class Program
@@ -30,7 +31,13 @@ namespace MailCore
 			var o = new Options();
 			OptionSet p = new OptionSet
 			{
-				{"config|c=", "Configuration file. Default 'smtp.config.json'", s => o.SettingsPath = s}
+				{"c|config=", "Configuration file. Default 'smtp.config.json'", s => o.SettingsPath = s},
+				{"p|pipe=", "Named pipe mapping", x =>
+					{
+						var (a, b) = x.Split('=');
+						o.PipeNames.Add(a, b);
+					}
+				}
 			};
 
 			List<string> remaining;
@@ -150,6 +157,8 @@ namespace MailCore
 			builder.RegisterType<DnsClientResolver>()
 				.As<IDnsResolve>()
 				.SingleInstance();
+
+			
 
 			builder.RegisterType<WrappedTcpClientProvider>()
 				.As<ITcpConnectionProvider>()
