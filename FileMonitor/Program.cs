@@ -154,7 +154,7 @@ namespace FileMonitor
 							{
 								var path = await changed.Task;
 								Interlocked.Exchange(ref changed, new TaskCompletionSource<string>());
-								FileStream fileStream;
+								FileStream fileStream = null;
 								while (!changed.Task.IsCompleted && fileStream == null)
 								{
 									try

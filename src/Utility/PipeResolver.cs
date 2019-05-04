@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO.Pipes;
@@ -12,7 +13,7 @@ namespace Vaettir.Utility
 {
 	public sealed class PipeResolver : IDisposable
 	{
-		private readonly Dictionary<string, ReadOnlyMemory<byte>> _values = new Dictionary<string, ReadOnlyMemory<byte>>();
+		private readonly ConcurrentDictionary<string, ReadOnlyMemory<byte>> _values = new ConcurrentDictionary<string, ReadOnlyMemory<byte>>();
 		private readonly Dictionary<string, NamedPipeClientStream> _pipes = new Dictionary<string, NamedPipeClientStream>();
 		private readonly Dictionary<string, SemaphoreSlim> _readSemaphores = new Dictionary<string, SemaphoreSlim>();
 		private readonly SemaphoreSlim _addSemaphore = new SemaphoreSlim(1);
@@ -34,11 +35,6 @@ namespace Vaettir.Utility
 
 		public async Task<ReadOnlyMemory<byte>> GetValueAsync(string name, CancellationToken token)
 		{
-			if (!_mappings.ContainsKey(name))
-			{
-				return null;
-			}
-
 			if (_values.TryGetValue(name, out var value))
 			{
 				return value;
@@ -62,9 +58,9 @@ namespace Vaettir.Utility
 					if (!_pipes.TryGetValue(name, out pipe))
 					{
 						pipe = new NamedPipeClientStream(".",
-							_mappings[name],
+							_mappings.GetValueOrDefault(name, name),
 							PipeDirection.In,
-							PipeOptions.None,
+							PipeOptions.Asynchronous,
 							TokenImpersonationLevel.Impersonation);
 						await pipe.ConnectAsync(token);
 						_pipes.Add(name, pipe);

@@ -36,7 +36,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mail.Mime", "src\Mail.Mime\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mail.Mime.Test", "test\Mail.Mime.Test\Mail.Mime.Test.csproj", "{E3EA3A33-5832-4D44-8905-D92A6728B761}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileMonitor", "FileMonitor\FileMonitor.csproj", "{1437396D-BECE-4A3A-84B7-A79ECF832E7E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FileMonitor", "FileMonitor\FileMonitor.csproj", "{1437396D-BECE-4A3A-84B7-A79ECF832E7E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mail.Run", "Mail.Run\Mail.Run.csproj", "{5882FC00-B7BA-448F-9160-1FD83F64AB18}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -96,6 +98,10 @@ Global
 		{1437396D-BECE-4A3A-84B7-A79ECF832E7E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1437396D-BECE-4A3A-84B7-A79ECF832E7E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1437396D-BECE-4A3A-84B7-A79ECF832E7E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5882FC00-B7BA-448F-9160-1FD83F64AB18}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5882FC00-B7BA-448F-9160-1FD83F64AB18}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5882FC00-B7BA-448F-9160-1FD83F64AB18}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5882FC00-B7BA-448F-9160-1FD83F64AB18}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -114,6 +120,7 @@ Global
 		{50008EF8-591D-4C0F-837E-D14E4A6DB7F9} = {EAE50C1D-1F6C-4CE0-8FC2-CFA8DB5F2BE5}
 		{E3EA3A33-5832-4D44-8905-D92A6728B761} = {E83EA7A1-0714-448D-AADC-A5A3094D7651}
 		{1437396D-BECE-4A3A-84B7-A79ECF832E7E} = {EAE50C1D-1F6C-4CE0-8FC2-CFA8DB5F2BE5}
+		{5882FC00-B7BA-448F-9160-1FD83F64AB18} = {EAE50C1D-1F6C-4CE0-8FC2-CFA8DB5F2BE5}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {658FC4FF-106B-402B-9CE3-F9AD24D74D67}

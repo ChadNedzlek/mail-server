@@ -113,6 +113,11 @@ namespace Vaettir.Mail.Smtp.Test
 	public class MockConnectionSecurity : IConnectionSecurity
 	{
 		public X509Certificate2 Certificate { get; set; }
+		public bool CanEncrypt => Certificate != null;
 		public bool IsEncrypted { get; set; }
+		public Task<X509Certificate2> GetCertificateAsync(CancellationToken token)
+		{
+			return Task.FromResult(Certificate);
+		}
 	}
 }

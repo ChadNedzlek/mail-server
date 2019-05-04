@@ -39,7 +39,7 @@ namespace Vaettir.Mail.Server.Imap.Commands
 				new AtomMessageData("IMAP4rev1")
 			};
 
-			if (!_connection.IsEncrypted && _connection.Certificate != null)
+			if (!_connection.IsEncrypted && _connection.CanEncrypt)
 				data.Add(new AtomMessageData("STARTTLS"));
 
 			bool validLogin = false;

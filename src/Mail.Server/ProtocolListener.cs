@@ -21,11 +21,17 @@ namespace Vaettir.Mail.Server
 		private readonly ILogger _log;
 		private readonly ILifetimeScope _scope;
 		private readonly SemaphoreSlim _sessionSemaphore = new SemaphoreSlim(1);
+		private readonly PipeResolver _pipe;
 		private readonly AgentSettings _settings;
 		private List<SessionHolder> _sessions = new List<SessionHolder>();
 
-		public ProtocolListener(AgentSettings settings, ILifetimeScope scope, ILogger log)
+		public ProtocolListener(
+			PipeResolver pipe,
+			AgentSettings settings,
+			ILifetimeScope scope,
+			ILogger log)
 		{
+			_pipe = pipe;
 			_settings = settings;
 			_scope = scope;
 			_log = log;
@@ -101,11 +107,7 @@ namespace Vaettir.Mail.Server
 							client.Client.LocalEndPoint.ToString(),
 							client.Client.RemoteEndPoint.ToString()));
 					
-					builder.RegisterInstance(
-							new SecurableConnection(client.GetStream())
-							{
-								Certificate = GetCertificate(connectionSettings),
-							})
+					builder.RegisterInstance(new SecurableConnection(client.GetStream(), t => GetCertificateAsync(connectionSettings, t)))
 						.As<SecurableConnection>()
 						.As<IConnectionSecurity>()
 						.As<IVariableStreamReader>();
@@ -125,23 +127,39 @@ namespace Vaettir.Mail.Server
 			}
 		}
 
-		private X509Certificate2 GetCertificate(ConnectionSetting connectionSettings)
+		private async Task<X509Certificate2> GetCertificateAsync(ConnectionSetting connectionSettings, CancellationToken token)
 		{
-			if (String.IsNullOrEmpty(connectionSettings.Certificate))
+			if (!String.IsNullOrEmpty(connectionSettings.CertificatePipe))
 			{
-				return null;
+				_log.Information($"Loading certificate from pipe {connectionSettings.CertificatePipe}");
+				try
+				{
+					var certificateBytes = await _pipe.GetValueAsync(connectionSettings.CertificatePipe, token);
+					return new X509Certificate2(certificateBytes.ToArray());
+				}
+				catch (Exception e)
+				{
+					_log.Error($"Failed to load certificate for {connectionSettings.Protocol}:{connectionSettings.Port}: {e.GetType().Name} {e.Message}");
+					return null;
+				}
 			}
 
-			try
+			if (!String.IsNullOrEmpty(connectionSettings.Certificate))
 			{
-				_log.Information($"Loading certificate from {connectionSettings.Certificate}");
-				return new X509Certificate2(connectionSettings.Certificate);
+				try
+				{
+					_log.Information($"Loading certificate from {connectionSettings.Certificate}");
+					return new X509Certificate2(connectionSettings.Certificate);
+				}
+				catch (Exception e)
+				{
+					_log.Error(
+						$"Failed to load certificate for {connectionSettings.Protocol}:{connectionSettings.Port}: {e.GetType().Name} {e.Message}");
+					return null;
+				}
 			}
-			catch (Exception e)
-			{
-				_log.Error($"Failed to load certificate for {connectionSettings.Protocol}:{connectionSettings.Port}: {e.GetType().Name} {e.Message}");
-				return null;
-			}
+
+			return null;
 		}
 
 		public async Task Close(CancellationToken cancellationToken)

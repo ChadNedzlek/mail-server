@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -118,6 +119,9 @@ namespace MailCore
 			builder.RegisterInstance(options);
 			builder.RegisterType<UserHandler>().Keyed<CommandHandler>("user");
 			builder.RegisterType<AgentHandler>().Keyed<CommandHandler>("agent");
+
+			builder.RegisterInstance(new PipeResolverOptions(options.PipeNames.ToImmutableDictionary()));
+			builder.RegisterType<PipeResolver>();
 
 			FileWatcherSettings<AgentSettings> settings = FileWatcherSettings<AgentSettings>.Load(options.SettingsPath);
 

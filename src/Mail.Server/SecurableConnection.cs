@@ -11,36 +11,37 @@ using JetBrains.Annotations;
 
 namespace Vaettir.Mail.Server
 {
+	public delegate Task<X509Certificate2> FetchCertificateAsyncCallback(CancellationToken token);
+
 	public sealed class SecurableConnection : IConnectionSecurity, IVariableStreamReader
 	{
+		private FetchCertificateAsyncCallback _certificateCallback;
+
 		private RedirectableStream _current;
 		private SslStream _encrypted;
 		private Stream _source;
 		private TcpClient _tcp;
 		private VariableStreamReader _variableReader;
 
-		public SecurableConnection([NotNull] Stream source)
+		public SecurableConnection([NotNull] Stream source, FetchCertificateAsyncCallback certificateCallback)
 		{
 			if (source == null)
 			{
 				throw new ArgumentNullException(nameof(source));
 			}
 
-			Init(source);
-		}
+			_certificateCallback = certificateCallback;
 
-		public SecurableConnection(TcpClient tcp)
-		{
-			_tcp = tcp ?? throw new ArgumentNullException(nameof(tcp));
-			Init(_tcp.GetStream());
+			Init(source);
 		}
 
 		public RemoteCertificateValidationCallback RemoteValidationCallback { get; set; }
 		public LocalCertificateSelectionCallback LocalCertSelectionCallback { get; set; }
 		public SecurableConnectionState State { get; private set; }
 
-		public X509Certificate2 Certificate { get; set; }
+		public bool CanEncrypt => _certificateCallback != null;
 		public bool IsEncrypted => State == SecurableConnectionState.Secured;
+		public Task<X509Certificate2> GetCertificateAsync(CancellationToken token) => _certificateCallback(token);
 
 		public void Dispose()
 		{
@@ -105,7 +106,7 @@ namespace Vaettir.Mail.Server
 						LocalCertSelectionCallback,
 						EncryptionPolicy.RequireEncryption));
 
-			await _encrypted.AuthenticateAsServerAsync(Certificate, false, SslProtocols.Tls12, false);
+			await _encrypted.AuthenticateAsServerAsync(await GetCertificateAsync(CancellationToken.None), false, SslProtocols.Tls12, false);
 			State = SecurableConnectionState.Secured;
 		}
 

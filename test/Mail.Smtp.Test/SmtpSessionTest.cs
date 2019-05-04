@@ -65,7 +65,7 @@ namespace Vaettir.Mail.Smtp.Test
 				builder.RegisterType<SmtpAuthenticationTransport>()
 					.As<IAuthenticationTransport>();
 
-				builder.RegisterInstance(new SecurableConnection(b) {Certificate = s_serverCert})
+				builder.RegisterInstance(new SecurableConnection(b, _ => Task.FromResult(s_serverCert)))
 					.As<IConnectionSecurity>()
 					.As<SecurableConnection>();
 

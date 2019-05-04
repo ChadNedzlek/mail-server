@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Mail.Run": {
+      "commandName": "Project",
+      "commandLineArgs": "-f \"D:\\temp\\log.txt\" -m notepad.exe -- -f \"D:\\temp\\no-exist.txt\""
+    }
+  }
+}

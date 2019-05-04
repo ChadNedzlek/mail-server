@@ -63,7 +63,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 					extensions = extensions.Append("AUTH " + string.Join(" ", plainAuths.Select(a => a.Metadata.Name)));
 				}
 
-				if (_connection.Certificate != null)
+				if (_connection.CanEncrypt)
 				{
 					extensions = extensions.Concat(new[] {"STARTTLS"});
 				}
