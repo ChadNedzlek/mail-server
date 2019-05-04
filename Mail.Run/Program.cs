@@ -62,6 +62,10 @@ namespace Mail.Run
 
 			List<Task> monitors = mapping.Select(p => MonitorFileAsync(p.Key, userName, p.Value, monitorCancel.Token))
 				.ToList();
+
+			// If we are getting killed, try and kill the spawned process too
+			AppDomain.CurrentDomain.ProcessExit += (_, __) => mailAppProcess.Kill();
+
 			mailAppProcess.Start();
 			List<Task> allTasks = new List<Task>(monitors) {appExitTask};
 
