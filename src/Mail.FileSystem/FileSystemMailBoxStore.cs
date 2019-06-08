@@ -250,12 +250,26 @@ namespace Vaettir.Mail.Server.FileSystem
 					.ToArray()
 			);
 
+			var nameFromMailbox = MailUtilities.GetNameFromMailbox(mailbox);
+
+
 			return Path.Combine(
 				_settings.MailLocalPath,
 				MailUtilities.GetDomainFromMailbox(mailbox),
-				MailUtilities.GetNameFromMailbox(mailbox),
+				StripExtension(nameFromMailbox),
 				folderPart,
 				status);
+		}
+
+		private string StripExtension(string name)
+		{
+			int extensionIndex = name.IndexOf('-');
+			if (extensionIndex == -1)
+			{
+				return name;
+			}
+
+			return name.Substring(0, extensionIndex);
 		}
 
 		private void Relocate(MBoxReference mbox)
