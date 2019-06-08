@@ -24,7 +24,7 @@ namespace Vaettir.Mail.Server
 			SmtpRelayDomain[] relayDomains = null,
 			string passwordAlgorithm = null,
 			int? idleDelay = null,
-			MailDescriminator sendBounce = MailDescriminator.None,
+			MailDiscriminator sendBounce = MailDiscriminator.None,
 			IDictionary<string, LogSettings> logging = null,
 			int unauthenticatedMessageSizeLimit = 0
 		)
@@ -56,7 +56,7 @@ namespace Vaettir.Mail.Server
 		public int? IdleDelay { get; }
 		public SmtpIncomingMailScan IncomingScan { get; }
 		public string MailLocalPath { get; }
-		public MailDescriminator SendBounce { get; }
+		public MailDiscriminator SendBounce { get; }
 		public string WorkingDirectory { get; }
 		public IDictionary<string, LogSettings> Logging { get; }
 		public ConnectionSetting[] Connections { get; }
@@ -68,7 +68,7 @@ namespace Vaettir.Mail.Server
 	}
 
 	[Flags]
-	public enum MailDescriminator
+	public enum MailDiscriminator
 	{
 		None = 0,
 		Internal = 0b01,

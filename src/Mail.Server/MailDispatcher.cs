@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Vaettir.Mail.Mime;
 using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server
@@ -187,21 +190,24 @@ namespace Vaettir.Mail.Server
 			Stream bodyStream,
 			CancellationToken token)
 		{
+			string sender = readReference.Sender;
+
 			IDictionary<string, IEnumerable<string>> headers =
 				await MailUtilities.ParseHeadersAsync(bodyStream);
 			ISet<string> recipients =
-				AugmentRecipients(readReference.Sender, readReference.Recipients, headers);
+				AugmentRecipients(sender, readReference.Recipients, headers);
 
 			if (!recipients.Any())
 			{
 				_log.Warning($"{readReference.Id} had no recipients");
 			}
 
-			bodyStream.Seek(0, SeekOrigin.Begin);
+			(bodyStream, sender) = await ReplaceSenderAsync(headers, bodyStream, sender, token);
+
 			IWritable[] dispatchReferences = await CreateDispatchesAsync(
 				readReference.Id,
 				recipients,
-				readReference.Sender,
+				sender,
 				token);
 
 			if (!dispatchReferences.Any())
@@ -215,6 +221,131 @@ namespace Vaettir.Mail.Server
 			}
 
 			await Task.WhenAll(dispatchReferences.Select(r => r.Store.SaveAsync(r, token)));
+		}
+
+		private static readonly Regex ReferenceOriginalSender = new Regex(@"<vaettir\.net:original-sender:([^>]+)>", RegexOptions.Compiled);
+		private static readonly Regex ReplaceFrom = new Regex(@"(?<=^|\n)(From:\s*[^<]*)<[^>]*>", RegexOptions.Compiled);
+		private static readonly Regex ReplaceReferences = new Regex(@"
+References:                            # 'References:' header
+(?<pre>(?:.|\ |\r\n\ )*?)              # text, or cfws that comes before the original-sender bit, captured
+(?<preSpace>(?:\ |\r\n\ )*)            # cfws before our target header to replace
+<vaettir\.net:original-sender:[^>]+>   # our target to replace
+(?<postSpace>(?:\ |\r\n\ )*)           # cfws before our target header to replace
+(?<post>                               # capture the...
+	(?:.|\ |\r\n\ )*                   # text, or cfws that comes after the original-sender bit
+	\r\n                               # and also the new line that ends our header
+)
+", RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace);
+
+		/// <summary>
+		/// If "me@example.com" is replying to something sent to "me-other@example.com",
+		/// replace the "me@example" in the mail
+		/// </summary>
+		public static async Task<(Stream, string)> ReplaceSenderAsync(
+			IDictionary<string, IEnumerable<string>> headers,
+			Stream bodyStream,
+			string sender,
+			CancellationToken token)
+		{
+			bodyStream.Seek(0, SeekOrigin.Begin);
+
+			if (!headers.TryGetValue("References", out IEnumerable<string> referenes))
+			{
+				return (bodyStream, sender);
+			}
+
+			foreach (var r in referenes)
+			{
+				Match match = ReferenceOriginalSender.Match(r);
+				if (match.Success)
+				{
+					var senderParts = sender.Split('@', 2);
+					if (senderParts.Length != 2)
+					{
+						// Not a useful email address...
+						continue;
+					}
+
+					var headerSender = match.Groups[1].Value;
+					var headerParts = headerSender.Split('@', 2);
+					if (headerParts.Length != 2)
+					{
+						// Not a useful email address...
+						continue;
+					}
+
+					if (senderParts[1] != headerParts[1])
+					{
+						// Wrong domain...
+						continue;
+					}
+
+					if (!headerParts[0].StartsWith(senderParts[0] + "-"))
+					{
+						// Doesn't start with correct extension root
+						continue;
+					}
+
+					MemoryStream replacedStream = null;
+					try
+					{
+						replacedStream = new MemoryStream();
+
+						MimeReader reader = new MimeReader();
+						var structure = await reader.ReadStructureAsync(bodyStream, token);
+
+						// Copy the preamble
+						bodyStream.Seek(0, SeekOrigin.Begin);
+						BoundedStream pre = new BoundedStream(bodyStream, structure.HeaderSpan.Start);
+						await pre.CopyToAsync(replacedStream, token);
+
+						// Replace stuff in headers
+						bodyStream.Seek(structure.HeaderSpan.Start, SeekOrigin.Begin);
+						var headerBytes = await bodyStream.ReadExactlyAsync((int) structure.HeaderSpan.Length, token);
+						string header = Encoding.ASCII.GetString(headerBytes);
+						header = ReplaceFrom.Replace(header, $"$1<{headerSender}>");
+						header = ReplaceReferences.Replace(header,
+							m =>
+							{
+								if (String.IsNullOrWhiteSpace(m.Groups["pre"].Value) &&
+									String.IsNullOrWhiteSpace(m.Groups["post"].Value))
+								{
+									// We were the ONLY references header, just remove the whole thing
+									return "";
+								}
+
+								string space = "";
+								if (!String.IsNullOrEmpty(m.Groups["preSpace"].Value) &&
+									!String.IsNullOrEmpty(m.Groups["postSpace"].Value))
+								{
+									space = m.Groups["preSpace"].Value;
+								}
+
+								return $"References:{m.Groups["pre"].Value}{space}{m.Groups["post"].Value}";
+							});
+
+						using (StreamWriter writer = new StreamWriter(replacedStream, Encoding.ASCII, 1024, true))
+						{
+							writer.Write(header);
+						}
+
+						// Copy message content
+						bodyStream.Seek(structure.HeaderSpan.End, SeekOrigin.Begin);
+						await bodyStream.CopyToAsync(replacedStream, token);
+						bodyStream.Dispose();
+						replacedStream.Seek(0, SeekOrigin.Begin);
+
+						return (replacedStream, headerSender);
+					}
+					catch
+					{
+						replacedStream?.Dispose();
+						throw;
+					}
+				}
+			}
+
+			return (bodyStream, sender);
 		}
 
 		private Task<IWritable[]> CreateDispatchesAsync(

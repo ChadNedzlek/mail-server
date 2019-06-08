@@ -49,7 +49,7 @@ namespace Vaettir.Mail.Test.Utilities
 			SmtpRelayDomain[] relayDomains = null,
 			string passwordAlgorithm = null,
 			int? idleDelay = null,
-			MailDescriminator sendBounce = MailDescriminator.None,
+			MailDiscriminator sendBounce = MailDiscriminator.None,
 			int unauthenticatedMessageSizeLimit = 0)
 		{
 			return new AgentSettings(

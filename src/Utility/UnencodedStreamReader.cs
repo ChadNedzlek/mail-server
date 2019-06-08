@@ -3,7 +3,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Vaettir.Mail.Server
+namespace Vaettir.Utility
 {
 	public sealed class UnencodedStreamReader : IDisposable
 	{
