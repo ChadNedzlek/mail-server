@@ -12,7 +12,7 @@ namespace Vaettir.Mail.Server
 		private const string DottedAtom = "[-a-zA-Z0-9!#$%&'*+-/=?^_`{|}~.]";
 
 		private static readonly Regex s_headerRegex = new Regex(@"^(\w+):(.*)$");
-		private static readonly Regex s_continutationRegex = new Regex(@"^(\s+.*)$");
+		private static readonly Regex s_continuationRegex = new Regex(@"^(\s+.*)$");
 		private static readonly Regex s_addressPart = new Regex($@"<?\s*({DottedAtom}*@{DottedAtom}*)\s*>?$");
 
 		public static string GetDomainFromMailbox(string mailbox)
@@ -49,7 +49,7 @@ namespace Vaettir.Mail.Server
 				{
 					if (existingHeaderName != null)
 					{
-						Match match = s_continutationRegex.Match(line);
+						Match match = s_continuationRegex.Match(line);
 						if (match.Success)
 						{
 							existingHeaderValue += match.Groups[1].Value;

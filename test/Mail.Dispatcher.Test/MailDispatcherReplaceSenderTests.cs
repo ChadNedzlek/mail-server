@@ -206,8 +206,8 @@ Message",
 From: A<a@example.com>
 Mid: Value
 References: <a> <b>
-  <vaettir.net:original-sender:a-ext@example.com>
-  <e> <f>
+  <vaettir.net:original-sender:a-ext@example.com> <e>
+  <f>
 Post: Value
 
 Test
@@ -216,7 +216,8 @@ Message",
 From: A<a-ext@example.com>
 Mid: Value
 References: <a> <b>
-  <e> <f>
+  <e>
+  <f>
 Post: Value
 
 Test

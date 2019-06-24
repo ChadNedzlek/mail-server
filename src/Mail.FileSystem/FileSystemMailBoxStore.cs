@@ -115,6 +115,8 @@ namespace Vaettir.Mail.Server.FileSystem
 				throw new ArgumentException("reference of incorrect type", nameof(reference));
 			}
 
+			// We need to somehow add a "References:" entry to the mail...
+
 			string newPath = GetPath(mbox, mbox.IsNew ? NewMailStatus : CurrentMailStatus);
 			EnsureDirectoryFor(newPath);
 			File.Move(mbox.TempPath, newPath);
@@ -169,8 +171,7 @@ namespace Vaettir.Mail.Server.FileSystem
 			{
 				throw new ArgumentException("Invalid mail id. Must be a valid file name and cannot start with .");
 			}
-
-
+			
 			string tempFileName = Path.Combine(GetFolderPath(mailbox, folder, TempMailStatus), $"{id}.mbox");
 			EnsureDirectoryFor(tempFileName);
 			return Task.FromResult(
@@ -227,7 +228,7 @@ namespace Vaettir.Mail.Server.FileSystem
 			return (match.Groups[1].Value, ImapHelper.GetFlagsFromMailDir(match.Groups[2].Value));
 		}
 
-		private static string CalculateFilnameFromFlags(string id, MailboxFlags flags)
+		private static string CalculateFilenameFromFlags(string id, MailboxFlags flags)
 		{
 			return $"{id};2,{ImapHelper.GetMailDirFromFlags(flags)}";
 		}
@@ -236,7 +237,7 @@ namespace Vaettir.Mail.Server.FileSystem
 		{
 			return Path.Combine(
 				GetFolderPath(mbox.Mailbox, mbox.Folder, status),
-				CalculateFilnameFromFlags(mbox.Id, mbox.Flags) + ".mbox");
+				CalculateFilenameFromFlags(mbox.Id, mbox.Flags) + ".mbox");
 		}
 
 		private static readonly char[] FolderSeparator = new char['/'];
