@@ -50,17 +50,18 @@ namespace Vaettir.Mail.Test.Utilities
 			string passwordAlgorithm = null,
 			int? idleDelay = null,
 			MailDiscriminator sendBounce = MailDiscriminator.None,
-			int unauthenticatedMessageSizeLimit = 0)
+			int unauthenticatedMessageSizeLimit = 0,
+			string mailLocalPath = null)
 		{
 			return new AgentSettings(
-				domainName,
+				domainName: domainName,
 				mailIncomingQueuePath: null,
 				mailOutgoingQueuePath: null,
 				workingDirectory: null,
 				localDomains: localDomains,
 				connections: connections,
 				domainSettingsPath: null,
-				mailLocalPath: null,
+				mailLocalPath: mailLocalPath,
 				incomingScan: incomingScan,
 				domainAliases: domainAliases,
 				userPasswordFile: userPasswordFile,

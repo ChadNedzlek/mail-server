@@ -3,21 +3,22 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Vaettir.Mail.Server;
+using Vaettir.Mail.Server.FileSystem;
 using Vaettir.Mail.Test.Utilities;
 using Xunit;
 
 namespace Vaettir.Mail.FileSystem.Test
 {
-	public class HashedPasswordUserStore : IDisposable
+	public class HashedPasswordUserStoreTests : IDisposable
 	{
-		public HashedPasswordUserStore()
+		public HashedPasswordUserStoreTests()
 		{
 			string storePath = Path.GetTempFileName();
 			_settings = TestHelpers.MakeSettings(
 				"test.vaettir.net",
 				userPasswordFile: storePath,
 				passwordAlgorithm: "db:sha1:98374");
-			_store = new Server.FileSystem.HashedPasswordUserStore(_settings);
+			_store = new HashedPasswordUserStore(_settings);
 		}
 
 		public void Dispose()
@@ -26,7 +27,7 @@ namespace Vaettir.Mail.FileSystem.Test
 		}
 
 		private readonly AgentSettings _settings;
-		private readonly Server.FileSystem.HashedPasswordUserStore _store;
+		private readonly HashedPasswordUserStore _store;
 
 		[Fact]
 		public async Task AddAndGetUser()

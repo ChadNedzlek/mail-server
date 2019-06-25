@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,10 +21,12 @@ namespace Vaettir.Mail.Server.FileSystem
 		private static readonly Regex s_maildirPattern = new Regex(@"^(.*);2,(.*)$");
 
 		private readonly AgentSettings _settings;
+		private readonly ILogger _logger;
 
-		public FileSystemMailboxStore(AgentSettings settings)
+		public FileSystemMailboxStore(AgentSettings settings, ILogger logger)
 		{
 			_settings = settings;
+			_logger = logger;
 		}
 
 		public Task<Mailbox> GetMailBoxAsync(
@@ -108,7 +111,7 @@ namespace Vaettir.Mail.Server.FileSystem
 					File.OpenRead(mbox.CurrentFileName)));
 		}
 
-		public Task SaveAsync(IWritable reference, CancellationToken token)
+		public async Task SaveAsync(IWritable reference, CancellationToken token)
 		{
 			if (!(reference is MBoxWriteReference mbox))
 			{
@@ -119,8 +122,106 @@ namespace Vaettir.Mail.Server.FileSystem
 
 			string newPath = GetPath(mbox, mbox.IsNew ? NewMailStatus : CurrentMailStatus);
 			EnsureDirectoryFor(newPath);
-			File.Move(mbox.TempPath, newPath);
-			return Task.CompletedTask;
+			string tempMail = await ApplyEnqueuedModificationsAsync(mbox);
+			File.Move(tempMail, newPath);
+			mbox.IsSaved = true;
+		}
+
+		private async Task<string> ApplyEnqueuedModificationsAsync(MBoxWriteReference mbox)
+		{
+			var targetMailbox = mbox.Mailbox;
+			var name = MailUtilities.GetNameFromMailbox(targetMailbox);
+			var rootName = StripExtension(name);
+			var currentPath = mbox.TempPath;
+
+			if (name != rootName)
+			{
+				currentPath = await AugmentReferencesAsync(currentPath, targetMailbox);
+			}
+
+			return currentPath;
+		}
+
+		private async Task<string> AugmentReferencesAsync(string currentPath, string targetMailbox)
+		{
+			var augmented = currentPath + ".aug";
+			using (StreamReader reader = new StreamReader(currentPath, Encoding.ASCII))
+			using (Stream augmentedStream = File.Create(augmented))
+			using (StreamWriter writer = new StreamWriter(augmentedStream, reader.CurrentEncoding))
+			{
+				var referenceValue = $"<vaettir.net:original-sender:{targetMailbox}>";
+				writer.NewLine = "\r\n";
+				bool wrote = false;
+				bool inReferences = false;
+
+				for (var line = await reader.ReadLineAsync();
+					line != null;
+					line = await reader.ReadLineAsync())
+				{
+					if (wrote)
+					{
+						// We already wrote it, just copy at this point
+						await writer.WriteLineAsync(line);
+						continue;
+					}
+
+					if (line == "")
+					{
+						// The headers ended, and we haven't written it yet, do so
+						if (inReferences)
+						{
+							// We ended while in the references block, just white space continue it
+							await writer.WriteLineAsync($" {referenceValue}");
+						}
+						else
+						{
+							// Haven't even seen the header, add it
+							await writer.WriteLineAsync($"References: {referenceValue}");
+						}
+
+						wrote = true;
+						await writer.WriteLineAsync(line);
+						continue;
+					}
+
+					if (inReferences)
+					{
+						if (Char.IsWhiteSpace(line[0]))
+						{
+							// This is continuation of the existing References: header,
+							// just copy this line
+							await writer.WriteLineAsync(line);
+							continue;
+						}
+
+						// We weren't in the header anymore! Write out bit down
+						await writer.WriteLineAsync($" {referenceValue}");
+						await writer.WriteLineAsync(line);
+						wrote = true;
+						continue;
+					}
+
+					if (line.StartsWith("References:"))
+					{
+						inReferences = true;
+						await writer.WriteLineAsync(line);
+						continue;
+					}
+
+					await writer.WriteLineAsync(line);
+				}
+			}
+
+			try
+			{
+				File.Delete(currentPath);
+			}
+			catch (Exception e)
+			{
+				_logger.Warning($"Failed to delete tmp fail filed {currentPath}: {e}");
+			}
+
+			return augmented;
 		}
 
 		public Task DeleteAsync(IMailboxItemReference reference)
@@ -360,7 +461,22 @@ namespace Vaettir.Mail.Server.FileSystem
 			public void Dispose()
 			{
 				BodyStream?.Dispose();
+
+				if (!IsSaved && File.Exists(TempPath))
+				{
+					try
+					{
+						File.Delete(TempPath);
+					}
+					catch
+					{
+						// This was opportunistic at best
+						// if we can't delete it, there isn't anything good to do
+					}
+				}
 			}
+
+			public bool IsSaved { get; set; }
 		}
 	}
 }
