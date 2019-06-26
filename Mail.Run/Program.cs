@@ -17,12 +17,12 @@ namespace Mail.Run
 			string userName = null;
 			var app = Path.GetFullPath("mail.app.exe");
 			var fileNames = new List<string>();
-			;
+			
 			var set = new OptionSet
 			{
 				{"u|user=", "User to de-escalate to run mail daemon", u => userName = u},
 				{"m|mail=", "Mail application process (default mail.app.exe)", a => app = a},
-				{"f|file=", "File to pipe to child process", fileNames.Add}
+				{"f|file=", "File to pipe to child process", fileNames.Add},
 			};
 
 			var remainder = set.Parse(args);
