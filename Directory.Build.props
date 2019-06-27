@@ -1,8 +1,9 @@
 <Project>
 	<PropertyGroup>
-		<TargetFramework>netcoreapp21</TargetFramework>
+		<TargetFramework>netcoreapp2.1</TargetFramework>
 		<Copyright>© 2016- vaettir.net</Copyright>
 		<Company>vaettir.net</Company>
 	    <LangVersion>latest</LangVersion>
+		<TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
 	</PropertyGroup>
 </Project>
