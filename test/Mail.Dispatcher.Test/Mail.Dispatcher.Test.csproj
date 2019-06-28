@@ -11,8 +11,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Test.Utilities\Test.Utilities.csproj" />
     <ProjectReference Include="..\Mail.Smtp.Test\Mail.Smtp.Test.csproj" />
+    <ProjectReference Include="..\Test.Utilities\Test.Utilities.csproj" />
   </ItemGroup>
 
   <ItemGroup>
