@@ -9,7 +9,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 	[SmtpCommand("MAIL")]
 	public class MailCommand : BaseSmtpCommand
 	{
-		private static readonly Regex s_fromExpression = new Regex(@"^FROM:\s*<([^:]+:)?(\S*)>(?: (.+))?$");
+		private static readonly Regex s_fromExpression = new Regex(@"^FROM:\s*<([^:]+:)?(\S*)>(?: (.+))?$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 		private readonly IMailBuilder _builder;
 		private readonly ISmtpMessageChannel _channel;
 		private readonly AgentSettings _settings;

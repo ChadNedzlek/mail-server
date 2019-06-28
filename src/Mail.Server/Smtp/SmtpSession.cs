@@ -150,7 +150,7 @@ namespace Vaettir.Mail.Server.Smtp
 			}
 			else
 			{
-				command = line.Substring(0, spaceIndex);
+				command = line.Substring(0, spaceIndex).ToUpperInvariant();
 				arguments = line.Substring(spaceIndex + 1);
 			}
 

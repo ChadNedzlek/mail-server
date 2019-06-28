@@ -52,7 +52,7 @@ namespace Vaettir.Mail.Server.Smtp.Commands
 			var last = false;
 			if (parts.Length == 2)
 			{
-				if (!string.Equals("LAST", parts[1]))
+				if (!string.Equals("LAST", parts[1], StringComparison.OrdinalIgnoreCase))
 				{
 					await _session.SendReplyAsync(SmtpReplyCode.InvalidArguments, "LAST expected", token);
 					return;
