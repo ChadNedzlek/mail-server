@@ -39,5 +39,5 @@
 			"deleteThreshold": 8.0,
 			"scoreHeader": "X-Spam-Score"
 		}
-	}
+	} 
 }

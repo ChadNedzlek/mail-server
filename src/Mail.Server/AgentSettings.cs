@@ -26,7 +26,8 @@ namespace Vaettir.Mail.Server
 			int? idleDelay = null,
 			MailDiscriminator sendBounce = MailDiscriminator.None,
 			IDictionary<string, LogSettings> logging = null,
-			int unauthenticatedMessageSizeLimit = 0
+			int unauthenticatedMessageSizeLimit = 0,
+			string serviceAccountName = null
 		)
 		{
 			IncomingScan = incomingScan;
@@ -39,6 +40,7 @@ namespace Vaettir.Mail.Server
 			IdleDelay = idleDelay;
 			DomainSettingsPath = domainSettingsPath;
 			UnauthenticatedMessageSizeLimit = unauthenticatedMessageSizeLimit;
+			ServiceAccountName = serviceAccountName;
 			SendBounce = sendBounce;
 			Logging = logging;
 			DomainName = domainName;
@@ -65,6 +67,7 @@ namespace Vaettir.Mail.Server
 		public string UserPasswordFile { get; }
 		public string PasswordAlgorithm { get; }
 		public int UnauthenticatedMessageSizeLimit { get; }
+		public string ServiceAccountName { get; }
 	}
 
 	[Flags]
