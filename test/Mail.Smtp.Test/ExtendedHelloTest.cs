@@ -115,9 +115,9 @@ namespace Vaettir.Mail.Smtp.Test
 		public X509Certificate2 Certificate { get; set; }
 		public bool CanEncrypt => Certificate != null;
 		public bool IsEncrypted { get; set; }
-		public Task<X509Certificate2> GetCertificateAsync(CancellationToken token)
+		public X509Certificate2 GetCertificate()
 		{
-			return Task.FromResult(Certificate);
+			return Certificate;
 		}
 	}
 }

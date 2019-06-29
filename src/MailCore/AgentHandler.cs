@@ -13,25 +13,26 @@ namespace MailCore
 		private readonly MailDispatcher _dispatcher;
 		private readonly ProtocolListener _protocol;
 		private readonly MailTransfer _transfer;
+		private readonly CancellationToken _cancellationToken;
 
 		public AgentHandler(
 			ProtocolListener protocol,
 			MailDispatcher dispatcher,
-			MailTransfer transfer)
+			MailTransfer transfer,
+			CancellationToken cancellationToken)
 		{
 			_protocol = protocol;
 			_dispatcher = dispatcher;
 			_transfer = transfer;
+			_cancellationToken = cancellationToken;
 		}
 
 		public override async Task<int> RunAsync(List<string> remaining)
 		{
-			var cts = new CancellationTokenSource();
-
 			await Task.WhenAll(
-				Task.Run(() => _protocol.RunAsync(cts.Token), cts.Token),
-				Task.Run(() => _dispatcher.RunAsync(cts.Token), cts.Token),
-				Task.Run(() => _transfer.RunAsync(cts.Token), cts.Token)
+				Task.Run(() => _protocol.RunAsync(_cancellationToken), _cancellationToken),
+				Task.Run(() => _dispatcher.RunAsync(_cancellationToken), _cancellationToken),
+				Task.Run(() => _transfer.RunAsync(_cancellationToken), _cancellationToken)
 			);
 
 			return 0;

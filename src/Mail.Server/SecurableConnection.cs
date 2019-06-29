@@ -8,14 +8,13 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
+using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server
 {
-	public delegate Task<X509Certificate2> FetchCertificateAsyncCallback(CancellationToken token);
-
 	public sealed class SecurableConnection : IConnectionSecurity, IVariableStreamReader
 	{
-		private FetchCertificateAsyncCallback _certificateCallback;
+		private readonly PrivateKeyHolder _sslKey;
 
 		private RedirectableStream _current;
 		private SslStream _encrypted;
@@ -23,14 +22,14 @@ namespace Vaettir.Mail.Server
 		private TcpClient _tcp;
 		private VariableStreamReader _variableReader;
 
-		public SecurableConnection([NotNull] Stream source, FetchCertificateAsyncCallback certificateCallback)
+		public SecurableConnection([NotNull] Stream source, PrivateKeyHolder sslKey)
 		{
 			if (source == null)
 			{
 				throw new ArgumentNullException(nameof(source));
 			}
 
-			_certificateCallback = certificateCallback;
+			_sslKey = sslKey;
 
 			Init(source);
 		}
@@ -39,9 +38,9 @@ namespace Vaettir.Mail.Server
 		public LocalCertificateSelectionCallback LocalCertSelectionCallback { get; set; }
 		public SecurableConnectionState State { get; private set; }
 
-		public bool CanEncrypt => _certificateCallback != null;
+		public bool CanEncrypt => _sslKey != null;
 		public bool IsEncrypted => State == SecurableConnectionState.Secured;
-		public Task<X509Certificate2> GetCertificateAsync(CancellationToken token) => _certificateCallback(token);
+		public X509Certificate2 GetCertificate() => _sslKey.GetKey();
 
 		public void Dispose()
 		{
@@ -106,7 +105,7 @@ namespace Vaettir.Mail.Server
 						LocalCertSelectionCallback,
 						EncryptionPolicy.RequireEncryption));
 
-			await _encrypted.AuthenticateAsServerAsync(await GetCertificateAsync(CancellationToken.None), false, SslProtocols.Tls12, false);
+			await _encrypted.AuthenticateAsServerAsync(GetCertificate(), false, SslProtocols.Tls12, false);
 			State = SecurableConnectionState.Secured;
 		}
 

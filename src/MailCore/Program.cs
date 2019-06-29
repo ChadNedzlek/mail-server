@@ -4,6 +4,8 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 using Autofac;
 using Mono.Options;
 using Vaettir.Mail.Server;
@@ -22,23 +24,16 @@ namespace MailCore
 	{
 		public string SettingsPath { get; set; } = "mail.config.json";
 		public LogLevel Verbosity { get; set; }
-		public Dictionary<string, string> PipeNames { get; } = new Dictionary<string, string>();
 	}
 
 	public static class Program
 	{
-		public static int Main(string[] args)
+		public static async Task<int> Main(string[] args)
 		{
 			var o = new Options();
 			OptionSet p = new OptionSet
 			{
 				{"c|config=", "Configuration file. Default 'smtp.config.json'", s => o.SettingsPath = s},
-				{"p|pipe=", "Named pipe mapping", x =>
-					{
-						var (a, b) = x.Split('=');
-						o.PipeNames.Add(a, b);
-					}
-				}
 			};
 
 			List<string> remaining;
@@ -61,7 +56,7 @@ namespace MailCore
 			string command = remaining[0];
 			remaining.RemoveAt(0);
 
-			using (IContainer container = BuildContainer(o))
+			using (IContainer container = await BuildContainer(o))
 			{
 				CommandHandler handler = GetHandler(command, container);
 				if (handler == null)
@@ -70,7 +65,7 @@ namespace MailCore
 					return 1;
 				}
 
-				return handler.RunAsync(remaining).GetAwaiter().GetResult();
+				return await handler.RunAsync(remaining);
 			}
 		}
 
@@ -112,18 +107,28 @@ namespace MailCore
 			optionSet?.WriteOptionDescriptions(textWriter);
 		}
 
-		private static IContainer BuildContainer(Options options)
+		private static async Task<IContainer> BuildContainer(Options options)
 		{
 			var builder = new ContainerBuilder();
+
+			CancellationTokenSource abort = new CancellationTokenSource();
+			builder.Register(c => abort.Token);
 
 			builder.RegisterInstance(options);
 			builder.RegisterType<UserHandler>().Keyed<CommandHandler>("user");
 			builder.RegisterType<AgentHandler>().Keyed<CommandHandler>("agent");
 
-			builder.RegisterInstance(new PipeResolverOptions(options.PipeNames.ToImmutableDictionary()));
-			builder.RegisterType<PipeResolver>();
-
 			FileWatcherSettings<AgentSettings> settings = FileWatcherSettings<AgentSettings>.Load(options.SettingsPath);
+			
+			var certificates = ImmutableDictionary.CreateBuilder<string, PrivateKeyHolder>();
+			foreach (var connection in settings.Value.Connections)
+			{
+				if (string.IsNullOrEmpty(connection.Certificate))
+					continue;
+				certificates.Add(connection.Certificate, await PrivateKeyHolder.LoadAsync(connection.Certificate, abort.Cancel));
+			}
+
+			builder.RegisterInstance(new PrivateKeyProvider(certificates.ToImmutable()));
 
 			IDictionary<string, LogSettings> logSettings = settings.Value.Logging;
 			if (logSettings != null)
@@ -161,8 +166,6 @@ namespace MailCore
 			builder.RegisterType<DnsClientResolver>()
 				.As<IDnsResolve>()
 				.SingleInstance();
-
-			
 
 			builder.RegisterType<WrappedTcpClientProvider>()
 				.As<ITcpConnectionProvider>()
