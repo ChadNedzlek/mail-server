@@ -28,7 +28,7 @@
 	],
 	"domainSettingsPath": "C:\\temp\\mail\\domains",
 	"userPasswordFile": "C:\\temp\\mail\\mail-user.pwd",
-	"passwordAlgorithm": "db:sha1:94857",
+	"passwordAlgorithm": "SSHA256",
 	"logging": {
 		"default": {},
 		"console": {}

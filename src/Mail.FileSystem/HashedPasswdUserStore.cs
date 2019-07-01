@@ -1,17 +1,19 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Vaettir.Utility;
 
 namespace Vaettir.Mail.Server.FileSystem
 {
-	public class HashedPasswordUserStore : IUserStore
+	public class HashedPasswdUserStore : IUserStore
 	{
 		private readonly AgentSettings _settings;
 
-		public HashedPasswordUserStore(AgentSettings settings)
+		public HashedPasswdUserStore(AgentSettings settings)
 		{
 			_settings = settings;
 		}
@@ -49,6 +51,9 @@ namespace Vaettir.Mail.Server.FileSystem
 
 		public async Task AddUserAsync(string username, string password, CancellationToken token)
 		{
+			if (username.Contains(':'))
+				throw new ArgumentException("Username cannot contain a colon", nameof(username));
+
 			var salt = new byte[64];
 			using (RandomNumberGenerator rng = RandomNumberGenerator.Create())
 			{
@@ -82,7 +87,7 @@ namespace Vaettir.Mail.Server.FileSystem
 					{
 						replacedUser = true;
 						await tempWriter.WriteLineAsync(
-							$"{username} {passwordAlgorithm} {Convert.ToBase64String(salt)} {Convert.ToBase64String(hash)}");
+							$"{username}:{{{passwordAlgorithm}}}{Convert.ToBase64String(hash.Concat(salt).ToArray())}");
 					}
 					else
 					{
@@ -93,7 +98,7 @@ namespace Vaettir.Mail.Server.FileSystem
 				if (!replacedUser)
 				{
 					await tempWriter.WriteLineAsync(
-						$"{username} {passwordAlgorithm} {Convert.ToBase64String(salt)} {Convert.ToBase64String(hash)}");
+						$"{username}:{{{passwordAlgorithm}}}{Convert.ToBase64String(hash.Concat(salt).ToArray())}");
 				}
 
 				await tempWriter.FlushAsync();
@@ -101,8 +106,9 @@ namespace Vaettir.Mail.Server.FileSystem
 				tempStream.Seek(0, SeekOrigin.Begin);
 				stream.Seek(0, SeekOrigin.Begin);
 				stream.SetLength(0);
-				await tempStream.CopyToAsync(stream);
 			}
+
+			File.Replace(tempPasswordFile, _settings.UserPasswordFile, _settings.UserPasswordFile + ".bak");
 		}
 
 		private static bool ConstantTimeEquals(byte[] x, int xOffset, byte[] y, int yOffset, int length)
@@ -118,23 +124,43 @@ namespace Vaettir.Mail.Server.FileSystem
 
 		private byte[] CalculateHash(byte[] salt, string password, string algorithm)
 		{
-			string[] algParts = algorithm.ToLowerInvariant().Split(':');
-			switch (algParts[0])
+			switch (algorithm)
 			{
-				case "db":
-					switch (algParts[1])
+				case "SSHA":
+				{
+					using (SHA1 sha = SHA1.Create())
 					{
-						case "sha1":
-							int iterationCount = int.Parse(algParts[2]);
-							using (var alg = new Rfc2898DeriveBytes(password, salt, iterationCount))
-							{
-								return alg.GetBytes(32);
-							}
-						default:
-							throw new ArgumentException("Unsupported algorithm", nameof(algorithm));
+						var passwordBytes = Encoding.UTF8.GetBytes(password);
+						sha.TransformBlock(passwordBytes, 0, passwordBytes.Length, passwordBytes, 0);
+						sha.TransformBlock(salt, 0, salt.Length, salt, 0);
+						return sha.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
 					}
+				}
+
+				case "SSHA256":
+				{
+					using (SHA256 sha = SHA256.Create())
+					{
+						var passwordBytes = Encoding.UTF8.GetBytes(password);
+						sha.TransformBlock(passwordBytes, 0, passwordBytes.Length, passwordBytes, 0);
+						sha.TransformBlock(salt, 0, salt.Length, salt, 0);
+						return sha.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+					}
+				}
+
+				case "SSHA512":
+				{
+					using (SHA512 sha = SHA512.Create())
+					{
+						var passwordBytes = Encoding.UTF8.GetBytes(password);
+						sha.TransformBlock(passwordBytes, 0, passwordBytes.Length, passwordBytes, 0);
+						sha.TransformBlock(salt, 0, salt.Length, salt, 0);
+						return sha.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+					}
+				}
+
 				default:
-					throw new ArgumentException("Unsupported algorithm", nameof(algorithm));
+					throw new ArgumentException($"Unsupported algorithm {algorithm}", nameof(algorithm));
 			}
 		}
 
@@ -147,21 +173,42 @@ namespace Vaettir.Mail.Server.FileSystem
 				string line = null;
 				while (await reader.TryReadLineAsync(l => line = l, token))
 				{
-					string[] parts = line.Split(' ');
-					if (parts.Length != 4)
+					string[] parts = line.Split(':');
+					if (parts.Length != 2)
+					{
+						continue;
+					}
+
+					if (!parts[1].StartsWith('{'))
+					{
+						continue;
+					}
+
+					int endAlgIndex = parts[1].IndexOf('}');
+					if (endAlgIndex == -1)
 					{
 						continue;
 					}
 
 					if (parts[0] == username)
 					{
-						return new FileUserData
+
+						string alg = parts[1].Substring(1, endAlgIndex - 1);
+						string pwdData = parts[1].Substring(endAlgIndex + 1);
+
+						var fileUserData = new FileUserData
 						{
 							Name = username,
-							Algorithm = parts[1],
-							Salt = Convert.FromBase64String(parts[2]),
-							Hash = Convert.FromBase64String(parts[3])
+							Algorithm = alg,
 						};
+
+						SplitHashAndSalt(
+							fileUserData.Algorithm,
+							Convert.FromBase64String(pwdData),
+							out fileUserData.Hash,
+							out fileUserData.Salt);
+
+						return fileUserData;
 					}
 				}
 			}
@@ -169,12 +216,36 @@ namespace Vaettir.Mail.Server.FileSystem
 			return null;
 		}
 
+		private void SplitHashAndSalt(string algorithm, byte[] data, out byte[] hash, out byte[] salt)
+		{
+			int hashSize;
+			switch (algorithm)
+			{
+				case "SSHA":
+					hashSize = 20;
+					break;
+				case "SSHA256":
+					hashSize = 32;
+					break;
+				case "SSHA512":
+					hashSize = 64;
+					break;
+				default:
+					hash = salt = Array.Empty<byte>();
+					return;
+			}
+			hash = new byte[hashSize];
+			Array.Copy(data, 0, hash, 0, hashSize);
+			salt = new byte[data.Length - hashSize];
+			Array.Copy(data, hashSize, salt, 0, data.Length - hashSize);
+		}
+
 		private class FileUserData
 		{
-			public string Name { get; set; }
-			public string Algorithm { get; set; }
-			public byte[] Salt { get; set; }
-			public byte[] Hash { get; set; }
+			public string Name;
+			public string Algorithm;
+			public byte[] Salt;
+			public byte[] Hash;
 		}
 	}
 }

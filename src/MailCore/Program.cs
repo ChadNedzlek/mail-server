@@ -231,7 +231,7 @@ namespace MailCore
 			builder.RegisterType<ProtocolListener>();
 
 			builder.RegisterType<FileSystemMailQueue>().As<IMailQueue>().SingleInstance();
-			builder.RegisterType<HashedPasswordUserStore>().As<IUserStore>().SingleInstance();
+			builder.RegisterType<HashedPasswdUserStore>().As<IUserStore>().SingleInstance();
 			builder.RegisterType<FileSystemDomainResolver>().As<IDomainSettingResolver>().SingleInstance();
 			builder.RegisterType<FileSystemMailTransferQueue>().As<IMailTransferQueue>();
 			builder.RegisterType<FileSystemMailboxStore>().As<IMailboxStore>().As<IMailboxDeliveryStore>();

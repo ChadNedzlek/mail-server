@@ -18,7 +18,7 @@ namespace Vaettir.Mail.FileSystem.Test
 				"test.vaettir.net",
 				userPasswordFile: storePath,
 				passwordAlgorithm: "db:sha1:98374");
-			_store = new HashedPasswordUserStore(_settings);
+			_store = new HashedPasswdUserStore(_settings);
 		}
 
 		public void Dispose()
@@ -27,7 +27,7 @@ namespace Vaettir.Mail.FileSystem.Test
 		}
 
 		private readonly AgentSettings _settings;
-		private readonly HashedPasswordUserStore _store;
+		private readonly HashedPasswdUserStore _store;
 
 		[Fact]
 		public async Task AddAndGetUser()
