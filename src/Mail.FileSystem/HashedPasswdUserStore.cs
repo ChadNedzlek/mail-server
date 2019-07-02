@@ -49,6 +49,8 @@ namespace Vaettir.Mail.Server.FileSystem
 			return string.Equals(user.Mailbox, mailbox);
 		}
 
+
+		private static string SaltCharacters = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 		public async Task AddUserAsync(string username, string password, CancellationToken token)
 		{
 			if (username.Contains(':'))
@@ -61,6 +63,19 @@ namespace Vaettir.Mail.Server.FileSystem
 			}
 
 			string passwordAlgorithm = _settings.PasswordAlgorithm;
+
+			switch (passwordAlgorithm)
+			{
+				case "PBKDF2":
+					// dovecot has a weird way of representing the salt for PBKDF2
+					for (var index = 0; index < salt.Length; index++)
+					{
+						salt[index] = unchecked((byte) SaltCharacters[salt[index] % SaltCharacters.Length]);
+					}
+
+					break;
+			}
+
 			byte[] hash = CalculateHash(salt, password, passwordAlgorithm, 94857);
 
 			string tempPasswordFile = _settings.UserPasswordFile + ".tmp";
@@ -75,6 +90,23 @@ namespace Vaettir.Mail.Server.FileSystem
 			{
 				string line = null;
 				var replacedUser = false;
+				string userLine;
+				switch (passwordAlgorithm)
+				{
+					case "SSHA":
+					case "SSHA256":
+					case "SSHA512":
+						userLine =
+							$"{username}:{{{passwordAlgorithm}}}{Convert.ToBase64String(hash.Concat(salt).ToArray())}";
+						break;
+					case "PBKDF2":
+						userLine =
+							$"{username}:{{{passwordAlgorithm}}}$1${Encoding.ASCII.GetString(salt)}$94857${hash.ToHex()}";
+						break;
+					default:
+						return;
+				}
+
 				while (await reader.TryReadLineAsync(l => line = l, token))
 				{
 					string[] parts = line.Split(new[] {' '}, 3);
@@ -87,7 +119,7 @@ namespace Vaettir.Mail.Server.FileSystem
 					{
 						replacedUser = true;
 						await tempWriter.WriteLineAsync(
-							$"{username}:{{{passwordAlgorithm}}}{Convert.ToBase64String(hash.Concat(salt).ToArray())}");
+							userLine);
 					}
 					else
 					{
@@ -98,7 +130,7 @@ namespace Vaettir.Mail.Server.FileSystem
 				if (!replacedUser)
 				{
 					await tempWriter.WriteLineAsync(
-						$"{username}:{{{passwordAlgorithm}}}{Convert.ToBase64String(hash.Concat(salt).ToArray())}");
+						userLine);
 				}
 
 				await tempWriter.FlushAsync();
