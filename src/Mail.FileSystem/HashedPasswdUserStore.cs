@@ -29,7 +29,7 @@ namespace Vaettir.Mail.Server.FileSystem
 				return null;
 			}
 
-			byte[] hash = CalculateHash(user.Salt, password, user.Algorithm);
+			byte[] hash = CalculateHash(user.Salt, password, user.Algorithm, user.Iterations);
 
 			if (hash.Length != user.Hash.Length)
 			{
@@ -61,7 +61,7 @@ namespace Vaettir.Mail.Server.FileSystem
 			}
 
 			string passwordAlgorithm = _settings.PasswordAlgorithm;
-			byte[] hash = CalculateHash(salt, password, passwordAlgorithm);
+			byte[] hash = CalculateHash(salt, password, passwordAlgorithm, 94857);
 
 			string tempPasswordFile = _settings.UserPasswordFile + ".tmp";
 			using (FileStream tempStream = File.Open(tempPasswordFile, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
@@ -122,7 +122,7 @@ namespace Vaettir.Mail.Server.FileSystem
 			return (1 & (unchecked((uint) differentbits - 1) >> 8)) != 0;
 		}
 
-		private byte[] CalculateHash(byte[] salt, string password, string algorithm)
+		private byte[] CalculateHash(byte[] salt, string password, string algorithm, int iterations)
 		{
 			switch (algorithm)
 			{
@@ -156,6 +156,15 @@ namespace Vaettir.Mail.Server.FileSystem
 						sha.TransformBlock(passwordBytes, 0, passwordBytes.Length, passwordBytes, 0);
 						sha.TransformBlock(salt, 0, salt.Length, salt, 0);
 						return sha.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+					}
+				}
+
+				case "PBKDF2":
+				{
+					var passwordBytes = Encoding.UTF8.GetBytes(password);
+					using (var pbkdf2 = new Rfc2898DeriveBytes(passwordBytes, salt, iterations, HashAlgorithmName.SHA1))
+					{
+						return pbkdf2.GetBytes(20);
 					}
 				}
 
@@ -204,9 +213,13 @@ namespace Vaettir.Mail.Server.FileSystem
 
 						SplitHashAndSalt(
 							fileUserData.Algorithm,
-							Convert.FromBase64String(pwdData),
+							pwdData,
 							out fileUserData.Hash,
-							out fileUserData.Salt);
+							out fileUserData.Salt,
+							out fileUserData.Iterations);
+
+						if (fileUserData.Hash == null)
+							return null;
 
 						return fileUserData;
 					}
@@ -216,28 +229,50 @@ namespace Vaettir.Mail.Server.FileSystem
 			return null;
 		}
 
-		private void SplitHashAndSalt(string algorithm, byte[] data, out byte[] hash, out byte[] salt)
+		private void SplitHashAndSalt(string algorithm, string data, out byte[] hash, out byte[] salt, out int iterations)
 		{
-			int hashSize;
+			iterations = 0;
+			void SplitHaltAppendSalt(int hashSize, out byte[] h, out byte[] s)
+			{
+				byte[] byteData = Convert.FromBase64String(data);
+				h = new byte[hashSize];
+				Array.Copy(byteData, 0, h, 0, hashSize);
+				s = new byte[data.Length - hashSize];
+				Array.Copy(byteData, hashSize, s, 0, data.Length - hashSize);
+			}
+
 			switch (algorithm)
 			{
 				case "SSHA":
-					hashSize = 20;
-					break;
+					SplitHaltAppendSalt(20, out hash, out salt);
+					return;
 				case "SSHA256":
-					hashSize = 32;
-					break;
+					SplitHaltAppendSalt(32, out hash, out salt);
+					return;
 				case "SSHA512":
-					hashSize = 64;
-					break;
+					SplitHaltAppendSalt(64, out hash, out salt);
+					return;
+				case "PBKDF2":
+				{
+					hash = salt = null;
+					var parts = data.Split("$");
+					if (parts[0] != "")
+						return;
+					if (parts[1] != "1")
+						return;
+					if (!int.TryParse(parts[3], out iterations))
+						return;
+
+					salt = Encoding.ASCII.GetBytes(parts[2]);
+					hash = parts[4].FromHex();
+				}
+					return;
+
 				default:
-					hash = salt = Array.Empty<byte>();
+					hash = salt = null;
 					return;
 			}
-			hash = new byte[hashSize];
-			Array.Copy(data, 0, hash, 0, hashSize);
-			salt = new byte[data.Length - hashSize];
-			Array.Copy(data, hashSize, salt, 0, data.Length - hashSize);
+
 		}
 
 		private class FileUserData
@@ -246,6 +281,7 @@ namespace Vaettir.Mail.Server.FileSystem
 			public string Algorithm;
 			public byte[] Salt;
 			public byte[] Hash;
+			public int Iterations;
 		}
 	}
 }
