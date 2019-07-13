@@ -223,8 +223,8 @@ namespace Vaettir.Mail.Server
 			await Task.WhenAll(dispatchReferences.Select(r => r.Store.SaveAsync(r, token)));
 		}
 
-		private static readonly Regex ReferenceOriginalSender = new Regex(@"<vaettir\.net:original-sender:([^>]+)>", RegexOptions.Compiled);
-		private static readonly Regex ReplaceFrom = new Regex(@"(?<=^|\n)(From:\s*[^<]*)<[^>]*>", RegexOptions.Compiled);
+		private static readonly Regex ReferenceOriginalSender = new Regex(@"<vaettir\.net:original-sender:([^>]+)>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+		private static readonly Regex ReplaceFrom = new Regex(@"(?<=^|\n)(From:\s*[^<]*)<[^>]*>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 		private static readonly Regex ReplaceReferences = new Regex(@"
 References:                            # 'References:' header
 (?<pre>(?:.|\ |\r\n\ )*?)              # text, or cfws that comes before the original-sender bit, captured
@@ -235,7 +235,7 @@ References:                            # 'References:' header
 	(?:.|\ |\r\n\ )*                   # text, or cfws that comes after the original-sender bit
 	\r\n                               # and also the new line that ends our header
 )
-", RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace);
+", RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace | RegexOptions.IgnoreCase);
 
 		/// <summary>
 		/// If "me@example.com" is replying to something sent to "me-other@example.com",
