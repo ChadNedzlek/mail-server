@@ -59,15 +59,6 @@ namespace MailCore
 
 			using (IContainer container = await BuildContainer(o))
 			{
-				var agentSettings = container.Resolve<AgentSettings>();
-				if (!string.IsNullOrEmpty(agentSettings.ServiceAccountName))
-				{
-					if (!ChangeUserAccount(agentSettings.ServiceAccountName))
-					{
-						return 2;
-					}
-				}
-
 				CommandHandler handler = GetHandler(command, container);
 				if (handler == null)
 				{
@@ -77,33 +68,6 @@ namespace MailCore
 
 				return await handler.RunAsync(remaining);
 			}
-		}
-
-		private static bool ChangeUserAccount(string accountName)
-		{
-			Console.WriteLine($"Changing to service account {accountName}");
-			IntPtr userPtr = LinuxLibC.GetPasswordStruct(accountName);
-			if (userPtr == IntPtr.Zero)
-			{
-				Console.Error.WriteLine($"Could not find user '{accountName}'");
-				return false;
-			}
-
-			LinuxPasswordStruct user = Marshal.PtrToStructure<LinuxPasswordStruct>(userPtr);
-
-			if (LinuxLibC.SetGid(user.Gid) is int gidResult && gidResult != 0)
-			{
-				Console.Error.WriteLine($"Not change to gid {user.Gid}, result code {gidResult}'");
-				return false;
-			}
-
-			if (LinuxLibC.SetUid(user.Uid) is int uidResult && uidResult != 0)
-			{
-				Console.Error.WriteLine($"Not change to uid {user.Uid}, result code {uidResult}'");
-				return false;
-			}
-
-			return true;
 		}
 
 		private static CommandHandler GetHandler(string command, IContainer container)
@@ -285,36 +249,5 @@ namespace MailCore
 
 			return builder.Build();
 		}
-	}
-
-	
-	internal static class LinuxLibC
-	{
-		[DllImport("libc", EntryPoint = "getpwnam", CharSet = CharSet.Ansi)]
-		internal static extern IntPtr GetPasswordStruct(string name);
-		
-		[DllImport("libc", EntryPoint = "setuid")]
-		internal static extern int SetUid(int uid);
-
-		[DllImport("libc", EntryPoint = "getuid")]
-		internal static extern int GetUid();
-
-		[DllImport("libc", EntryPoint = "setgid")]
-		internal static extern int SetGid(int uid);
-
-		[DllImport("libc", EntryPoint = "getgid")]
-		internal static extern int GetGid();
-	}
-
-	[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-	internal struct LinuxPasswordStruct
-	{
-		public string Name;
-		public string Password;
-		public int Uid;
-		public int Gid;
-		public string UserInformation;
-		public string Home;
-		public string Shell;
 	}
 }
