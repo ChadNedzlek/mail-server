@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>    
+  <PropertyGroup>
     <RootNamespace>Vaettir.Utility.Test</RootNamespace>
   </PropertyGroup>
 
@@ -13,7 +13,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Mail.Server\Mail.Server.csproj" />
     <ProjectReference Include="..\..\src\Utility\Utility.csproj" />
-    <ProjectReference Include="..\..\Test.Utilities\Test.Utilities.csproj" />
     <ProjectReference Include="..\Test.Utilities\Test.Utilities.csproj" />
   </ItemGroup>
 

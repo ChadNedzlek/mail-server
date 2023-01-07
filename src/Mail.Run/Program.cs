@@ -10,14 +10,14 @@ using Mono.Options;
 
 namespace Mail.Run
 {
-	internal class Program
+	internal static class Program
 	{
 		private static async Task<int> Main(string[] args)
 		{
 			string userName = null;
 			var app = Path.GetFullPath("mail.app.exe");
 			var fileNames = new List<string>();
-			
+
 			var set = new OptionSet
 			{
 				{"u|user=", "User to de-escalate to run mail daemon", u => userName = u},
@@ -64,7 +64,7 @@ namespace Mail.Run
 				.ToList();
 
 			// If we are getting killed, try and kill the spawned process too
-			AppDomain.CurrentDomain.ProcessExit += (_, __) => mailAppProcess.Kill();
+			AppDomain.CurrentDomain.ProcessExit += (_, _) => mailAppProcess.Kill();
 
 			mailAppProcess.Start();
 			List<Task> allTasks = new List<Task>(monitors) {appExitTask};
@@ -122,7 +122,7 @@ namespace Mail.Run
 
 						async Task EchoFile(Stream source, Stream target)
 						{
-							await target.WriteAsync(BitConverter.GetBytes((long) source.Length), token);
+							await target.WriteAsync(BitConverter.GetBytes(source.Length), token);
 							await source.CopyToAsync(target, token);
 						}
 
@@ -132,7 +132,7 @@ namespace Mail.Run
 						using (var watcher = new FileSystemWatcher(dir, filename) {EnableRaisingEvents = true,})
 						{
 							TaskCompletionSource<string> changed = new TaskCompletionSource<string>();
-							watcher.Changed += (o, e) =>
+							watcher.Changed += (_, e) =>
 							{
 								switch (e.ChangeType)
 								{

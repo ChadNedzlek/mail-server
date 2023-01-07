@@ -1,6 +1,6 @@
 <Project>
 	<PropertyGroup>
-		<TargetFramework>netcoreapp2.1</TargetFramework>
+		<TargetFramework>net6.0</TargetFramework>
 		<Copyright>© 2016- vaettir.net</Copyright>
 		<Company>vaettir.net</Company>
 	    <LangVersion>latest</LangVersion>
