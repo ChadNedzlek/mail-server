@@ -6,12 +6,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Autofac" Version="4.8.1" />
-    <PackageReference Include="JetBrains.Annotations" Version="11.1.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
-    <PackageReference Include="System.Collections.Immutable" Version="1.5.0" />
-    <PackageReference Include="System.IO.FileSystem.Watcher" Version="4.3.0" />
-    <PackageReference Include="System.ValueTuple" Version="4.5.0" />
+    <PackageReference Include="Autofac" />
+    <PackageReference Include="JetBrains.Annotations" />
+    <PackageReference Include="Newtonsoft.Json" />
+    <PackageReference Include="System.IO.FileSystem.Watcher" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageVersion Update="Newtonsoft.Json" Version="13.0.2" />
+    <PackageVersion Update="System.IO.FileSystem.Watcher" Version="4.3.0" />
   </ItemGroup>
 
 </Project>
