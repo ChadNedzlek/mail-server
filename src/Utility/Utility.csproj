@@ -12,9 +12,4 @@
     <PackageReference Include="System.IO.FileSystem.Watcher" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageVersion Update="Newtonsoft.Json" Version="13.0.2" />
-    <PackageVersion Update="System.IO.FileSystem.Watcher" Version="4.3.0" />
-  </ItemGroup>
-
 </Project>

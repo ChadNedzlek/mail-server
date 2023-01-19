@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <AssemblyName>vmail</AssemblyName>
-    <PublishTrimmed>True</PublishTrimmed>
+<!--    <PublishTrimmed>True</PublishTrimmed>-->
   </PropertyGroup>
 
   <ItemGroup>

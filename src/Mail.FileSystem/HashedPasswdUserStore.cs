@@ -159,37 +159,13 @@ namespace Vaettir.Mail.Server.FileSystem
 			switch (algorithm)
 			{
 				case "SSHA":
-				{
-					using (SHA1 sha = SHA1.Create())
-					{
-						var passwordBytes = Encoding.UTF8.GetBytes(password);
-						sha.TransformBlock(passwordBytes, 0, passwordBytes.Length, passwordBytes, 0);
-						sha.TransformBlock(salt, 0, salt.Length, salt, 0);
-						return sha.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
-					}
-				}
+					return GetHash(HashAlgorithmName.SHA1, salt, password);
 
 				case "SSHA256":
-				{
-					using (SHA256 sha = SHA256.Create())
-					{
-						var passwordBytes = Encoding.UTF8.GetBytes(password);
-						sha.TransformBlock(passwordBytes, 0, passwordBytes.Length, passwordBytes, 0);
-						sha.TransformBlock(salt, 0, salt.Length, salt, 0);
-						return sha.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
-					}
-				}
+					return GetHash(HashAlgorithmName.SHA256, salt, password);
 
 				case "SSHA512":
-				{
-					using (SHA512 sha = SHA512.Create())
-					{
-						var passwordBytes = Encoding.UTF8.GetBytes(password);
-						sha.TransformBlock(passwordBytes, 0, passwordBytes.Length, passwordBytes, 0);
-						sha.TransformBlock(salt, 0, salt.Length, salt, 0);
-						return sha.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
-					}
-				}
+					return GetHash(HashAlgorithmName.SHA512, salt, password);
 
 				case "PBKDF2":
 				{
@@ -203,6 +179,15 @@ namespace Vaettir.Mail.Server.FileSystem
 				default:
 					throw new ArgumentException($"Unsupported algorithm {algorithm}", nameof(algorithm));
 			}
+		}
+
+		private static byte[] GetHash(HashAlgorithmName algorithm, byte[] salt, string password)
+		{
+			var inc = IncrementalHash.CreateHash(algorithm);
+			var passwordBytes = Encoding.UTF8.GetBytes(password);
+			inc.AppendData(passwordBytes);
+			inc.AppendData(salt);
+			return inc.GetHashAndReset();
 		}
 
 
@@ -269,8 +254,8 @@ namespace Vaettir.Mail.Server.FileSystem
 				byte[] byteData = Convert.FromBase64String(data);
 				h = new byte[hashSize];
 				Array.Copy(byteData, 0, h, 0, hashSize);
-				s = new byte[data.Length - hashSize];
-				Array.Copy(byteData, hashSize, s, 0, data.Length - hashSize);
+				s = new byte[byteData.Length - hashSize];
+				Array.Copy(byteData, hashSize, s, 0, s.Length);
 			}
 
 			switch (algorithm)

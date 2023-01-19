@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -108,6 +109,7 @@ namespace MailCore
 			optionSet?.WriteOptionDescriptions(textWriter);
 		}
 
+		[RequiresUnreferencedCode("Calls Autofac.RegistrationExtensions.RegisterAssemblyTypes(params Assembly[])")]
 		private static async Task<IContainer> BuildContainer(Options options)
 		{
 			var builder = new ContainerBuilder();
@@ -120,7 +122,7 @@ namespace MailCore
 			builder.RegisterType<AgentHandler>().Keyed<CommandHandler>("agent");
 
 			FileWatcherSettings<AgentSettings> settings = FileWatcherSettings<AgentSettings>.Load(options.SettingsPath);
-			
+
 			var certificates = ImmutableDictionary.CreateBuilder<string, PrivateKeyHolder>();
 			foreach (var connection in settings.Value.Connections)
 			{
@@ -207,7 +209,7 @@ namespace MailCore
 			builder.RegisterInstance(settings)
 				.As<IVolatile<AgentSettings>>()
 				.As<IVolatile<AgentSettings>>();
-			
+
 			builder.RegisterAssemblyTypes(typeof(SmtpSession).GetTypeInfo().Assembly)
 				.Where(t => t.GetTypeInfo().GetCustomAttribute<SmtpCommandAttribute>() != null)
 				.Keyed<ISmtpCommand>(t => t.GetTypeInfo().GetCustomAttribute<SmtpCommandAttribute>().Name);
@@ -229,7 +231,7 @@ namespace MailCore
 			}
 
 			builder.RegisterType<CapabilityCommand>().As<IImapCommand>();
-			
+
 			var authMechs = typeof(IAuthenticationSession)
 				.Assembly
 				.DefinedTypes
