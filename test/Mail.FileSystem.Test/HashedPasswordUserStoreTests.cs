@@ -15,7 +15,7 @@ namespace Vaettir.Mail.FileSystem.Test
 		{
 			string storePath = Path.GetTempFileName();
 			_settings = TestHelpers.MakeSettings(
-				"test.vaettir.net",
+				"vaettir.net.test",
 				userPasswordFile: storePath,
 				passwordAlgorithm: "SSHA512");
 			_store = new HashedPasswdUserStore(_settings);

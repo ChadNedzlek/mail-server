@@ -20,16 +20,16 @@ namespace Vaettir.Mail.Smtp.Test
 				builder,
 				channel,
 				TestHelpers.MakeSettings(
-					"test.vaettir.net",
-					new[] {new SmtpAcceptDomain("test.vaettir.net")})
+					"vaettir.net.test",
+					new[] {new SmtpAcceptDomain("vaettir.net.test")})
 			);
 
-			command.Initialize("TO:<test@test.vaettir.net>");
+			command.Initialize("TO:<test@vaettir.net.test>");
 			await command.ExecuteAsync(CancellationToken.None);
 			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.Okay);
 			Assert.Same(mail, builder.PendingMail);
 			Assert.Single(mail.Recipents);
-			Assert.Equal("test@test.vaettir.net", mail.Recipents[0]);
+			Assert.Equal("test@vaettir.net.test", mail.Recipents[0]);
 		}
 
 		[Fact]
@@ -37,21 +37,21 @@ namespace Vaettir.Mail.Smtp.Test
 		{
 			var channel = new MockSmtpChannel();
 			var mail = new SmtpMailMessage(new SmtpPath("someone@example.com"));
-			mail.Recipents.Add("first@test.vaettir.net");
+			mail.Recipents.Add("first@vaettir.net.test");
 			var builder = new MockMailBuilder {PendingMail = mail};
 			var command = new RecipientCommand(
 				builder,
 				channel,
 				TestHelpers.MakeSettings(
-					"test.vaettir.net",
-					new[] {new SmtpAcceptDomain("test.vaettir.net")})
+					"vaettir.net.test",
+					new[] {new SmtpAcceptDomain("vaettir.net.test")})
 			);
 
-			command.Initialize("TO:<test@test.vaettir.net>");
+			command.Initialize("TO:<test@vaettir.net.test>");
 			await command.ExecuteAsync(CancellationToken.None);
 			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.Okay);
 			Assert.Same(mail, builder.PendingMail);
-			SequenceAssert.SameSet(new[] {"first@test.vaettir.net", "test@test.vaettir.net"}, mail.Recipents);
+			SequenceAssert.SameSet(new[] {"first@vaettir.net.test", "test@vaettir.net.test"}, mail.Recipents);
 		}
 
 		[Fact]
@@ -64,16 +64,16 @@ namespace Vaettir.Mail.Smtp.Test
 				builder,
 				channel,
 				TestHelpers.MakeSettings(
-					"test.vaettir.net",
-					relayDomains: new[] {new SmtpRelayDomain("test.vaettir.net", "elsewhere.vaettir.net")})
+					"vaettir.net.test",
+					relayDomains: new[] {new SmtpRelayDomain("vaettir.net.test", "elsewhere.vaettir.net")})
 			);
 
-			command.Initialize("TO:<test@test.vaettir.net>");
+			command.Initialize("TO:<test@vaettir.net.test>");
 			await command.ExecuteAsync(CancellationToken.None);
 			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.Okay);
 			Assert.Same(mail, builder.PendingMail);
 			Assert.Single(mail.Recipents);
-			Assert.Equal("test@test.vaettir.net", mail.Recipents[0]);
+			Assert.Equal("test@vaettir.net.test", mail.Recipents[0]);
 		}
 
 		[Fact]
@@ -85,11 +85,11 @@ namespace Vaettir.Mail.Smtp.Test
 				builder,
 				channel,
 				TestHelpers.MakeSettings(
-					"test.vaettir.net",
-					new[] {new SmtpAcceptDomain("test.vaettir.net")})
+					"vaettir.net.test",
+					new[] {new SmtpAcceptDomain("vaettir.net.test")})
 			);
 
-			command.Initialize("TO:<test@test.vaettir.net>");
+			command.Initialize("TO:<test@vaettir.net.test>");
 			await command.ExecuteAsync(CancellationToken.None);
 			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.BadSequence);
 			Assert.Null(builder.PendingMail);
@@ -105,8 +105,8 @@ namespace Vaettir.Mail.Smtp.Test
 				builder,
 				channel,
 				TestHelpers.MakeSettings(
-					"test.vaettir.net",
-					new[] {new SmtpAcceptDomain("test.vaettir.net")})
+					"vaettir.net.test",
+					new[] {new SmtpAcceptDomain("vaettir.net.test")})
 			);
 
 			command.Initialize("TO:!!!!");
@@ -125,8 +125,8 @@ namespace Vaettir.Mail.Smtp.Test
 				builder,
 				channel,
 				TestHelpers.MakeSettings(
-					"test.vaettir.net",
-					new[] {new SmtpAcceptDomain("test.vaettir.net")})
+					"vaettir.net.test",
+					new[] {new SmtpAcceptDomain("vaettir.net.test")})
 			);
 
 			command.Initialize("TO:<test@other.vaettir.net>");
@@ -145,11 +145,11 @@ namespace Vaettir.Mail.Smtp.Test
 				builder,
 				channel,
 				TestHelpers.MakeSettings(
-					"test.vaettir.net",
-					new[] {new SmtpAcceptDomain("test.vaettir.net")})
+					"vaettir.net.test",
+					new[] {new SmtpAcceptDomain("vaettir.net.test")})
 			);
 
-			command.Initialize("TO:<@other:test@test.vaettir.net>");
+			command.Initialize("TO:<@other:test@vaettir.net.test>");
 			await command.ExecuteAsync(CancellationToken.None);
 			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.NameNotAllowed);
 			Assert.Same(mail, builder.PendingMail);
@@ -165,8 +165,8 @@ namespace Vaettir.Mail.Smtp.Test
 				builder,
 				channel,
 				TestHelpers.MakeSettings(
-					"test.vaettir.net",
-					new[] {new SmtpAcceptDomain("test.vaettir.net")})
+					"vaettir.net.test",
+					new[] {new SmtpAcceptDomain("vaettir.net.test")})
 			);
 
 			command.Initialize("TO:<no-at>");

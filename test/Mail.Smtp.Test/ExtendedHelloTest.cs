@@ -27,7 +27,7 @@ namespace Vaettir.Mail.Smtp.Test
 				TestHelpers.GetAuths(),
 				conn,
 				channel,
-				TestHelpers.MakeSettings("test.vaettir.net"),
+				TestHelpers.MakeSettings("vaettir.net.test"),
 				new MockLogger());
 			command.Initialize("Sender.net");
 
@@ -44,7 +44,7 @@ namespace Vaettir.Mail.Smtp.Test
 			SequenceAssert.SameSet(new[] {"PLN", "ENC"}, authParts);
 
 			MockSmtpChannel.Entry signoff = channel.Entries.First();
-			Assert.Contains("test.vaettir.net", signoff.Message);
+			Assert.Contains("vaettir.net.test", signoff.Message);
 			Assert.Contains("Sender.net", signoff.Message);
 		}
 
@@ -53,13 +53,14 @@ namespace Vaettir.Mail.Smtp.Test
 		{
 			var channel = new MockSmtpChannel();
 			var conn = new MockConnectionSecurity();
-			conn.Certificate = TestHelpers.GetSelfSigned();
+			using var cert = TestHelpers.GetSelfSigned();
+			conn.Certificate = cert;
 
 			var command = new ExtendedHelloCommand(
 				TestHelpers.GetAuths(),
 				conn,
 				channel,
-				TestHelpers.MakeSettings("test.vaettir.net"),
+				TestHelpers.MakeSettings("vaettir.net.test"),
 				new MockLogger());
 			command.Initialize("Sender.net");
 
@@ -76,7 +77,7 @@ namespace Vaettir.Mail.Smtp.Test
 			SequenceAssert.SameSet(new[] {"PLN"}, authParts);
 
 			MockSmtpChannel.Entry signoff = channel.Entries.First();
-			Assert.Contains("test.vaettir.net", signoff.Message);
+			Assert.Contains("vaettir.net.test", signoff.Message);
 			Assert.Contains("Sender.net", signoff.Message);
 		}
 
@@ -90,7 +91,7 @@ namespace Vaettir.Mail.Smtp.Test
 				TestHelpers.GetAuths(),
 				conn,
 				channel,
-				TestHelpers.MakeSettings("test.vaettir.net"),
+				TestHelpers.MakeSettings("vaettir.net.test"),
 				new MockLogger());
 			command.Initialize("Sender.net");
 
@@ -105,7 +106,7 @@ namespace Vaettir.Mail.Smtp.Test
 			Assert.Contains(channel.Entries, e => e.Message == "AUTH PLN");
 
 			MockSmtpChannel.Entry signoff = channel.Entries.First();
-			Assert.Contains("test.vaettir.net", signoff.Message);
+			Assert.Contains("vaettir.net.test", signoff.Message);
 			Assert.Contains("Sender.net", signoff.Message);
 		}
 	}

@@ -38,7 +38,7 @@ namespace Vaettir.Mail.Smtp.Test
 		{
 			var channel = new MockSmtpChannel();
 			var builder = new MockMailBuilder {PendingMail = new SmtpMailMessage(new SmtpPath("someone@example.com"))};
-			builder.PendingMail.Recipents.Add("in@test.vaettir.net");
+			builder.PendingMail.Recipents.Add("in@vaettir.net.test");
 			var command = new ResetCommand(channel, builder);
 			command.Initialize("");
 			await command.ExecuteAsync(CancellationToken.None);

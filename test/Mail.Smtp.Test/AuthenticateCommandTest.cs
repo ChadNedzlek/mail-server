@@ -55,7 +55,7 @@ namespace Vaettir.Mail.Smtp.Test
 			};
 
 			var channel = new MockSmtpChannel();
-			var mockMailBuilder = new MockMailBuilder {PendingMail = new SmtpMailMessage(new SmtpPath("me@test.vaettir.net"))};
+			var mockMailBuilder = new MockMailBuilder {PendingMail = new SmtpMailMessage(new SmtpPath("me@vaettir.net.test"))};
 			var command = new AuthenticateCommand(auth, channel, mockMailBuilder);
 			command.Initialize("PLAIN");
 			await command.ExecuteAsync(CancellationToken.None);

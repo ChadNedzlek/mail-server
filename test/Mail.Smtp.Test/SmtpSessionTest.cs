@@ -29,7 +29,6 @@ namespace Vaettir.Mail.Smtp.Test
 		}
 
 		private readonly ITestOutputHelper _output;
-		private static readonly X509Certificate2 s_serverCert = TestHelpers.GetSelfSigned();
 
 		private class TestConnection : IDisposable
 		{
@@ -40,6 +39,7 @@ namespace Vaettir.Mail.Smtp.Test
 			public readonly SmtpSession Session;
 			public readonly Task SessionTask;
 			public readonly StreamWriter Writer;
+			public readonly X509Certificate2 ServerCert = TestHelpers.GetSelfSigned();
 
 			public TestConnection(ITestOutputHelper output)
 			{
@@ -53,7 +53,7 @@ namespace Vaettir.Mail.Smtp.Test
 				builder.RegisterAssemblyTypes(typeof(SmtpSession).GetTypeInfo().Assembly)
 					.Where(t => t.GetTypeInfo().GetCustomAttribute<SmtpCommandAttribute>() != null)
 					.Keyed<ISmtpCommand>(t => t.GetTypeInfo().GetCustomAttribute<SmtpCommandAttribute>().Name);
-				builder.RegisterInstance(TestHelpers.MakeSettings("test.vaettir.net"))
+				builder.RegisterInstance(TestHelpers.MakeSettings("vaettir.net.test"))
 					.As<AgentSettings>()
 					.As<AgentSettings>();
 
@@ -65,7 +65,7 @@ namespace Vaettir.Mail.Smtp.Test
 				builder.RegisterType<SmtpAuthenticationTransport>()
 					.As<IAuthenticationTransport>();
 
-				builder.RegisterInstance(new SecurableConnection(b, PrivateKeyHolder.Fixed(s_serverCert)))
+				builder.RegisterInstance(new SecurableConnection(b, PrivateKeyHolder.Fixed(ServerCert)))
 					.As<IConnectionSecurity>()
 					.As<SecurableConnection>();
 
@@ -93,6 +93,8 @@ namespace Vaettir.Mail.Smtp.Test
 				Writer?.Dispose();
 				Connection?.Dispose();
 				Session?.Dispose();
+				ServerCert?.Dispose();
+				Container?.Dispose();
 			}
 
 			internal async Task EndConversation()
@@ -251,11 +253,11 @@ namespace Vaettir.Mail.Smtp.Test
 				var ssl = new SslStream(
 					conn.LocalStream.InnerStream,
 					false,
-					(sender, certificate, chain, errors) => certificate.Subject == "CN=test.vaettir.net");
+					(sender, certificate, chain, errors) => certificate.Subject == "CN=vaettir.net.test");
 
 				await conn.Do(
 					ssl.AuthenticateAsClientAsync(
-						"test.vaettir.net",
+						"vaettir.net.test",
 						null,
 						SslProtocols.Tls12,
 						false));

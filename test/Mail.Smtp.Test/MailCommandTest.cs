@@ -20,11 +20,11 @@ namespace Vaettir.Mail.Smtp.Test
 				channel,
 				builder,
 				TestHelpers.MakeSettings(
-					"test.vaettir.net",
-					new[] {new SmtpAcceptDomain("test.vaettir.net")}),
+					"vaettir.net.test",
+					new[] {new SmtpAcceptDomain("vaettir.net.test")}),
 				user);
 
-			command.Initialize("FROM:<bad@test.vaettir.net>");
+			command.Initialize("FROM:<bad@vaettir.net.test>");
 			await command.ExecuteAsync(CancellationToken.None);
 			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.InvalidArguments);
 			Assert.Null(builder.PendingMail);
@@ -33,18 +33,18 @@ namespace Vaettir.Mail.Smtp.Test
 		[Fact]
 		public async Task FromWrongMailboxRejected()
 		{
-			var channel = new MockSmtpChannel {AuthenticatedUser = new UserData("good@test.vaettir.net")};
+			var channel = new MockSmtpChannel {AuthenticatedUser = new UserData("good@vaettir.net.test")};
 			var builder = new MockMailBuilder();
 			var user = new MockUserStore(false);
 			var command = new MailCommand(
 				channel,
 				builder,
 				TestHelpers.MakeSettings(
-					"test.vaettir.net",
-					new[] {new SmtpAcceptDomain("test.vaettir.net")}),
+					"vaettir.net.test",
+					new[] {new SmtpAcceptDomain("vaettir.net.test")}),
 				user);
 
-			command.Initialize("FROM:<bad@test.vaettir.net>");
+			command.Initialize("FROM:<bad@vaettir.net.test>");
 			await command.ExecuteAsync(CancellationToken.None);
 			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.MailboxUnavailable);
 			Assert.Null(builder.PendingMail);
@@ -60,8 +60,8 @@ namespace Vaettir.Mail.Smtp.Test
 				channel,
 				builder,
 				TestHelpers.MakeSettings(
-					"test.vaettir.net",
-					new[] {new SmtpAcceptDomain("test.vaettir.net")}),
+					"vaettir.net.test",
+					new[] {new SmtpAcceptDomain("vaettir.net.test")}),
 				user);
 
 			command.Initialize("FROM:!!!!");
@@ -84,11 +84,11 @@ namespace Vaettir.Mail.Smtp.Test
 				channel,
 				builder,
 				TestHelpers.MakeSettings(
-					"test.vaettir.net",
-					new[] {new SmtpAcceptDomain("test.vaettir.net")}),
+					"vaettir.net.test",
+					new[] {new SmtpAcceptDomain("vaettir.net.test")}),
 				user);
 
-			command.Initialize("FROM:<good@test.vaettir.net>");
+			command.Initialize("FROM:<good@vaettir.net.test>");
 			await command.ExecuteAsync(CancellationToken.None);
 			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.BadSequence);
 			Assert.Same(message, builder.PendingMail);
@@ -97,39 +97,39 @@ namespace Vaettir.Mail.Smtp.Test
 		[Fact]
 		public async Task VailMailAccepted()
 		{
-			var channel = new MockSmtpChannel {AuthenticatedUser = new UserData("good@test.vaettir.net")};
+			var channel = new MockSmtpChannel {AuthenticatedUser = new UserData("good@vaettir.net.test")};
 			var builder = new MockMailBuilder();
 			var user = new MockUserStore(true);
 			var command = new MailCommand(
 				channel,
 				builder,
 				TestHelpers.MakeSettings(
-					"test.vaettir.net",
-					new[] {new SmtpAcceptDomain("test.vaettir.net")}),
+					"vaettir.net.test",
+					new[] {new SmtpAcceptDomain("vaettir.net.test")}),
 				user);
 
-			command.Initialize("FROM:<good@test.vaettir.net>");
+			command.Initialize("FROM:<good@vaettir.net.test>");
 			await command.ExecuteAsync(CancellationToken.None);
 			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.Okay);
 			Assert.NotNull(builder.PendingMail);
-			Assert.Equal("good@test.vaettir.net", builder.PendingMail.FromPath.Mailbox);
+			Assert.Equal("good@vaettir.net.test", builder.PendingMail.FromPath.Mailbox);
 		}
 
 		[Fact]
 		public async Task VailMailAcceptedWithReturnPathRejected()
 		{
-			var channel = new MockSmtpChannel {AuthenticatedUser = new UserData("good@test.vaettir.net")};
+			var channel = new MockSmtpChannel {AuthenticatedUser = new UserData("good@vaettir.net.test")};
 			var builder = new MockMailBuilder();
 			var user = new MockUserStore(true);
 			var command = new MailCommand(
 				channel,
 				builder,
 				TestHelpers.MakeSettings(
-					"test.vaettir.net",
-					new[] {new SmtpAcceptDomain("test.vaettir.net")}),
+					"vaettir.net.test",
+					new[] {new SmtpAcceptDomain("vaettir.net.test")}),
 				user);
 
-			command.Initialize("FROM:<@other:good@test.vaettir.net>");
+			command.Initialize("FROM:<@other:good@vaettir.net.test>");
 			await command.ExecuteAsync(CancellationToken.None);
 			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.InvalidArguments);
 			Assert.Null(builder.PendingMail);
@@ -138,39 +138,39 @@ namespace Vaettir.Mail.Smtp.Test
 		[Fact]
 		public async Task VailMailWithParametersAccepted()
 		{
-			var channel = new MockSmtpChannel {AuthenticatedUser = new UserData("good@test.vaettir.net")};
+			var channel = new MockSmtpChannel {AuthenticatedUser = new UserData("good@vaettir.net.test")};
 			var builder = new MockMailBuilder();
 			var user = new MockUserStore(true);
 			var command = new MailCommand(
 				channel,
 				builder,
 				TestHelpers.MakeSettings(
-					"test.vaettir.net",
-					new[] {new SmtpAcceptDomain("test.vaettir.net")}),
+					"vaettir.net.test",
+					new[] {new SmtpAcceptDomain("vaettir.net.test")}),
 				user);
 
-			command.Initialize("FROM:<good@test.vaettir.net> BODY=7BIT");
+			command.Initialize("FROM:<good@vaettir.net.test> BODY=7BIT");
 			await command.ExecuteAsync(CancellationToken.None);
 			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.Okay);
 			Assert.NotNull(builder.PendingMail);
-			Assert.Equal("good@test.vaettir.net", builder.PendingMail.FromPath.Mailbox);
+			Assert.Equal("good@vaettir.net.test", builder.PendingMail.FromPath.Mailbox);
 		}
 
 		[Fact]
 		public async Task VailMailWithUnknownRejected()
 		{
-			var channel = new MockSmtpChannel {AuthenticatedUser = new UserData("good@test.vaettir.net")};
+			var channel = new MockSmtpChannel {AuthenticatedUser = new UserData("good@vaettir.net.test")};
 			var builder = new MockMailBuilder();
 			var user = new MockUserStore(true);
 			var command = new MailCommand(
 				channel,
 				builder,
 				TestHelpers.MakeSettings(
-					"test.vaettir.net",
-					new[] {new SmtpAcceptDomain("test.vaettir.net")}),
+					"vaettir.net.test",
+					new[] {new SmtpAcceptDomain("vaettir.net.test")}),
 				user);
 
-			command.Initialize("FROM:<good@test.vaettir.net> EVIL=FAIL");
+			command.Initialize("FROM:<good@vaettir.net.test> EVIL=FAIL");
 			await command.ExecuteAsync(CancellationToken.None);
 			SmtpTestHelper.AssertResponse(channel, SmtpReplyCode.ParameterNotImplemented);
 			Assert.Null(builder.PendingMail);
@@ -186,8 +186,8 @@ namespace Vaettir.Mail.Smtp.Test
 				channel,
 				builder,
 				TestHelpers.MakeSettings(
-					"test.vaettir.net",
-					new[] {new SmtpAcceptDomain("test.vaettir.net")}),
+					"vaettir.net.test",
+					new[] {new SmtpAcceptDomain("vaettir.net.test")}),
 				user);
 
 			command.Initialize("FROM:<>");

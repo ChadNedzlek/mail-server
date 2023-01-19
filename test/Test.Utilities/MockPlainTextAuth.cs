@@ -15,7 +15,7 @@ namespace Vaettir.Mail.Test.Utilities
 			Return
 		}
 
-		public const string UserMailbox = "test@test.vaettir.net";
+		public const string UserMailbox = "test@vaettir.net.test";
 		private readonly Action _action;
 
 		public MockPlainTextAuth(Action action)

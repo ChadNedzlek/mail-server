@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Net.Security;
 using System.Text;
 using System.Threading;
@@ -319,9 +320,10 @@ namespace Vaettir.Mail.Transfer.Test
 				await AssertCommandRecieved(reader, "EHLO");
 				await AssertCommandRecieved(reader, "STARTTLS");
 
-				var encrypted = new SslStream(keep);
+				using var encrypted = new SslStream(keep);
 
-				await encrypted.AuthenticateAsServerAsync(TestHelpers.GetSelfSigned());
+				using var cert = TestHelpers.GetSelfSigned();
+				await encrypted.AuthenticateAsServerAsync(cert);
 				recieveStream.ChangeSteam(encrypted);
 
 				responseBytes = Encoding.ASCII.GetBytes(responseMessagesPostEncrypt);
@@ -331,8 +333,6 @@ namespace Vaettir.Mail.Transfer.Test
 
 				Assert.Equal(0, _queue.References.Count);
 				Assert.Equal(1, _queue.DeletedReferences.Count);
-
-				encrypted.Dispose();
 				keep.Dispose();
 				give.Dispose();
 			}
@@ -377,15 +377,14 @@ namespace Vaettir.Mail.Transfer.Test
 				await AssertCommandRecieved(reader, "EHLO");
 				await AssertCommandRecieved(reader, "STARTTLS");
 
-				var encrypted = new SslStream(keep);
+				await using var encrypted = new SslStream(keep);
 
-				await encrypted.AuthenticateAsServerAsync(TestHelpers.GetSelfSigned());
+				using var cert = TestHelpers.GetSelfSigned();
+				await encrypted.AuthenticateAsServerAsync(cert);
 				Assert.NotEmpty(await sendMailsTask);
 
 				Assert.Equal(1, _queue.References.Count);
 				Assert.Equal(0, _queue.DeletedReferences.Count);
-
-				encrypted.Dispose();
 				keep.Dispose();
 				give.Dispose();
 			}
